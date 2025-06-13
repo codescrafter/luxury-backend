@@ -7,6 +7,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guards';
 import { Role } from 'src/auth/types';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { multerMiddleware } from 'src/common/multer.middleware';
+import { ProductType } from './entities';
 
 @Controller('products')
 export class ProductsController {
@@ -26,9 +27,15 @@ export class ProductsController {
   }
 
   @Get()
-  findAll(@Query('categoryId') categoryId?: string) {
-    if (categoryId) {
-      return this.productsService.findByCategory(categoryId);
+  findAll(
+    @Query('type') type?: ProductType,
+    @Query('locationId') locationId?: string,
+  ) {
+    if (type) {
+      return this.productsService.findByType(type);
+    }
+    if (locationId) {
+      return this.productsService.findByLocation(locationId);
     }
     return this.productsService.findAll();
   }

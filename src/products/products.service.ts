@@ -1,55 +1,67 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Product } from './schemas/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
-import { CategoriesService } from '../categories/categories.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { Product, ProductType } from './entities';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectModel(Product.name)
     private productModel: Model<Product>,
-    private categoriesService: CategoriesService,
     private cloudinaryService: CloudinaryService,
   ) {}
 
-  async create(createProductDto: CreateProductDto, images?: Express.Multer.File[]): Promise<Product> {
+  async create(
+    createProductDto: CreateProductDto,
+    images?: Express.Multer.File[],
+  ): Promise<Product> {
     try {
-      // Verify category exists
-      await this.categoriesService.findOne(createProductDto.categoryId);
-
       let imageUrls: string[] = [];
       if (images && images.length > 0) {
         // Upload images to Cloudinary
-        const uploadPromises = images.map(file => 
-          this.cloudinaryService.uploadImage(file, 'products')
+        const uploadPromises = images.map((file) =>
+          this.cloudinaryService.uploadImage(file, 'products'),
         );
         const uploadResults = await Promise.all(uploadPromises);
-        imageUrls = uploadResults.map(result => result.secure_url);
+        imageUrls = uploadResults.map((result) => result.secure_url);
       }
 
       const createdProduct = new this.productModel({
         ...createProductDto,
-        category: createProductDto.categoryId,
         images: imageUrls,
       });
       return createdProduct.save();
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new BadRequestException('Failed to create product: ' + error.message);
+      throw new BadRequestException(
+        'Failed to create product: ' + error.message,
+      );
     }
   }
 
   async findAll(): Promise<Product[]> {
-    return this.productModel.find().populate('category').exec();
+    return this.productModel
+      .find()
+      .populate('location')
+      .populate('amenities')
+      .populate('linkedResort')
+      .populate('linkedProducts')
+      .exec();
   }
 
   async findOne(id: string): Promise<Product> {
-    const product = await this.productModel.findById(id).populate('category').exec();
+    const product = await this.productModel
+      .findById(id)
+      .populate('location')
+      .populate('amenities')
+      .populate('linkedResort')
+      .populate('linkedProducts')
+      .exec();
 
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
@@ -59,15 +71,11 @@ export class ProductsService {
   }
 
   async update(
-    id: string, 
+    id: string,
     updateProductDto: Partial<CreateProductDto>,
     images?: Express.Multer.File[],
   ): Promise<Product> {
     try {
-      if (updateProductDto.categoryId) {
-        await this.categoriesService.findOne(updateProductDto.categoryId);
-      }
-
       const product = await this.productModel.findById(id);
       if (!product) {
         throw new NotFoundException(`Product with ID ${id} not found`);
@@ -76,17 +84,17 @@ export class ProductsService {
       let imageUrls = product.images;
       if (images && images.length > 0) {
         // Delete old images from Cloudinary
-        const deletePromises = product.images.map(imageUrl => 
-          this.cloudinaryService.deleteImage(imageUrl)
+        const deletePromises = product.images.map((imageUrl) =>
+          this.cloudinaryService.deleteImage(imageUrl),
         );
         await Promise.all(deletePromises);
 
         // Upload new images to Cloudinary
-        const uploadPromises = images.map(file => 
-          this.cloudinaryService.uploadImage(file, 'products')
+        const uploadPromises = images.map((file) =>
+          this.cloudinaryService.uploadImage(file, 'products'),
         );
         const uploadResults = await Promise.all(uploadPromises);
-        imageUrls = uploadResults.map(result => result.secure_url);
+        imageUrls = uploadResults.map((result) => result.secure_url);
       }
 
       const updatedProduct = await this.productModel
@@ -94,12 +102,14 @@ export class ProductsService {
           id,
           {
             ...updateProductDto,
-            category: updateProductDto.categoryId,
             images: imageUrls,
           },
-          { new: true }
+          { new: true },
         )
-        .populate('category')
+        .populate('location')
+        .populate('amenities')
+        .populate('linkedResort')
+        .populate('linkedProducts')
         .exec();
 
       return updatedProduct;
@@ -107,7 +117,9 @@ export class ProductsService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new BadRequestException('Failed to update product: ' + error.message);
+      throw new BadRequestException(
+        'Failed to update product: ' + error.message,
+      );
     }
   }
 
@@ -119,8 +131,8 @@ export class ProductsService {
       }
 
       // Delete images from Cloudinary
-      const deletePromises = product.images.map(imageUrl => 
-        this.cloudinaryService.deleteImage(imageUrl)
+      const deletePromises = product.images.map((imageUrl) =>
+        this.cloudinaryService.deleteImage(imageUrl),
       );
       await Promise.all(deletePromises);
 
@@ -129,16 +141,29 @@ export class ProductsService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new BadRequestException('Failed to delete product: ' + error.message);
+      throw new BadRequestException(
+        'Failed to delete product: ' + error.message,
+      );
     }
   }
 
-  async findByCategory(categoryId: string): Promise<Product[]> {
-    await this.categoriesService.findOne(categoryId);
-    
+  async findByType(type: ProductType): Promise<Product[]> {
     return this.productModel
-      .find({ category: categoryId })
-      .populate('category')
+      .find({ type })
+      .populate('location')
+      .populate('amenities')
+      .populate('linkedResort')
+      .populate('linkedProducts')
       .exec();
   }
-} 
+
+  async findByLocation(locationId: string): Promise<Product[]> {
+    return this.productModel
+      .find({ location: locationId })
+      .populate('location')
+      .populate('amenities')
+      .populate('linkedResort')
+      .populate('linkedProducts')
+      .exec();
+  }
+}
