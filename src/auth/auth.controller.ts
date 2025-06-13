@@ -46,7 +46,6 @@ export class AuthController {
     return this.authService.verifyAccountSignup(verifyAccountDto);
   }
 
-
   @Post('login')
   login(@Body() loginDto: LoginDto): Promise<{ token: string }> {
     return this.authService.login(loginDto);
@@ -62,7 +61,6 @@ export class AuthController {
   @Get('user')
   @UseGuards(AuthGuard())
   async getUser(@Req() req): Promise<TUserReturn> {
-
     return this.authService.getUser({
       user: req.user,
     });
@@ -100,11 +98,11 @@ export class AuthController {
     },
   ): Promise<{ message: string }> {
     let avatarUrl: string | undefined;
-    
+
     if (files?.avatar?.[0]) {
       const uploadResult = await this.cloudinaryService.uploadImage(
         files.avatar[0],
-        'user-avatars'
+        'user-avatars',
       );
       avatarUrl = uploadResult.secure_url;
     }
