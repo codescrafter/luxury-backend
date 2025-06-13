@@ -23,10 +23,14 @@ import { EditUserDto } from './dto/edit-user-dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { multerMiddleware } from 'src/common/multer.middleware';
 import { ResendSignupCode } from './dto/resend-signup-code-dto';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private cloudinaryService: CloudinaryService,
+  ) {}
 
   @Post('send-signup-req')
   sendSignUpCode(
@@ -85,18 +89,27 @@ export class AuthController {
   @Put('update-user/:userId')
   @UseGuards(AuthGuard())
   @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'avatar', maxCount: 10 }], multerMiddleware),
+    FileFieldsInterceptor([{ name: 'avatar', maxCount: 1 }], multerMiddleware),
   )
   async updateUser(
     @Req() req,
     @Body() updateUserDto: EditUserDto,
     @UploadedFiles()
     files: {
-      avatar?: any[];
+      avatar?: Express.Multer.File[];
     },
   ): Promise<{ message: string }> {
-    const avatar = files?.avatar;
-    return this.authService.editUser(req.user, updateUserDto, avatar);
+    let avatarUrl: string | undefined;
+    
+    if (files?.avatar?.[0]) {
+      const uploadResult = await this.cloudinaryService.uploadImage(
+        files.avatar[0],
+        'user-avatars'
+      );
+      avatarUrl = uploadResult.secure_url;
+    }
+
+    return this.authService.editUser(req.user, updateUserDto, avatarUrl);
   }
 
   // admin and super admin routes start

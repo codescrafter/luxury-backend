@@ -11,6 +11,7 @@ import {
   UserVerification,
 } from './schemas/user-verification-schema';
 import { JwtStrategy } from './jwt.strategy';
+import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { JwtStrategy } from './jwt.strategy';
       { name: UserVerification.name, schema: UserVerificationSchema },
     ]),
     ConfigModule,
+    CloudinaryModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

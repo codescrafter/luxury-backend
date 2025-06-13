@@ -20,7 +20,7 @@ import { GetAllUsersDto } from './dto/get-all-users-dto';
 import { SendSignUpRequestDto } from './dto/send-signup-request';
 import { ResendSignupCode } from './dto/resend-signup-code-dto';
 import { EditUserDto } from './dto/edit-user-dto';
-import { deleteCloudinaryImage } from 'src/common/multer.middleware';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import * as bcrypt from 'bcryptjs';
 
 enum EMAIL_TEMPLATE_IDS {
@@ -50,6 +50,8 @@ export class AuthService {
     private jwtService: JwtService,
 
     private configService: ConfigService,
+
+    private cloudinaryService: CloudinaryService,
   ) {}
 
   private generateRandomCode(): string {
@@ -575,15 +577,14 @@ export class AuthService {
     };
   }
 
-  async editUser(userId: string, editUserDto: EditUserDto, avatar?: any) {
+  async editUser(userId: string, editUserDto: EditUserDto, avatarUrl?: string) {
     const { name, email, phone, emailCode, phoneCode } = editUserDto;
 
-    if (avatar) {
-      const avatarUrl = avatar[0].path;
+    if (avatarUrl) {
       // delete old avatar
       const user = await this.userModel.findOne({ _id: userId });
       if (user.avatar) {
-        deleteCloudinaryImage(user.avatar);
+        await this.cloudinaryService.deleteImage(user.avatar);
       }
       await this.userModel.findOneAndUpdate(
         { _id: userId },
