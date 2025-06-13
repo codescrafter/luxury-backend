@@ -1,0 +1,60 @@
+# name: CI-CD
+
+# on:
+#   push:
+#     branches: [main]
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#       - name: Create .env file dynamically
+#         run: |
+#           echo "DB_URI=${{ secrets.DB_URI }}" > .env
+#           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+#           echo "JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}" >> .env
+#           echo "PORT=${{ secrets.PORT }}" >> .env
+#           echo "SENDGRID_TEMPLATE_ID=${{ secrets.SENDGRID_TEMPLATE_ID }}" >> .env
+#           echo "SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}" >> .env
+#           echo "SENDGRID_SENDER_EMAIL=${{ secrets.SENDGRID_SENDER_EMAIL }}" >> .env
+#           echo "TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID }}" >> .env
+#           echo "TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }}" >> .env
+#           echo "TWILIO_FROM_PHONE_NUMBER=${{ secrets.TWILIO_FROM_PHONE_NUMBER }}" >> .env
+
+#       - name: Create Docker Network
+#         run: docker network create dockernet || true
+
+#       - name: Build docker_compose
+#         run: docker compose up -d --build
+#   deploy:
+#     needs: build
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#       - name: Deploy application
+#         env:
+#           PRIVATE_KEY: ${{ secrets.CERTIFICATE }}
+#           HOSTNAME: ${{ secrets.HOSTNAME }}
+#           USERNAME: ${{ secrets.USERNAME }}
+
+#         run: |
+#           # Save the private key and set correct permissions
+#           echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+
+#           # SSH into the server and perform deployment steps
+#           ssh -o StrictHostKeyChecking=no -i private_key ${USERNAME}@${HOSTNAME} '
+#             cd /home/ubuntu/em-backend &&
+
+#             # Ensure the certbot directory has the right permissions
+#             sudo chown -R ubuntu:ubuntu /home/ubuntu/em-backend/data/certbot &&
+#             sudo chmod -R 755 /home/ubuntu/em-backend/data/certbot &&
+
+#             # Git and Docker operations
+#             git checkout main &&
+#             git fetch --all &&
+#             git reset --hard origin/main &&
+#             git pull origin main &&
+#             docker network create dockernet || true &&
+#             docker compose up -d --build
+#           '

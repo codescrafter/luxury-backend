@@ -1,0 +1,21 @@
+# Base image
+FROM node:20
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Install Nest CLI globally for development
+RUN npm install -g @nestjs/cli
+
+# Expose application port
+EXPOSE 3000
+
+# Command to run in development mode with live reload
+CMD ["npm", "run", "start:dev"]
