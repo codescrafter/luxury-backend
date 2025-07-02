@@ -38,10 +38,15 @@ export class AuthController {
     @Body() sendSignUpRequestDto: SendSignUpRequestDto,
   ): Promise<any> {
     try {
-      const result = await this.authService.sendSignupRequest(sendSignUpRequestDto);
+      const result =
+        await this.authService.sendSignupRequest(sendSignUpRequestDto);
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to send signup code', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to send signup code',
+        error: error.message,
+      };
     }
   }
 
@@ -50,10 +55,15 @@ export class AuthController {
     @Body() verifyAccountDto: VerifyAccountDto,
   ): Promise<any> {
     try {
-      const result = await this.authService.verifyAccountSignup(verifyAccountDto);
+      const result =
+        await this.authService.verifyAccountSignup(verifyAccountDto);
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Verification failed', error: error.message };
+      return {
+        success: false,
+        message: 'Verification failed',
+        error: error.message,
+      };
     }
   }
 
@@ -72,10 +82,15 @@ export class AuthController {
     @Body() resendSignupCodeDto: ResendSignupCodeDto,
   ): Promise<any> {
     try {
-      const result = await this.authService.resendSignupCode(resendSignupCodeDto);
+      const result =
+        await this.authService.resendSignupCode(resendSignupCodeDto);
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to resend code', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to resend code',
+        error: error.message,
+      };
     }
   }
 
@@ -86,35 +101,47 @@ export class AuthController {
       const result = await this.authService.getUser({ user: req.user });
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to get user', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to get user',
+        error: error.message,
+      };
     }
   }
 
   @Post('send-update-email-code')
   @UseGuards(AuthGuard())
-  async sendUpdateEmailCode(
-    @Req() req,
-    @Body() body,
-  ): Promise<any> {
+  async sendUpdateEmailCode(@Req() req, @Body() body): Promise<any> {
     try {
-      const result = await this.authService.sendUpdateEmailCode(req.user._id, body.email);
+      const result = await this.authService.sendUpdateEmailCode(
+        req.user._id,
+        body.email,
+      );
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to send update email code', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to send update email code',
+        error: error.message,
+      };
     }
   }
 
   @Post('send-update-phone-code')
   @UseGuards(AuthGuard())
-  async sendUpdatePhoneCode(
-    @Req() req,
-    @Body() body,
-  ): Promise<any> {
+  async sendUpdatePhoneCode(@Req() req, @Body() body): Promise<any> {
     try {
-      const result = await this.authService.sendUpdatePhoneCode(req.user._id, body.phone);
+      const result = await this.authService.sendUpdatePhoneCode(
+        req.user._id,
+        body.phone,
+      );
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to send update phone code', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to send update phone code',
+        error: error.message,
+      };
     }
   }
 
@@ -142,10 +169,18 @@ export class AuthController {
         avatarUrl = uploadResult.secure_url;
       }
 
-      const result = await this.authService.editUser(req.user._id, updateUserDto, avatarUrl);
+      const result = await this.authService.editUser(
+        req.user._id,
+        updateUserDto,
+        avatarUrl,
+      );
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to update user', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to update user',
+        error: error.message,
+      };
     }
   }
 
@@ -156,7 +191,11 @@ export class AuthController {
       const result = await this.authService.applyForPartner(req.user._id);
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to apply for partner', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to apply for partner',
+        error: error.message,
+      };
     }
   }
 
@@ -165,14 +204,16 @@ export class AuthController {
   @Get('users')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.ADMIN)
-  async getUsers(
-    @Query() getAllUsersDto: GetAllUsersDto,
-  ): Promise<any> {
+  async getUsers(@Query() getAllUsersDto: GetAllUsersDto): Promise<any> {
     try {
       const result = await this.authService.getUsers(getAllUsersDto);
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to get users', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to get users',
+        error: error.message,
+      };
     }
   }
 
@@ -184,19 +225,29 @@ export class AuthController {
       const result = await this.authService.getPartnerApplications();
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to get partner applications', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to get partner applications',
+        error: error.message,
+      };
     }
   }
 
   @Post('approve-partner-application/:userId')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.ADMIN)
-  async approvePartnerApplication(@Param('userId') userId: string): Promise<any> {
+  async approvePartnerApplication(
+    @Param('userId') userId: string,
+  ): Promise<any> {
     try {
       const result = await this.authService.approvePartnerApplication(userId);
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to approve partner application', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to approve partner application',
+        error: error.message,
+      };
     }
   }
 
@@ -208,7 +259,11 @@ export class AuthController {
       const result = await this.authService.getPartners();
       return { success: true, data: result };
     } catch (error) {
-      return { success: false, message: 'Failed to get partners', error: error.message };
+      return {
+        success: false,
+        message: 'Failed to get partners',
+        error: error.message,
+      };
     }
   }
 }
