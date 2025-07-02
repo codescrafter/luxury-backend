@@ -7,11 +7,9 @@ import { Jetski, JetskiSchema } from './entities/jetski.entity';
 import { Kayak, KayakSchema } from './entities/kayak.entity';
 import { Yacht, YachtSchema } from './entities/yacht.entity';
 import { Speedboat, SpeedboatSchema } from './entities/speedboat.entity';
-import { Product, ProductSchema } from './entities/product.entity';
 import { Resort, ResortSchema } from './entities/resort.entity';
 
 import { User, UserSchema } from 'src/auth/schemas/user-schema';
-import { Location, LocationSchema } from './entities/location.entity';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
 import { PassportModule } from '@nestjs/passport';
@@ -22,14 +20,12 @@ import { JwtStrategy } from 'src/auth/jwt.strategy';
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: Product.name, schema: ProductSchema },
       { name: Jetski.name, schema: JetskiSchema },
       { name: Kayak.name, schema: KayakSchema },
       { name: Yacht.name, schema: YachtSchema },
       { name: Speedboat.name, schema: SpeedboatSchema },
       { name: Resort.name, schema: ResortSchema },
       { name: User.name, schema: UserSchema },
-      { name: Location.name, schema: LocationSchema }, // optional
     ]),
     CloudinaryModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),

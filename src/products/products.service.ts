@@ -1,115 +1,286 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
-import { Product, ProductDocument } from './entities/product.entity';
-import { User, UserDocument } from 'src/auth/schemas/user-schema';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { UpdateProductStatusDto } from './dto/update-product-status.dto';
+import { UserDocument } from 'src/auth/schemas/user-schema';
+import { Jetski, JetskiDocument } from './entities/jetski.entity';
+import { Kayak, KayakDocument } from './entities/kayak.entity';
+import { Yacht, YachtDocument } from './entities/yacht.entity';
+import { Speedboat, SpeedboatDocument } from './entities/speedboat.entity';
+import { Resort, ResortDocument } from './entities/resort.entity';
+import { CreateJetskiDto, UpdateJetskiDto } from './dto/jetski.dto';
+import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
+import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
+import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
+import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
 
 @Injectable()
 export class ProductsService {
   constructor(
-    @InjectModel(Product.name)
-    private readonly productModel: Model<ProductDocument>,
+    @InjectModel(Jetski.name)
+    private readonly jetSkiModel: Model<JetskiDocument>,
+    @InjectModel(Kayak.name) private readonly kayakModel: Model<KayakDocument>,
+    @InjectModel(Yacht.name) private readonly yachtModel: Model<YachtDocument>,
+    @InjectModel(Speedboat.name)
+    private readonly speedboatModel: Model<SpeedboatDocument>,
+    @InjectModel(Resort.name)
+    private readonly resortModel: Model<ResortDocument>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  async create(
-    type: 'jetski' | 'kayak' | 'yacht' | 'speedboat',
-    dto: any,
-    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
+  private async uploadMedia(
+    files: Express.Multer.File[] | undefined,
+    folder: string,
+  ) {
+    if (!files) return [];
+    return Promise.all(
+      files.map((file) =>
+        (folder.includes('image')
+          ? this.cloudinaryService.uploadImage(file, folder)
+          : this.cloudinaryService.uploadVideo(file, folder)
+        ).then((res) => res.secure_url),
+      ),
+    );
+  }
+
+  private buildFilterQuery(filters: any) {
+    const query: any = {};
+    if (filters.numberOfPeople)
+      query.capacity = { $gte: +filters.numberOfPeople };
+    if (filters.city) query.city = filters.city;
+    if (filters.region) query.region = filters.region;
+    if (filters.country) query.country = filters.country;
+    return query;
+  }
+
+  async createJetSkiHandler(
+    dto: CreateJetskiDto,
+    files: any,
     user: UserDocument,
   ) {
-    const images = files.images
-      ? await Promise.all(
-          files.images.map((file) =>
-            this.cloudinaryService
-              .uploadImage(file, 'product-images')
-              .then((res) => res.secure_url),
-          ),
-        )
-      : [];
-
-    const videos = files.videos
-      ? await Promise.all(
-          files.videos.map((file) =>
-            this.cloudinaryService
-              .uploadVideo(file, 'product-videos')
-              .then((res) => res.secure_url),
-          ),
-        )
-      : [];
-
-    const product = new this.productModel({
+    const images = await this.uploadMedia(files.images, 'product-images');
+    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    return await new this.jetSkiModel({
       ...dto,
-      type,
-      status: 'pending',
-      ownerId: user._id,
       images,
       videos,
-    });
-
-    return await product.save();
+      ownerId: user._id,
+      status: 'pending',
+    }).save();
   }
 
-  async update(
+  async updateJetSkiHandler(
     id: string,
-    dto: UpdateProductDto,
-    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
+    dto: UpdateJetskiDto,
     user: UserDocument,
   ) {
-    const product = await this.productModel.findById(id);
+    return this.jetSkiModel.findOneAndUpdate(
+      { _id: id, ownerId: user._id },
+      dto,
+      { new: true },
+    );
+  }
 
-    if (!product) throw new NotFoundException('Product not found');
-    if (product.ownerId.toString() !== user._id.toString())
-      throw new ForbiddenException('Access denied');
+  async getJetSkis(filters: any) {
+    return this.jetSkiModel.find(this.buildFilterQuery(filters));
+  }
 
-    const images = files.images
-      ? await Promise.all(
-          files.images.map((file) =>
-            this.cloudinaryService
-              .uploadImage(file, 'product-images')
-              .then((res) => res.secure_url),
-          ),
-        )
-      : product.images;
+  async getJetSkiById(id: string) {
+    return this.jetSkiModel.findById(id);
+  }
 
-    const videos = files.videos
-      ? await Promise.all(
-          files.videos.map((file) =>
-            this.cloudinaryService
-              .uploadVideo(file, 'product-videos')
-              .then((res) => res.secure_url),
-          ),
-        )
-      : product.videos;
+  async approveJetSkiHandler(id: string) {
+    return this.jetSkiModel.findByIdAndUpdate(
+      id,
+      { status: 'approved' },
+      { new: true },
+    );
+  }
 
-    Object.assign(product, dto, {
+  async createKayakHandler(
+    dto: CreateKayakDto,
+    files: any,
+    user: UserDocument,
+  ) {
+    const images = await this.uploadMedia(files.images, 'product-images');
+    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    return await new this.kayakModel({
+      ...dto,
       images,
       videos,
+      ownerId: user._id,
       status: 'pending',
-    });
-
-    product.resubmissionCount += 1;
-    return await product.save();
+    }).save();
   }
 
-  async updateStatus(id: string, dto: UpdateProductStatusDto) {
-    const product = await this.productModel.findById(id);
-    if (!product) throw new NotFoundException('Product not found');
-
-    product.status = dto.status;
-    return await product.save();
+  async updateKayakHandler(
+    id: string,
+    dto: UpdateKayakDto,
+    user: UserDocument,
+  ) {
+    return this.kayakModel.findOneAndUpdate(
+      { _id: id, ownerId: user._id },
+      dto,
+      { new: true },
+    );
   }
 
-  async findById(id: string) {
-    const product = await this.productModel.findById(id);
-    if (!product) throw new NotFoundException('Product not found');
-    return product;
+  async getKayaks(filters: any) {
+    return this.kayakModel.find(this.buildFilterQuery(filters));
+  }
+
+  async getKayakById(id: string) {
+    return this.kayakModel.findById(id);
+  }
+
+  async approveKayakHandler(id: string) {
+    return this.kayakModel.findByIdAndUpdate(
+      id,
+      { status: 'approved' },
+      { new: true },
+    );
+  }
+
+  async createYachtHandler(
+    dto: CreateYachtDto,
+    files: any,
+    user: UserDocument,
+  ) {
+    const images = await this.uploadMedia(files.images, 'product-images');
+    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    return await new this.yachtModel({
+      ...dto,
+      images,
+      videos,
+      ownerId: user._id,
+      status: 'pending',
+    }).save();
+  }
+
+  async updateYachtHandler(
+    id: string,
+    dto: UpdateYachtDto,
+    user: UserDocument,
+  ) {
+    return this.yachtModel.findOneAndUpdate(
+      { _id: id, ownerId: user._id },
+      dto,
+      { new: true },
+    );
+  }
+
+  async getYachts(filters: any) {
+    return this.yachtModel.find(this.buildFilterQuery(filters));
+  }
+
+  async getYachtById(id: string) {
+    return this.yachtModel.findById(id);
+  }
+
+  async approveYachtHandler(id: string) {
+    return this.yachtModel.findByIdAndUpdate(
+      id,
+      { status: 'approved' },
+      { new: true },
+    );
+  }
+
+  async createSpeedboatHandler(
+    dto: CreateSpeedboatDto,
+    files: any,
+    user: UserDocument,
+  ) {
+    const images = await this.uploadMedia(files.images, 'product-images');
+    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    return await new this.speedboatModel({
+      ...dto,
+      images,
+      videos,
+      ownerId: user._id,
+      status: 'pending',
+    }).save();
+  }
+
+  async updateSpeedboatHandler(
+    id: string,
+    dto: UpdateSpeedboatDto,
+    user: UserDocument,
+  ) {
+    return this.speedboatModel.findOneAndUpdate(
+      { _id: id, ownerId: user._id },
+      dto,
+      { new: true },
+    );
+  }
+
+  async getSpeedboats(filters: any) {
+    return this.speedboatModel.find(this.buildFilterQuery(filters));
+  }
+
+  async getSpeedboatById(id: string) {
+    return this.speedboatModel.findById(id);
+  }
+
+  async approveSpeedboatHandler(id: string) {
+    return this.speedboatModel.findByIdAndUpdate(
+      id,
+      { status: 'approved' },
+      { new: true },
+    );
+  }
+
+  async createResortHandler(
+    dto: CreateResortDto,
+    files: any,
+    user: UserDocument,
+  ) {
+    const images = await this.uploadMedia(files.images, 'product-images');
+    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    return await new this.resortModel({
+      ...dto,
+      images,
+      videos,
+      ownerId: user._id,
+      status: 'pending',
+    }).save();
+  }
+
+  async updateResortHandler(
+    id: string,
+    dto: UpdateResortDto,
+    user: UserDocument,
+  ) {
+    return this.resortModel.findOneAndUpdate(
+      { _id: id, ownerId: user._id },
+      dto,
+      { new: true },
+    );
+  }
+
+  async getResorts(filters: any) {
+    return this.resortModel.find(this.buildFilterQuery(filters));
+  }
+
+  async getResortById(id: string) {
+    return this.resortModel.findById(id);
+  }
+
+  async approveResortHandler(id: string) {
+    return this.resortModel.findByIdAndUpdate(
+      id,
+      { status: 'approved' },
+      { new: true },
+    );
+  }
+
+  async getAllPendingProducts() {
+    const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+      this.jetSkiModel.find({ status: 'pending' }),
+      this.kayakModel.find({ status: 'pending' }),
+      this.yachtModel.find({ status: 'pending' }),
+      this.speedboatModel.find({ status: 'pending' }),
+      this.resortModel.find({ status: 'pending' }),
+    ]);
+    return { jetskis, kayaks, yachts, speedboats, resorts };
   }
 }
