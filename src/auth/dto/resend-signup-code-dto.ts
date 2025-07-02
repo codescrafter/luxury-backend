@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, Validate } from 'class-validator';
+import { IsNotEmpty, Validate, IsEmail, IsPhoneNumber } from 'class-validator';
 import { IsEmailOrPhoneConstraint } from 'src/helpers/dto-helpers';
 
 export class ResendSignupCode {
@@ -7,4 +7,14 @@ export class ResendSignupCode {
   @Transform(({ value }) => value.trim().toLowerCase())
   @Validate(IsEmailOrPhoneConstraint)
   readonly emailOrPhone: string;
+}
+
+export class ResendSignupCodeDto {
+  @IsNotEmpty()
+  @IsEmail()
+  readonly email: string;
+
+  @IsNotEmpty()
+  @IsPhoneNumber()
+  readonly phone: string;
 }

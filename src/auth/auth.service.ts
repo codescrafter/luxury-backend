@@ -15,10 +15,18 @@ import { VerifyAccountDto } from './dto/verify-account-dto';
 import { UserVerification } from './schemas/user-verification-schema';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { TSendVerificationCodeReturn, TUserReturn } from './types';
+import {
+  ESignInMethods,
+  Role,
+  TSendVerificationCodeReturn,
+  TUserReturn,
+} from './types';
 import { GetAllUsersDto } from './dto/get-all-users-dto';
 import { SendSignUpRequestDto } from './dto/send-signup-request';
-import { ResendSignupCode } from './dto/resend-signup-code-dto';
+import {
+  ResendSignupCode,
+  ResendSignupCodeDto,
+} from './dto/resend-signup-code-dto';
 import { EditUserDto } from './dto/edit-user-dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import * as bcrypt from 'bcryptjs';
@@ -175,45 +183,39 @@ export class AuthService {
   private isEnteredCodeValid(
     code: string,
     userVerification: UserVerification,
-    emailOrPhone: string,
+    type: 'email' | 'phone',
   ) {
-    if (emailOrPhone.includes('@')) {
+    if (type === 'email') {
       if (userVerification.emailVerificationCode !== code) {
-        throw new UnauthorizedException('Invalid verification code');
+        throw new UnauthorizedException('Invalid email verification code');
       }
       const expirationTime =
         (userVerification?.emailCodeSentAt?.getTime() || 0) +
         this.CODE_EXPIRATION * 60 * 1000;
       if (expirationTime < new Date().getTime()) {
-        throw new BadRequestException('Verification code expired');
+        throw new BadRequestException('Email verification code expired');
       }
     } else {
       if (userVerification.phoneVerificationCode !== code) {
-        throw new UnauthorizedException('Invalid verification code');
+        throw new UnauthorizedException('Invalid phone verification code');
       }
       const expirationTime =
         (userVerification?.phoneCodeSentAt?.getTime() || 0) +
         this.CODE_EXPIRATION * 60 * 1000;
       if (expirationTime < new Date().getTime()) {
-        throw new BadRequestException('Verification code expired');
+        throw new BadRequestException('Phone verification code expired');
       }
     }
   }
 
-  private isResendCodeAllowed(
-    userVerification: UserVerification,
-    emailOrPhone: string,
-  ) {
+  private isResendCodeAllowed(userVerification: UserVerification) {
     // check if last code sent time is less than 1 minute
     const emailCodeExpirationTime =
       (userVerification?.emailCodeSentAt?.getTime() || 0) + 1 * 60 * 1000;
     const phoneCodeExpirationTime =
       (userVerification?.phoneCodeSentAt?.getTime() || 0) + 1 * 60 * 1000;
 
-    if (
-      emailOrPhone.includes('@') &&
-      emailCodeExpirationTime > new Date().getTime()
-    ) {
+    if (emailCodeExpirationTime > new Date().getTime()) {
       throw new HttpException(
         {
           message: 'Email verification code already sent',
@@ -236,123 +238,113 @@ export class AuthService {
   async sendSignupRequest(
     sendSignUpRequestDto: SendSignUpRequestDto,
   ): Promise<TSendVerificationCodeReturn> {
-    const { name, emailOrPhone, password } = sendSignUpRequestDto;
+    const { name, email, phone, password } = sendSignUpRequestDto;
+    // get user by email or phone
     const existingUser = await this.userModel.findOne({
-      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
+      $or: [{ email: email }, { phone: phone }],
     });
-    let userVerification = await this.userVerification.findOne({
+
+    const userVerification = await this.userVerification.findOne({
       userId: existingUser?._id,
     });
     if (existingUser) {
       if (userVerification.isSignupCompleted) {
         throw new ConflictException('User already exist');
       }
-      this.isResendCodeAllowed(userVerification, emailOrPhone);
+
+      this.isResendCodeAllowed(userVerification);
     }
 
-    const verificationCode = this.generateRandomCode();
+    const emailVerificationCode = this.generateRandomCode();
+    const phoneVerificationCode = this.generateRandomCode();
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    if (emailOrPhone.includes('@')) {
-      await this.sendEmail({
-        receiverEmail: emailOrPhone,
-        code: verificationCode,
-        username: name,
-        template_id: EMAIL_TEMPLATE_IDS.SIGNUP_CODE_REQ,
-      });
-
-      const user = await this.userModel.findOneAndUpdate(
-        { email: emailOrPhone },
-        {
-          name,
-          password: hashedPassword,
-        },
-        { upsert: true, new: true },
-      );
-      await this.userVerification.findOneAndUpdate(
-        { userId: user._id },
-        {
-          emailVerificationCode: verificationCode,
-          emailCodeSentAt: new Date(),
-        },
-        { upsert: true, new: true },
-      );
-
-      return {
-        message: 'Email verification code sent.',
-        emailCodeSentAt: new Date().getTime(),
-      };
-    }
+    await this.sendEmail({
+      receiverEmail: email,
+      code: emailVerificationCode,
+      username: name,
+      template_id: EMAIL_TEMPLATE_IDS.SIGNUP_CODE_REQ,
+    });
     await this.sendPhoneSms({
-      phone: emailOrPhone,
-      message: `Your Luxury verification code is: ${verificationCode}`,
+      phone: phone,
+      message: `Your Baia verification code is: ${phoneVerificationCode}`,
     });
 
     const user = await this.userModel.findOneAndUpdate(
-      { phone: emailOrPhone },
+      { email: email, phone: phone },
       {
         name,
+        email,
+        phone,
         password: hashedPassword,
+        signInMethod: ESignInMethods.PASSWORD,
       },
       { upsert: true, new: true },
     );
+
     await this.userVerification.findOneAndUpdate(
       { userId: user._id },
       {
-        phoneVerificationCode: verificationCode,
-        phoneCodeSentAt: new Date(),
+        emailVerificationCode: emailVerificationCode,
+        phoneVerificationCode: phoneVerificationCode,
+        emailCodeSentAt: new Date().getTime(),
+        phoneCodeSentAt: new Date().getTime(),
+        isSignupCompleted: false,
       },
       { upsert: true, new: true },
     );
 
     return {
-      message: 'Phone verification code sent.',
+      message: 'Signup request sent',
+      emailCodeSentAt: new Date().getTime(),
       phoneCodeSentAt: new Date().getTime(),
     };
   }
 
   async verifyAccountSignup(
     verifyAccountDto: VerifyAccountDto,
-  ): Promise<{ message: string }> {
-    const { emailOrPhone, code } = verifyAccountDto;
+  ): Promise<{ message: string; token: string }> {
+    const { email, phone, emailCode, phoneCode } = verifyAccountDto;
+
+    // Find user by email and phone
     const user = await this.userModel.findOne({
-      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
+      email: email,
+      phone: phone,
     });
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
     const userVerification = await this.userVerification.findOne({
       userId: user._id,
     });
 
-    this.isEnteredCodeValid(code, userVerification, emailOrPhone);
-
-    if (emailOrPhone.includes('@')) {
-      await this.userVerification.findOneAndUpdate(
-        { userId: user._id },
-        {
-          isEmailVerified: true,
-        },
-      );
-    } else {
-      await this.userVerification.findOneAndUpdate(
-        { userId: user._id },
-        {
-          isPhoneVerified: true,
-        },
-      );
+    if (!userVerification) {
+      throw new NotFoundException('User verification not found');
     }
-    // set isSignupCompleted to true
+
+    // Verify email code
+    this.isEnteredCodeValid(emailCode, userVerification, 'email');
+
+    // Verify phone code
+    this.isEnteredCodeValid(phoneCode, userVerification, 'phone');
+
+    // Update both email and phone verification status and mark signup as completed
     await this.userVerification.findOneAndUpdate(
       { userId: user._id },
       {
+        isEmailVerified: true,
+        isPhoneVerified: true,
         isSignupCompleted: true,
-      }
-    )
-    return { message: 'Account verified successfully' };
+      },
+    );
+    // issue JWT token
+    const token = this.jwtService.sign({ id: user._id });
+
+    return { message: 'Account verified successfully', token: token };
   }
-
-
 
   async login(loginDto: LoginDto): Promise<{ token: string }> {
     const { emailOrPhone, password } = loginDto;
@@ -361,6 +353,13 @@ export class AuthService {
     });
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // Check if user signed up with password method
+    if (user.signInMethod !== ESignInMethods.PASSWORD) {
+      throw new UnauthorizedException(
+        `This account was created using ${user.signInMethod} sign-in. Please use the appropriate login method.`,
+      );
     }
 
     const userVerification = await this.userVerification.findOne({
@@ -378,6 +377,76 @@ export class AuthService {
     return { token };
   }
 
+  async googleLogin(): Promise<{ token: string }> {
+    // Verify Google ID token (you'll need to implement this based on your Google OAuth setup)
+    const googleUser = await this.verifyGoogleToken();
+
+    if (!googleUser) {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    // Check if user already exists
+    let user = await this.userModel.findOne({ email: googleUser.email });
+
+    if (user) {
+      // User exists, check if they signed up with Google
+      if (user.signInMethod !== ESignInMethods.GOOGLE) {
+        throw new UnauthorizedException(
+          `This email is already registered with ${user.signInMethod} sign-in. Please use the appropriate login method.`,
+        );
+      }
+
+      // Update user info if needed
+      await this.userModel.findOneAndUpdate(
+        { _id: user._id },
+        {
+          name: googleUser.name,
+          avatar: googleUser.picture,
+        },
+      );
+    } else {
+      // Create new user
+      user = await this.userModel.create({
+        name: googleUser.name,
+        email: googleUser.email,
+        phone: googleUser.phone, // Google users might not have phone initially
+        signInMethod: ESignInMethods.GOOGLE,
+      });
+
+      // Create user verification record (Google users are pre-verified)
+      await this.userVerification.create({
+        userId: user._id,
+        isEmailVerified: true,
+        isPhoneVerified: false, // Phone verification might be required later
+        isSignupCompleted: true,
+      });
+    }
+
+    const token = this.jwtService.sign({ id: user._id });
+    return { token };
+  }
+
+  private async verifyGoogleToken(): Promise<any> {
+    // This is a placeholder implementation
+    // You'll need to implement actual Google token verification
+    // using Google's OAuth2 API or a library like google-auth-library
+    try {
+      // For now, we'll return a mock implementation
+      // In production, you should verify the token with Google
+      // You would typically use something like:
+      // const ticket = await client.verifyIdToken({
+      //   idToken,
+      //   audience: GOOGLE_CLIENT_ID,
+      // });
+      // const payload = ticket.getPayload();
+      // For now, return null to indicate verification is needed
+      return null;
+    } catch (error) {
+      console.error('Google token verification failed:', error);
+      return null;
+    }
+  }
+
   async getUser({ user }): Promise<TUserReturn> {
     const userVerification = await this.userVerification.findOne({
       userId: user._id,
@@ -393,6 +462,10 @@ export class AuthService {
       isPhoneVerified: userVerification.isPhoneVerified,
       createdAt: user.createdAt,
       avatar: user.avatar,
+      isPartnerApplicationSubmitted:
+        userVerification.isPartnerApplicationSubmitted,
+      isPartnerApplicationApproved:
+        userVerification.isPartnerApplicationApproved,
     };
   }
 
@@ -411,7 +484,7 @@ export class AuthService {
     });
 
     this.isUserAllowedOnPlatform(userVerification);
-    this.isResendCodeAllowed(userVerification, emailOrPhone);
+    this.isResendCodeAllowed(userVerification);
     if (emailOrPhone.includes('@')) {
       const verificationCode = this.generateRandomCode();
       await this.sendEmail({
@@ -452,56 +525,55 @@ export class AuthService {
       };
     }
   }
+
   async resendSignupCode(
-    resendLoginCode: ResendSignupCode,
+    resendSignupCodeDto: ResendSignupCodeDto,
   ): Promise<TSendVerificationCodeReturn> {
-    const { emailOrPhone } = resendLoginCode;
+    const { email, phone } = resendSignupCodeDto;
     const user = await this.userModel.findOne({
-      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
+      email: email,
+      phone: phone,
     });
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    if (emailOrPhone.includes('@')) {
-      const verificationCode = this.generateRandomCode();
-      await this.sendEmail({
-        receiverEmail: user.email,
-        username: user.name,
-        code: verificationCode,
-        template_id: EMAIL_TEMPLATE_IDS.SIGNUP_CODE_REQ,
-      });
-      await this.userVerification.findOneAndUpdate(
-        { userId: user._id },
-        {
-          emailVerificationCode: verificationCode,
-          emailCodeSentAt: new Date(),
-        },
-      );
-
-      return {
-        message: 'Email verification code sent.',
-        emailCodeSentAt: new Date().getTime(),
-      };
-    } else {
-      const verificationCode = this.generateRandomCode();
-      await this.sendPhoneSms({
-        phone: emailOrPhone,
-        message: `Your Luxury verification code is: ${verificationCode}`,
-      });
-      await this.userVerification.findOneAndUpdate(
-        { userId: user._id },
-        {
-          phoneVerificationCode: verificationCode,
-          phoneCodeSentAt: new Date(),
-        },
-      );
-
-      return {
-        message: 'Phone verification code sent.',
-        phoneCodeSentAt: new Date().getTime(),
-      };
+    const userVerification = await this.userVerification.findOne({
+      userId: user._id,
+    });
+    if (!userVerification) {
+      throw new NotFoundException('User verification not found');
     }
+    if (userVerification.isSignupCompleted) {
+      throw new ConflictException('User already exist');
+    }
+    this.isResendCodeAllowed(userVerification);
+
+    const emailVerificationCode = this.generateRandomCode();
+    const phoneVerificationCode = this.generateRandomCode();
+    await this.sendEmail({
+      receiverEmail: email,
+      code: emailVerificationCode,
+      username: user.name,
+      template_id: EMAIL_TEMPLATE_IDS.SIGNUP_CODE_REQ,
+    });
+    await this.sendPhoneSms({
+      phone: phone,
+      message: `Your Baia verification code is: ${phoneVerificationCode}`,
+    });
+    await this.userVerification.findOneAndUpdate(
+      { userId: user._id },
+      {
+        emailVerificationCode: emailVerificationCode,
+        phoneVerificationCode: phoneVerificationCode,
+        emailCodeSentAt: new Date().getTime(),
+        phoneCodeSentAt: new Date().getTime(),
+      },
+    );
+    return {
+      message: 'Signup verification codes resent',
+      emailCodeSentAt: new Date().getTime(),
+      phoneCodeSentAt: new Date().getTime(),
+    };
   }
 
   async sendUpdateEmailCode(
@@ -557,7 +629,7 @@ export class AuthService {
       userId: user._id,
     });
 
-    this.isResendCodeAllowed(userVerification, phone);
+    this.isResendCodeAllowed(userVerification);
 
     const verificationCode = this.generateRandomCode();
     await this.sendPhoneSms({
@@ -611,7 +683,7 @@ export class AuthService {
       const userVerification = await this.userVerification.findOne({
         userId: user._id,
       });
-      this.isEnteredCodeValid(emailCode, userVerification, email);
+      this.isEnteredCodeValid(emailCode, userVerification, 'email');
       await this.userModel.findOneAndUpdate(
         { _id: userId },
         {
@@ -626,7 +698,7 @@ export class AuthService {
       const userVerification = await this.userVerification.findOne({
         userId: user._id,
       });
-      this.isEnteredCodeValid(phoneCode, userVerification, phone);
+      this.isEnteredCodeValid(phoneCode, userVerification, 'phone');
       await this.userModel.findOneAndUpdate(
         { _id: userId },
         {
@@ -639,12 +711,40 @@ export class AuthService {
     }
   }
 
-  // apis for admin and asuper admin
+  async applyForPartner(userId: string): Promise<{ message: string }> {
+    const user = await this.userModel.findOne({ _id: userId });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
+    const userVerification = await this.userVerification.findOne({
+      userId: user._id,
+    });
+    // user needs to be verified first
+    this.isUserAllowedOnPlatform(userVerification);
+
+    if (userVerification.isPartnerApplicationSubmitted) {
+      throw new ConflictException('Partner application already submitted');
+    }
+
+    // Update the verification record to mark the application as submitted
+    await this.userVerification.findOneAndUpdate(
+      { userId: user._id },
+      {
+        isPartnerApplicationSubmitted: true,
+      },
+    );
+    //TODO: send email as confirmation
+
+    return { message: 'Partner application submitted successfully' };
+  }
+
+  // apis for admin and asuper admin
   async getUsers(
     getAllUsersDto: GetAllUsersDto,
   ): Promise<{ users: TUserReturn[]; totalCount: number } | void> {
-    let { keyword, role, limit = 10, offset = 0 } = getAllUsersDto;
+    let { keyword, limit = 10, offset = 0 } = getAllUsersDto;
+    const { role } = getAllUsersDto;
 
     limit = limit && Number(limit);
     offset = offset && Number(offset);
@@ -835,5 +935,77 @@ export class AuthService {
       users: result.users,
       totalCount: result.totalCount[0]?.count || 0,
     };
+  }
+  async getPartnerApplications() {
+    // get users with isPartnerApplicationSubmitted true and isPartnerApplicationApproved false, also populate userInfo
+    const userverifications = await this.userVerification
+      .find({
+        isPartnerApplicationSubmitted: true,
+        isPartnerApplicationApproved: false,
+      })
+      .populate('userId');
+    // now map it to return only required fields
+    return userverifications.map((userVerification) => {
+      const user: any = userVerification.userId;
+      return {
+        id: user._id?.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        isEmailVerified: userVerification.isEmailVerified,
+        isPhoneVerified: userVerification.isPhoneVerified,
+        createdAt: user.createdAt,
+        avatar: user.avatar,
+        isPartnerApplicationSubmitted:
+          userVerification.isPartnerApplicationSubmitted,
+        isPartnerApplicationApproved:
+          userVerification.isPartnerApplicationApproved,
+      };
+    });
+  }
+
+  async approvePartnerApplication(userId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    if (user.role.includes(Role.PARTNER)) {
+      throw new Error('User is already a partner');
+    }
+    const userVerification = await this.userVerification.findOne({
+      userId: userId,
+    });
+    if (!userVerification) {
+      throw new Error('User has not applied for partner');
+    }
+    if (userVerification.isPartnerApplicationApproved) {
+      throw new Error('User is already a partner');
+    }
+    await this.userVerification.findOneAndUpdate(
+      { userId: userId },
+      { isPartnerApplicationApproved: true },
+    );
+    await this.userModel.findOneAndUpdate(
+      { _id: userId },
+      { $push: { role: Role.PARTNER } },
+    );
+    return {
+      message: 'Partner application approved',
+    };
+  }
+
+  async getPartners() {
+    const users = await this.userModel.find({ role: { $in: [Role.PARTNER] } });
+    return users.map((user) => {
+      return {
+        id: user._id?.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        avatar: user.avatar,
+      };
+    });
   }
 }

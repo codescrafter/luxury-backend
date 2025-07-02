@@ -1,6 +1,7 @@
 export enum Role {
   ADMIN = 'admin',
   USER = 'user',
+  PARTNER = 'partner',
 }
 export type TUserReturn = {
   id: string;
@@ -12,6 +13,8 @@ export type TUserReturn = {
   isPhoneVerified: boolean;
   createdAt: Date;
   avatar: string;
+  isPartnerApplicationSubmitted: boolean;
+  isPartnerApplicationApproved: boolean;
 };
 
 export type TSendVerificationCodeReturn =
@@ -22,4 +25,15 @@ export type TSendVerificationCodeReturn =
   | {
       message: string;
       phoneCodeSentAt: number;
+    }
+  | {
+      message: string;
+      emailCodeSentAt: number;
+      phoneCodeSentAt: number;
     };
+
+export enum ESignInMethods {
+  GOOGLE = 'google',
+  PASSWORD = 'password',
+  APPLE = 'apple',
+}
