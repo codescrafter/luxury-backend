@@ -1,30 +1,36 @@
+// File: src/products/entities/location.entity.ts
+
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
+export type LocationDocument = Location & Document;
+
 @Schema({ timestamps: true })
-export class Location extends Document {
+export class Location {
   @Prop({ required: true })
-  name: string;
+  address: string;
+
+  @Prop({ required: true })
+  city: string;
+
+  @Prop({ required: true })
+  region: string;
+
+  @Prop({ required: true })
+  country: string;
 
   @Prop({
     type: {
-      latitude: { type: Number, required: true },
-      longitude: { type: Number, required: true },
+      lat: { type: Number, required: true },
+      lng: { type: Number, required: true },
     },
+    required: true,
+    _id: false,
   })
   coordinates: {
-    latitude: number;
-    longitude: number;
+    lat: number;
+    lng: number;
   };
-
-  @Prop()
-  region?: string;
-
-  @Prop()
-  address?: string;
-
-  @Prop()
-  description?: string;
 }
 
-export const LocationSchema = SchemaFactory.createForClass(Location); 
+export const LocationSchema = SchemaFactory.createForClass(Location);

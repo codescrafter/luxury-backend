@@ -1,169 +1,115 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CreateProductDto } from './dto/create-product.dto';
-import { CloudinaryService } from '../cloudinary/cloudinary.service';
-import { Product, ProductType } from './entities';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { Product, ProductDocument } from './entities/product.entity';
+import { User, UserDocument } from 'src/auth/schemas/user-schema';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { UpdateProductStatusDto } from './dto/update-product-status.dto';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectModel(Product.name)
-    private productModel: Model<Product>,
-    private cloudinaryService: CloudinaryService,
+    private readonly productModel: Model<ProductDocument>,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async create(
-    createProductDto: CreateProductDto,
-    images?: Express.Multer.File[],
-  ): Promise<Product> {
-    try {
-      let imageUrls: string[] = [];
-      if (images && images.length > 0) {
-        // Upload images to Cloudinary
-        const uploadPromises = images.map((file) =>
-          this.cloudinaryService.uploadImage(file, 'products'),
-        );
-        const uploadResults = await Promise.all(uploadPromises);
-        imageUrls = uploadResults.map((result) => result.secure_url);
-      }
+    type: 'jetski' | 'kayak' | 'yacht' | 'speedboat',
+    dto: any,
+    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
+    user: UserDocument,
+  ) {
+    const images = files.images
+      ? await Promise.all(
+          files.images.map((file) =>
+            this.cloudinaryService
+              .uploadImage(file, 'product-images')
+              .then((res) => res.secure_url),
+          ),
+        )
+      : [];
 
-      const createdProduct = new this.productModel({
-        ...createProductDto,
-        images: imageUrls,
-      });
-      return createdProduct.save();
-    } catch (error) {
-      throw new BadRequestException(
-        'Failed to create product: ' + error.message,
-      );
-    }
-  }
+    const videos = files.videos
+      ? await Promise.all(
+          files.videos.map((file) =>
+            this.cloudinaryService
+              .uploadVideo(file, 'product-videos')
+              .then((res) => res.secure_url),
+          ),
+        )
+      : [];
 
-  async findAll(): Promise<Product[]> {
-    return this.productModel
-      .find()
-      .populate('location')
-      .populate('amenities')
-      .populate('linkedResort')
-      .populate('linkedProducts')
-      .exec();
-  }
+    const product = new this.productModel({
+      ...dto,
+      type,
+      status: 'pending',
+      ownerId: user._id,
+      images,
+      videos,
+    });
 
-  async findOne(id: string): Promise<Product> {
-    const product = await this.productModel
-      .findById(id)
-      .populate('location')
-      .populate('amenities')
-      .populate('linkedResort')
-      .populate('linkedProducts')
-      .exec();
-
-    if (!product) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
-    }
-
-    return product;
+    return await product.save();
   }
 
   async update(
     id: string,
-    updateProductDto: Partial<CreateProductDto>,
-    images?: Express.Multer.File[],
-  ): Promise<Product> {
-    try {
-      const product = await this.productModel.findById(id);
-      if (!product) {
-        throw new NotFoundException(`Product with ID ${id} not found`);
-      }
+    dto: UpdateProductDto,
+    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
+    user: UserDocument,
+  ) {
+    const product = await this.productModel.findById(id);
 
-      let imageUrls = product.images;
-      if (images && images.length > 0) {
-        // Delete old images from Cloudinary
-        const deletePromises = product.images.map((imageUrl) =>
-          this.cloudinaryService.deleteImage(imageUrl),
-        );
-        await Promise.all(deletePromises);
+    if (!product) throw new NotFoundException('Product not found');
+    if (product.ownerId.toString() !== user._id.toString())
+      throw new ForbiddenException('Access denied');
 
-        // Upload new images to Cloudinary
-        const uploadPromises = images.map((file) =>
-          this.cloudinaryService.uploadImage(file, 'products'),
-        );
-        const uploadResults = await Promise.all(uploadPromises);
-        imageUrls = uploadResults.map((result) => result.secure_url);
-      }
-
-      const updatedProduct = await this.productModel
-        .findByIdAndUpdate(
-          id,
-          {
-            ...updateProductDto,
-            images: imageUrls,
-          },
-          { new: true },
+    const images = files.images
+      ? await Promise.all(
+          files.images.map((file) =>
+            this.cloudinaryService
+              .uploadImage(file, 'product-images')
+              .then((res) => res.secure_url),
+          ),
         )
-        .populate('location')
-        .populate('amenities')
-        .populate('linkedResort')
-        .populate('linkedProducts')
-        .exec();
+      : product.images;
 
-      return updatedProduct;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new BadRequestException(
-        'Failed to update product: ' + error.message,
-      );
-    }
+    const videos = files.videos
+      ? await Promise.all(
+          files.videos.map((file) =>
+            this.cloudinaryService
+              .uploadVideo(file, 'product-videos')
+              .then((res) => res.secure_url),
+          ),
+        )
+      : product.videos;
+
+    Object.assign(product, dto, {
+      images,
+      videos,
+      status: 'pending',
+    });
+
+    product.resubmissionCount += 1;
+    return await product.save();
   }
 
-  async remove(id: string): Promise<void> {
-    try {
-      const product = await this.productModel.findById(id);
-      if (!product) {
-        throw new NotFoundException(`Product with ID ${id} not found`);
-      }
+  async updateStatus(id: string, dto: UpdateProductStatusDto) {
+    const product = await this.productModel.findById(id);
+    if (!product) throw new NotFoundException('Product not found');
 
-      // Delete images from Cloudinary
-      const deletePromises = product.images.map((imageUrl) =>
-        this.cloudinaryService.deleteImage(imageUrl),
-      );
-      await Promise.all(deletePromises);
-
-      await this.productModel.deleteOne({ _id: id }).exec();
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new BadRequestException(
-        'Failed to delete product: ' + error.message,
-      );
-    }
+    product.status = dto.status;
+    return await product.save();
   }
 
-  async findByType(type: ProductType): Promise<Product[]> {
-    return this.productModel
-      .find({ type })
-      .populate('location')
-      .populate('amenities')
-      .populate('linkedResort')
-      .populate('linkedProducts')
-      .exec();
-  }
-
-  async findByLocation(locationId: string): Promise<Product[]> {
-    return this.productModel
-      .find({ location: locationId })
-      .populate('location')
-      .populate('amenities')
-      .populate('linkedResort')
-      .populate('linkedProducts')
-      .exec();
+  async findById(id: string) {
+    const product = await this.productModel.findById(id);
+    if (!product) throw new NotFoundException('Product not found');
+    return product;
   }
 }
