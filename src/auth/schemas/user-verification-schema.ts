@@ -24,6 +24,12 @@ export class UserVerification {
   @Prop({ default: false })
   isSignupCompleted: boolean;
 
+  @Prop({ default: false })
+  isPartnerApplicationSubmitted: boolean;
+
+  @Prop({ default: false })
+  isPartnerApplicationApproved: boolean;
+
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
   userId: mongoose.Schema.Types.ObjectId;
 }

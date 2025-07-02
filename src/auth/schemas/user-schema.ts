@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Role } from '../types';
+import { Role, ESignInMethods } from '../types';
 import { Document } from 'mongoose';
 
 @Schema({
@@ -15,11 +15,11 @@ export class User {
   @Prop()
   phone: string;
 
-  @Prop()
+  @Prop({ isRequired: false })
   password: string;
 
-  @Prop({ isRequired: false })
-  userHash: string;
+  @Prop()
+  signInMethod: ESignInMethods;
 
   @Prop({
     type: [{ type: String, enum: Role }],

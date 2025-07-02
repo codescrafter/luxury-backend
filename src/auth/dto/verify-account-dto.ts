@@ -1,22 +1,26 @@
-import { Transform } from 'class-transformer';
 import {
-    IsNotEmpty,
-    MaxLength,
-    MinLength,
-    Validate
-  } from 'class-validator';
-import { IsEmailOrPhoneConstraint } from 'src/helpers/dto-helpers';
+  IsEmail,
+  IsNotEmpty,
+  IsPhoneNumber,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+export class VerifyAccountDto {
+  @IsNotEmpty()
+  @IsEmail()
+  readonly email: string;
 
-  
-  export class VerifyAccountDto {
-    @IsNotEmpty({ message: 'The emailOrPhone field is required.' })
-    @Transform(({ value }) => value.trim().toLowerCase())
-    @Validate(IsEmailOrPhoneConstraint)
-    readonly emailOrPhone: string;
+  @IsNotEmpty()
+  @IsPhoneNumber()
+  readonly phone: string;
 
-    @IsNotEmpty({ message: 'The code field is required.' })
-    @MaxLength(6, { message: 'The code must be 6 characters long.' })
-    @MinLength(6, { message: 'The code must be 6 characters long.' })
-    readonly code: string;
-  }
-  
+  @IsNotEmpty()
+  @MaxLength(6, { message: 'The emailCode must be 6 characters long.' })
+  @MinLength(6, { message: 'The emailCode must be 6 characters long.' })
+  readonly emailCode: string;
+
+  @IsNotEmpty()
+  @MaxLength(6, { message: 'The phoneCode must be 6 characters long.' })
+  @MinLength(6, { message: 'The phoneCode must be 6 characters long.' })
+  readonly phoneCode: string;
+}
