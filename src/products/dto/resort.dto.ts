@@ -18,7 +18,7 @@ import { Mongoose, Types } from 'mongoose';
 export class CreateResortDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  title: string;
 
   @IsString()
   @IsNotEmpty()

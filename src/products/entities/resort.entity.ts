@@ -6,7 +6,7 @@ export type ResortDocument = Resort & Document;
 @Schema({ timestamps: true })
 export class Resort {
   @Prop({ required: true })
-  name: string;
+  title: string;
 
   @Prop({ required: true })
   description: string;
