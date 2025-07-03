@@ -39,6 +39,7 @@ export class CreateResortDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => value ? JSON.parse(value) : undefined)
   amenities?: string[];
 
   @IsOptional()

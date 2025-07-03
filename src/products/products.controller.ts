@@ -23,11 +23,12 @@ import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
 import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
 import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
+import { CreateAvailabilityDto } from './dto/create-availability.dto';
+import { GetProductsDto } from './dto/get-products.dto';
 
 import { ProductsService } from './products.service';
 
 @Controller('products')
-@UseGuards(AuthGuard(), RolesGuard)
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
@@ -39,9 +40,21 @@ export class ProductsController {
     };
   }
 
+  // ----- UNIFIED PRODUCTS ENDPOINT -----
+  @Get()
+  async getProducts(@Query() filters: GetProductsDto) {
+    try {
+      const result = await this.productsService.getProducts(filters);
+      return { success: true, data: result };
+    } catch (error) {
+      return this.catchResponse('get products', error);
+    }
+  }
+
   // ----- Jetski -----
   @Post('jetski')
   @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -71,6 +84,7 @@ export class ProductsController {
 
   @Put('jetski/:id')
   @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async updateJetski(
     @Param('id') id: string,
     @Body() dto: UpdateJetskiDto,
@@ -100,17 +114,8 @@ export class ProductsController {
     }
   }
 
-  @Get('jetski')
-  async getAllJetskis(@Query() filters: any) {
-    try {
-      const result = await this.productsService.getJetSkis(filters);
-      return { success: true, data: result };
-    } catch (error) {
-      return this.catchResponse('get jetskis', error);
-    }
-  }
-
   @Get('jetski/:id')
+  @UseGuards(AuthGuard('jwt'))
   async getJetskiById(@Param('id') id: string) {
     try {
       const result = await this.productsService.getJetSkiById(id);
@@ -123,6 +128,7 @@ export class ProductsController {
   // ----- Kayak -----
   @Post('kayak')
   @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -152,6 +158,7 @@ export class ProductsController {
 
   @Put('kayak/:id')
   @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async updateKayak(
     @Param('id') id: string,
     @Body() dto: UpdateKayakDto,
@@ -181,17 +188,8 @@ export class ProductsController {
     }
   }
 
-  @Get('kayak')
-  async getAllKayaks(@Query() filters: any) {
-    try {
-      const result = await this.productsService.getKayaks(filters);
-      return { success: true, data: result };
-    } catch (error) {
-      return this.catchResponse('get kayaks', error);
-    }
-  }
-
   @Get('kayak/:id')
+  @UseGuards(AuthGuard('jwt'))
   async getKayakById(@Param('id') id: string) {
     try {
       const result = await this.productsService.getKayakById(id);
@@ -204,6 +202,7 @@ export class ProductsController {
   // ----- Yacht -----
   @Post('yacht')
   @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -233,6 +232,7 @@ export class ProductsController {
 
   @Put('yacht/:id')
   @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async updateYacht(
     @Param('id') id: string,
     @Body() dto: UpdateYachtDto,
@@ -262,17 +262,8 @@ export class ProductsController {
     }
   }
 
-  @Get('yacht')
-  async getAllYachts(@Query() filters: any) {
-    try {
-      const result = await this.productsService.getYachts(filters);
-      return { success: true, data: result };
-    } catch (error) {
-      return this.catchResponse('get yachts', error);
-    }
-  }
-
   @Get('yacht/:id')
+  @UseGuards(AuthGuard())
   async getYachtById(@Param('id') id: string) {
     try {
       const result = await this.productsService.getYachtById(id);
@@ -285,6 +276,7 @@ export class ProductsController {
   // ----- Speedboat -----
   @Post('speedboat')
   @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard(), RolesGuard)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -343,16 +335,8 @@ export class ProductsController {
     }
   }
 
-  @Get('speedboat')
-  async getAllSpeedboats(@Query() filters: any) {
-    try {
-      const result = await this.productsService.getSpeedboats(filters);
-      return { success: true, data: result };
-    } catch (error) {
-      return this.catchResponse('get speedboats', error);
-    }
-  }
   @Get('speedboat/:id')
+  @UseGuards(AuthGuard())
   async getSpeedboatById(@Param('id') id: string) {
     try {
       const result = await this.productsService.getSpeedboatById(id);
@@ -365,6 +349,7 @@ export class ProductsController {
   // ----- Resort -----
   @Post('resort')
   @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -394,6 +379,7 @@ export class ProductsController {
 
   @Put('resort/:id')
   @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async updateResort(
     @Param('id') id: string,
     @Body() dto: UpdateResortDto,
@@ -423,17 +409,8 @@ export class ProductsController {
     }
   }
 
-  @Get('resort')
-  async getAllResorts(@Query() filters: any) {
-    try {
-      const result = await this.productsService.getResorts(filters);
-      return { success: true, data: result };
-    } catch (error) {
-      return this.catchResponse('get resorts', error);
-    }
-  }
-
   @Get('resort/:id')
+  @UseGuards(AuthGuard())
   async getResortById(@Param('id') id: string) {
     try {
       const result = await this.productsService.getResortById(id);
@@ -453,5 +430,32 @@ export class ProductsController {
     } catch (error) {
       return this.catchResponse('get pending products', error);
     }
+  }
+
+  // --- AVAILABILITY ENDPOINTS ---
+
+  /**
+   * Partner: Set or update availability for a product
+   */
+  @Post(':id/availability')
+  @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard(), RolesGuard)
+  async setAvailability(
+    @Param('id') productId: string,
+    @Body() dto: CreateAvailabilityDto,
+  ) {
+    dto.productId = productId;
+    const result = await this.productsService.setAvailability(dto);
+    return { success: true, data: result };
+  }
+
+  /**
+   * User: Get availability for a product (for calendar)
+   */
+  @Get(':id/availability')
+  @UseGuards(AuthGuard())
+  async getAvailability(@Param('id') productId: string) {
+    const result = await this.productsService.getAvailability(productId);
+    return { success: true, data: result };
   }
 }
