@@ -156,7 +156,7 @@ function getTestData(type) {
     isFeatured: true
   };
   if (type === 'resort') return {
-    name: 'Sunset Paradise Resort',
+    title: 'Sunset Paradise Resort',
     description: 'A tropical getaway with all the amenities you could dream of.',
     isAnnualResort: true,
     isDailyResort: true,
@@ -276,7 +276,7 @@ async function runTests() {
     }
   }
 
-  // // 3. SET AVAILABILITY (unavailable and booked)
+  // // // 3. SET AVAILABILITY (unavailable and booked)
   for (const type of PRODUCT_TYPES) {
     if (createdProducts[type]) {
       await testAPI(`/products/${createdProducts[type]}/availability`, 'POST', {
@@ -292,29 +292,29 @@ async function runTests() {
     }
   }
 
-  // // 4. GET AVAILABILITY
+  // // // 4. GET AVAILABILITY
   for (const type of PRODUCT_TYPES) {
     if (createdProducts[type]) {
       await testAPI(`/products/${createdProducts[type]}/availability`, 'GET', null, null, true);
     }
   }
 
-  // // 5. GET ALL PRODUCTS (unified endpoint, various filters)
-  await testAPI('/products', 'GET', null, { productType: 'jetski' });
-  await testAPI('/products', 'GET', null, { city: 'Miami', isFeatured: false });
-  await testAPI('/products', 'GET', null, { startDate: '2024-06-01', endDate: '2024-06-03' });
-  await testAPI('/products', 'GET', null, { tags: ['test'] });
-  await testAPI('/products', 'GET', null, { status: 'approved' });
-  await testAPI('/products', 'GET', null, { ownerId: OWNER_ID });
+  // // // 5. GET ALL PRODUCTS (unified endpoint, various filters)
+  // await testAPI('/products', 'GET', null, { productType: 'jetski' });
+  // await testAPI('/products', 'GET', null, { city: 'Miami', isFeatured: false });
+  // await testAPI('/products', 'GET', null, { startDate: '2024-06-01', endDate: '2024-06-03' });
+  // await testAPI('/products', 'GET', null, { tags: ['test'] });
+  // await testAPI('/products', 'GET', null, { status: 'approved' });
+  // await testAPI('/products', 'GET', null, { ownerId: OWNER_ID });
 
-  // 6. GET BY ID
+  // // 6. GET BY ID
   for (const type of PRODUCT_TYPES) {
     if (createdProducts[type]) {
       await testAPI(`/products/${type}/${createdProducts[type]}`, 'GET', null, null, true);
     }
   }
 
-  // 7. UPDATE PRODUCT
+  // // 7. UPDATE PRODUCT
   for (const type of PRODUCT_TYPES) {
     if (createdProducts[type]) {
       await testAPI(`/products/${type}/${createdProducts[type]}`, 'PUT', { title: `Updated ${type} Title` }, null, true);

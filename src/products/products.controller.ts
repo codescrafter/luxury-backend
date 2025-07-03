@@ -10,6 +10,8 @@ import {
   Put,
   Get,
   Query,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/types';
@@ -33,11 +35,12 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   private catchResponse(action: string, error: any) {
-    return {
+    const status = error?.status || error?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+    throw new HttpException({
       success: false,
       message: `Failed to ${action}`,
       error: error.message,
-    };
+    }, status);
   }
 
   // ----- UNIFIED PRODUCTS ENDPOINT -----
@@ -47,7 +50,7 @@ export class ProductsController {
       const result = await this.productsService.getProducts(filters);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('get products', error);
+      this.catchResponse('get products', error);
     }
   }
 
@@ -78,7 +81,7 @@ export class ProductsController {
       );
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('create jetski', error);
+      this.catchResponse('create jetski', error);
     }
   }
 
@@ -98,7 +101,7 @@ export class ProductsController {
       );
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('update jetski', error);
+      this.catchResponse('update jetski', error);
     }
   }
 
@@ -110,7 +113,7 @@ export class ProductsController {
       const result = await this.productsService.approveJetSkiHandler(id);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('approve jetski', error);
+      this.catchResponse('approve jetski', error);
     }
   }
 
@@ -121,7 +124,7 @@ export class ProductsController {
       const result = await this.productsService.getJetSkiById(id);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('get jetski', error);
+      this.catchResponse('get jetski', error);
     }
   }
 
@@ -152,7 +155,7 @@ export class ProductsController {
       );
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('create kayak', error);
+      this.catchResponse('create kayak', error);
     }
   }
 
@@ -172,7 +175,7 @@ export class ProductsController {
       );
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('update kayak', error);
+      this.catchResponse('update kayak', error);
     }
   }
 
@@ -184,7 +187,7 @@ export class ProductsController {
       const result = await this.productsService.approveKayakHandler(id);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('approve kayak', error);
+      this.catchResponse('approve kayak', error);
     }
   }
 
@@ -195,7 +198,7 @@ export class ProductsController {
       const result = await this.productsService.getKayakById(id);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('get kayak', error);
+      this.catchResponse('get kayak', error);
     }
   }
 
@@ -226,7 +229,7 @@ export class ProductsController {
       );
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('create yacht', error);
+      this.catchResponse('create yacht', error);
     }
   }
 
@@ -246,7 +249,7 @@ export class ProductsController {
       );
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('update yacht', error);
+      this.catchResponse('update yacht', error);
     }
   }
 
@@ -258,7 +261,7 @@ export class ProductsController {
       const result = await this.productsService.approveYachtHandler(id);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('approve yacht', error);
+      this.catchResponse('approve yacht', error);
     }
   }
 
@@ -269,7 +272,7 @@ export class ProductsController {
       const result = await this.productsService.getYachtById(id);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('get yacht', error);
+      this.catchResponse('get yacht', error);
     }
   }
 
@@ -300,12 +303,13 @@ export class ProductsController {
       );
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('create speedboat', error);
+      this.catchResponse('create speedboat', error);
     }
   }
 
   @Put('speedboat/:id')
   @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard())
   async updateSpeedboat(
     @Param('id') id: string,
     @Body() dto: UpdateSpeedboatDto,
@@ -319,7 +323,7 @@ export class ProductsController {
       );
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('update speedboat', error);
+      this.catchResponse('update speedboat', error);
     }
   }
 
@@ -331,7 +335,7 @@ export class ProductsController {
       const result = await this.productsService.approveSpeedboatHandler(id);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('approve speedboat', error);
+      this.catchResponse('approve speedboat', error);
     }
   }
 
@@ -342,7 +346,7 @@ export class ProductsController {
       const result = await this.productsService.getSpeedboatById(id);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('get speedboat', error);
+      this.catchResponse('get speedboat', error);
     }
   }
 
@@ -373,7 +377,7 @@ export class ProductsController {
       );
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('create resort', error);
+      this.catchResponse('create resort', error);
     }
   }
 
@@ -393,7 +397,7 @@ export class ProductsController {
       );
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('update resort', error);
+      this.catchResponse('update resort', error);
     }
   }
 
@@ -405,7 +409,7 @@ export class ProductsController {
       const result = await this.productsService.approveResortHandler(id);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('approve resort', error);
+      this.catchResponse('approve resort', error);
     }
   }
 
@@ -416,7 +420,7 @@ export class ProductsController {
       const result = await this.productsService.getResortById(id);
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('get resort', error);
+      this.catchResponse('get resort', error);
     }
   }
 
@@ -428,7 +432,7 @@ export class ProductsController {
       const result = await this.productsService.getAllPendingProducts();
       return { success: true, data: result };
     } catch (error) {
-      return this.catchResponse('get pending products', error);
+      this.catchResponse('get pending products', error);
     }
   }
 
