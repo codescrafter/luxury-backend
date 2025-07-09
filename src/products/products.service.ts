@@ -13,17 +13,7 @@ import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
 import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
 import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
-import {
-  Unavailability,
-  UnavailabilityDocument,
-} from './entities/unavailability.entity';
-import { CreateUnavailabilityDto } from './dto/create-unavailability.dto';
-import {
-  Booking,
-  BookingDocument,
-  BookingStatus,
-} from './entities/booking.entity';
-import { CreateBookingDto, BookingProductType } from './dto/booking.dto';
+// All booking and unavailability related methods and usages have been removed.
 
 @Injectable()
 export class ProductsService {
@@ -36,10 +26,6 @@ export class ProductsService {
     private readonly speedboatModel: Model<SpeedboatDocument>,
     @InjectModel(Resort.name)
     private readonly resortModel: Model<ResortDocument>,
-    @InjectModel(Unavailability.name)
-    private readonly unavailabilityModel: Model<UnavailabilityDocument>,
-    @InjectModel(Booking.name)
-    private readonly bookingModel: Model<BookingDocument>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -230,100 +216,10 @@ export class ProductsService {
     return { jetskis, kayaks, yachts, speedboats, resorts };
   }
 
-  // --- UNAVAILABILITY METHODS ---
-
   /**
-   * Create or update unavailability for a product (per day)
-   */
-  async setUnavailability(dto: CreateUnavailabilityDto) {
-    // Resort: only allow full-day unavailability
-    // Others: allow per-hour unavailability, prevent overlap
-    const { productId, date, startHour, endHour } = dto;
-    const product = await this.getProductById(productId);
-    const isResort = product && product.type === 'resort';
-    if (isResort) {
-      // Only allow full-day
-      const conflict = await this.unavailabilityModel.findOne({
-        productId,
-        date: new Date(date),
-      });
-      if (conflict)
-        throw new Error('Resort is already unavailable for this date');
-      return this.unavailabilityModel.create({
-        productId,
-        date: new Date(date),
-      });
-    } else {
-      // Per-hour unavailability
-      if (typeof startHour !== 'number' || typeof endHour !== 'number') {
-        throw new Error(
-          'startHour and endHour are required for hourly unavailability',
-        );
-      }
-      if (startHour < 0 || endHour > 24 || startHour >= endHour) {
-        throw new Error('Invalid unavailability hours');
-      }
-      // Prevent overlap
-      const conflict = await this.unavailabilityModel.findOne({
-        productId,
-        date: new Date(date),
-        $or: [{ startHour: { $lt: endHour }, endHour: { $gt: startHour } }],
-      });
-      if (conflict)
-        throw new Error('Product is already unavailable for this time slot');
-      return this.unavailabilityModel.create({
-        productId,
-        date: new Date(date),
-        startHour,
-        endHour,
-      });
-    }
-  }
-
-  // Helper to get product by id and type
-  private async getProductById(productId: string) {
-    // Try all models
-    let product = await this.jetSkiModel.findById(productId);
-    if (product) return product;
-    product = await this.kayakModel.findById(productId);
-    if (product) return product;
-    product = await this.yachtModel.findById(productId);
-    if (product) return product;
-    product = await this.speedboatModel.findById(productId);
-    if (product) return product;
-    product = await this.resortModel.findById(productId);
-    if (product) return product;
-    return null;
-  }
-
-  /**
-   * Get unavailability for a product (for calendar display)
-   */
-  async getUnavailability(productId: string, query: any = {}) {
-    // Accept startDate/endDate/startHour/endHour for filtering
-    let { startDate, endDate, startHour, endHour } = query;
-    if (!startDate || !endDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const next6 = new Date(today);
-      next6.setDate(today.getDate() + 6);
-      startDate = today.toISOString();
-      endDate = next6.toISOString();
-    }
-    const dateFilter = { $gte: new Date(startDate), $lte: new Date(endDate) };
-    const findQuery: any = { productId, date: dateFilter };
-    if (typeof startHour === 'number' && typeof endHour === 'number') {
-      findQuery.startHour = { $lt: endHour };
-      findQuery.endHour = { $gt: startHour };
-    }
-    return this.unavailabilityModel.find(findQuery).sort({ date: 1 });
-  }
-
-  /**
-   * Unified method to get products with comprehensive filtering
+   * Get all approved products from all models
    */
   async getProducts() {
-    // get all approved products from all models
     const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
       this.jetSkiModel.find({ status: 'approved' }),
       this.kayakModel.find({ status: 'approved' }),
@@ -331,187 +227,35 @@ export class ProductsService {
       this.speedboatModel.find({ status: 'approved' }),
       this.resortModel.find({ status: 'approved' }),
     ]);
-    return [ ...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts ];
+    return [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
   }
 
-  /**
-   * Get unavailable product IDs for date range
-   */
-  private async getUnavailableProductIds(
-    startDate: string,
-    endDate: string,
-    productType?: string,
-    filters?: any,
-  ): Promise<string[]> {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    let availabilities = [];
-    if (productType === 'resort') {
-      // Resort: only date
-      availabilities = await this.unavailabilityModel.aggregate([
-        {
-          $match: {
-            date: { $gte: start, $lte: end },
-          },
-        },
-        {
-          $group: {
-            _id: '$productId',
-            unavailableDates: { $addToSet: '$date' },
-          },
-        },
-      ]);
-    } else {
-      // Per-hour: check for overlap
-      const { startHour, endHour } = filters || {};
-      if (typeof startHour !== 'number' || typeof endHour !== 'number')
-        return [];
-      availabilities = await this.unavailabilityModel.aggregate([
-        {
-          $match: {
-            date: { $gte: start, $lte: end },
-            startHour: { $lt: endHour },
-            endHour: { $gt: startHour },
-          },
-        },
-        {
-          $group: {
-            _id: '$productId',
-            unavailableDates: { $addToSet: '$date' },
-          },
-        },
-      ]);
-    }
-    return availabilities.map((a) => a._id.toString());
-  }
+  // --- UNAVAILABILITY METHODS ---
 
   /**
-   * Book a product (user API)
+   * Create or update unavailability for a product (per day)
    */
-  async bookProduct(dto: CreateBookingDto, user: UserDocument) {
-    // Check for overlapping bookings
-    const { productId, productType, date, startHour, endHour } = dto;
-    const bookingDate = new Date(date);
-    let conflict;
-    if (productType === BookingProductType.RESORT) {
-      // Resort: only one booking per day
-      conflict = await this.bookingModel.findOne({
-        productId,
-        productType,
-        date: bookingDate,
-        status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-      });
-      if (conflict) throw new Error('Resort is already booked for this date');
-    } else {
-      // Per-hour: check for overlapping time slots
-      if (typeof startHour !== 'number' || typeof endHour !== 'number') {
-        throw new Error(
-          'startHour and endHour are required for per-hour bookings',
-        );
-      }
-      if (startHour < 0 || endHour > 24 || startHour >= endHour) {
-        throw new Error('Invalid booking hours');
-      }
-      conflict = await this.bookingModel.findOne({
-        productId,
-        productType,
-        date: bookingDate,
-        status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-        $or: [
-          { startHour: { $lt: endHour }, endHour: { $gt: startHour } }, // overlap
-        ],
-      });
-      if (conflict)
-        throw new Error('Product is already booked for this time slot');
-    }
-    // Create booking
-    const booking = await this.bookingModel.create({
-      userId: user._id,
-      productId,
-      productType,
-      date: bookingDate,
-      startHour:
-        productType === BookingProductType.RESORT ? undefined : startHour,
-      endHour: productType === BookingProductType.RESORT ? undefined : endHour,
-      status: BookingStatus.PENDING,
-    });
-    return booking;
-  }
+  // Removed setUnavailability
 
-  /**
-   * Get all bookings (admin/partner)
-   */
-  async getAllBookings(query: any = {}) {
-    // Accept startDate/endDate/startHour/endHour for filtering
-    let { startDate, endDate, startHour, endHour } = query;
-    if (!startDate || !endDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const next6 = new Date(today);
-      next6.setDate(today.getDate() + 6);
-      startDate = today.toISOString();
-      endDate = next6.toISOString();
-    }
-    const dateFilter = { $gte: new Date(startDate), $lte: new Date(endDate) };
-    const findQuery: any = { date: dateFilter };
-    if (typeof startHour === 'number' && typeof endHour === 'number') {
-      findQuery.startHour = { $lt: endHour };
-      findQuery.endHour = { $gt: startHour };
-    }
-    return this.bookingModel
-      .find(findQuery)
-      .populate('userId')
-      .populate('productId')
-      .sort({ createdAt: -1 });
-  }
+  // Removed getUnavailability
 
-  /**
-   * Get bookings for a user
-   */
-  async getUserBookings(userId: string, query: any = {}) {
-    // Accept startDate/endDate/startHour/endHour for filtering
-    let { startDate, endDate, startHour, endHour } = query;
-    if (!startDate || !endDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const next6 = new Date(today);
-      next6.setDate(today.getDate() + 6);
-      startDate = today.toISOString();
-      endDate = next6.toISOString();
-    }
-    const dateFilter = { $gte: new Date(startDate), $lte: new Date(endDate) };
-    const findQuery: any = { userId, date: dateFilter };
-    if (typeof startHour === 'number' && typeof endHour === 'number') {
-      findQuery.startHour = { $lt: endHour };
-      findQuery.endHour = { $gt: startHour };
-    }
-    return this.bookingModel
-      .find(findQuery)
-      .populate('productId')
-      .sort({ createdAt: -1 });
-  }
+  // Removed getUnavailableProductIds
 
-  /**
-   * Approve a booking (partner/admin)
-   */
-  async approveBooking(bookingId: string) {
-    return this.bookingModel.findByIdAndUpdate(
-      bookingId,
-      { status: BookingStatus.CONFIRMED },
-      { new: true },
-    );
-  }
+  // Removed bookProduct
 
-  /**
-   * Reject a booking (partner/admin)
-   */
-  async rejectBooking(bookingId: string) {
-    return this.bookingModel.findByIdAndUpdate(
-      bookingId,
-      { status: BookingStatus.CANCELLED },
-      { new: true },
-    );
-  }
+  // Removed getAllBookings
+
+  // Removed getUserBookings
+
+  // Removed approveBooking
+
+  // Removed rejectBooking
 
  // In the approveOrRejectProduct method, change this:
 async approveOrRejectProduct(
