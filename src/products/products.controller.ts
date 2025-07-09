@@ -9,7 +9,6 @@ import {
   Param,
   Put,
   Get,
-  Query,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
@@ -25,8 +24,8 @@ import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
 import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
 import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
-import { CreateAvailabilityDto } from './dto/create-availability.dto';
-import { GetProductsDto } from './dto/get-products.dto';
+import { CreateUnavailabilityDto } from './dto/unavailability.dto';
+import { CreateBookingDto } from './dto/booking.dto';
 
 import { ProductsService } from './products.service';
 
@@ -35,20 +34,24 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   private catchResponse(action: string, error: any) {
-    const status = error?.status || error?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
-    throw new HttpException({
-      success: false,
-      message: `Failed to ${action}`,
-      error: error.message,
-    }, status);
+    const status =
+      error?.status || error?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+    throw new HttpException(
+      {
+        success: false,
+        message: `Failed to ${action}`,
+        error: error.message,
+      },
+      status,
+    );
   }
 
-  // ----- UNIFIED PRODUCTS ENDPOINT -----
+
   @Get()
-  async getProducts(@Query() filters: GetProductsDto) {
+  async getProducts() {
     try {
-      const result = await this.productsService.getProducts(filters);
-      return { success: true, data: result };
+      const result = await this.productsService.getProducts();
+      return { success: true, data:result };
     } catch (error) {
       this.catchResponse('get products', error);
     }
@@ -102,18 +105,6 @@ export class ProductsController {
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('update jetski', error);
-    }
-  }
-
-  @Put('jetski/:id/approve')
-  @Roles(Role.ADMIN)
-  @UseGuards(AuthGuard(), RolesGuard)
-  async approveJetski(@Param('id') id: string) {
-    try {
-      const result = await this.productsService.approveJetSkiHandler(id);
-      return { success: true, data: result };
-    } catch (error) {
-      this.catchResponse('approve jetski', error);
     }
   }
 
@@ -179,18 +170,6 @@ export class ProductsController {
     }
   }
 
-  @Put('kayak/:id/approve')
-  @Roles(Role.ADMIN)
-  @UseGuards(AuthGuard(), RolesGuard)
-  async approveKayak(@Param('id') id: string) {
-    try {
-      const result = await this.productsService.approveKayakHandler(id);
-      return { success: true, data: result };
-    } catch (error) {
-      this.catchResponse('approve kayak', error);
-    }
-  }
-
   @Get('kayak/:id')
   @UseGuards(AuthGuard('jwt'))
   async getKayakById(@Param('id') id: string) {
@@ -250,18 +229,6 @@ export class ProductsController {
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('update yacht', error);
-    }
-  }
-
-  @Put('yacht/:id/approve')
-  @Roles(Role.ADMIN)
-  @UseGuards(AuthGuard(), RolesGuard)
-  async approveYacht(@Param('id') id: string) {
-    try {
-      const result = await this.productsService.approveYachtHandler(id);
-      return { success: true, data: result };
-    } catch (error) {
-      this.catchResponse('approve yacht', error);
     }
   }
 
@@ -327,18 +294,6 @@ export class ProductsController {
     }
   }
 
-  @Put('speedboat/:id/approve')
-  @Roles(Role.ADMIN)
-  @UseGuards(AuthGuard(), RolesGuard)
-  async approveSpeedboat(@Param('id') id: string) {
-    try {
-      const result = await this.productsService.approveSpeedboatHandler(id);
-      return { success: true, data: result };
-    } catch (error) {
-      this.catchResponse('approve speedboat', error);
-    }
-  }
-
   @Get('speedboat/:id')
   @UseGuards(AuthGuard())
   async getSpeedboatById(@Param('id') id: string) {
@@ -401,18 +356,6 @@ export class ProductsController {
     }
   }
 
-  @Put('resort/:id/approve')
-  @Roles(Role.ADMIN)
-  @UseGuards(AuthGuard(), RolesGuard)
-  async approveResort(@Param('id') id: string) {
-    try {
-      const result = await this.productsService.approveResortHandler(id);
-      return { success: true, data: result };
-    } catch (error) {
-      this.catchResponse('approve resort', error);
-    }
-  }
-
   @Get('resort/:id')
   @UseGuards(AuthGuard())
   async getResortById(@Param('id') id: string) {
@@ -424,42 +367,153 @@ export class ProductsController {
     }
   }
 
-  @Get('pending')
+  /**
+   * Approve a product (admin)
+   */
+  @Put(':type/:id/approve')
   @Roles(Role.ADMIN)
   @UseGuards(AuthGuard(), RolesGuard)
-  async getAllPendingProducts() {
+  async approveProduct(@Param('type') type: string, @Param('id') id: string) {
     try {
-      const result = await this.productsService.getAllPendingProducts();
+      const result = await this.productsService.approveOrRejectProduct(type, id, 'approve');
       return { success: true, data: result };
     } catch (error) {
-      this.catchResponse('get pending products', error);
+      this.catchResponse('approve product', error);
     }
   }
 
-  // --- AVAILABILITY ENDPOINTS ---
-
   /**
-   * Partner: Set or update availability for a product
+   * Mark a product for revision (admin)
    */
-  @Post(':id/availability')
-  @Roles(Role.PARTNER)
+  @Put(':type/:id/revision')
+  @Roles(Role.ADMIN)
   @UseGuards(AuthGuard(), RolesGuard)
-  async setAvailability(
-    @Param('id') productId: string,
-    @Body() dto: CreateAvailabilityDto,
-  ) {
-    dto.productId = productId;
-    const result = await this.productsService.setAvailability(dto);
-    return { success: true, data: result };
+  async revisionProduct(@Param('type') type: string, @Param('id') id: string) {
+    try {
+      const result = await this.productsService.approveOrRejectProduct(type, id, 'revision');
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('revision product', error);
+    }
   }
 
   /**
-   * User: Get availability for a product (for calendar)
+   * Reject a product (admin, not shown in pending)
    */
-  @Get(':id/availability')
-  @UseGuards(AuthGuard())
-  async getAvailability(@Param('id') productId: string) {
-    const result = await this.productsService.getAvailability(productId);
-    return { success: true, data: result };
+  @Put(':type/:id/reject')
+  @Roles(Role.ADMIN)
+  @UseGuards(AuthGuard(), RolesGuard)
+  async rejectProduct(@Param('type') type: string, @Param('id') id: string) {
+    try {
+      const result = await this.productsService.approveOrRejectProduct(type, id, 'reject');
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('reject product', error);
+    }
+  }
+
+  /**
+   * Resubmit a product (partner)
+   */
+  @Put(':type/:id/resubmit')
+  @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  async resubmitProduct(@Param('type') type: string, @Param('id') id: string) {
+    try {
+      const result = await this.productsService.resubmitProduct(type, id);
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('resubmit product', error);
+    }
+  }
+
+  @Post('unavailability')
+  async createUnavailability(@Body() dto: CreateUnavailabilityDto) {
+    try {
+      const created = await this.productsService.createUnavailability(dto);
+      return created;
+    } catch (error) {
+      return { error: error.message };
+    }
+  }
+
+  @Post('booking')
+  async createBooking(@Body() dto: CreateBookingDto) {
+    try {
+      const booking = await this.productsService.createBooking(dto);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Put('booking/:id/approve')
+  async approveBooking(@Param('id') id: string, @Body('partnerId') partnerId: string) {
+    try {
+      const booking = await this.productsService.approveBooking(id, partnerId);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Put('booking/:id/reject')
+  async rejectBooking(@Param('id') id: string, @Body('partnerId') partnerId: string, @Body('cancellationReason') cancellationReason?: string) {
+    try {
+      const booking = await this.productsService.rejectBooking(id, partnerId, cancellationReason);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Post('booking/:id/payment-confirmed')
+  async confirmPayment(@Param('id') id: string, @Body('transactionId') transactionId: string) {
+    try {
+      const booking = await this.productsService.confirmPayment(id, transactionId);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Post('booking/:id/cancel')
+  async cancelBooking(@Param('id') id: string, @Body('userId') userId: string, @Body('reason') reason?: string) {
+    try {
+      const booking = await this.productsService.cancelBooking(id, userId, reason);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Post('booking/:id/complete')
+  async completeBooking(@Param('id') id: string, @Body('partnerId') partnerId: string) {
+    try {
+      const booking = await this.productsService.completeBooking(id, partnerId);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Get('consumer/:consumerId/bookings')
+  async getBookingsForConsumer(@Param('consumerId') consumerId: string) {
+    try {
+      const bookings = await this.productsService.getBookingsForConsumer(consumerId);
+      return { success: true, data: bookings };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Get('partner/:partnerId/bookings')
+  async getBookingsForPartner(@Param('partnerId') partnerId: string) {
+    try {
+      const bookings = await this.productsService.getBookingsForPartner(partnerId);
+      return { success: true, data: bookings };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   }
 }

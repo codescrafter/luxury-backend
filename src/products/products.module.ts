@@ -8,7 +8,8 @@ import { Kayak, KayakSchema } from './entities/kayak.entity';
 import { Yacht, YachtSchema } from './entities/yacht.entity';
 import { Speedboat, SpeedboatSchema } from './entities/speedboat.entity';
 import { Resort, ResortSchema } from './entities/resort.entity';
-import { Availability, AvailabilitySchema } from './entities/availability.entity';
+import { Unavailability, UnavailabilitySchema } from './entities/unavailability.entity';
+import { Booking, BookingSchema } from './entities/booking.entity';
 
 import { User, UserSchema } from 'src/auth/schemas/user-schema';
 import { ProductsController } from './products.controller';
@@ -27,7 +28,8 @@ import { JwtStrategy } from 'src/auth/jwt.strategy';
       { name: Speedboat.name, schema: SpeedboatSchema },
       { name: Resort.name, schema: ResortSchema },
       { name: User.name, schema: UserSchema },
-      { name: Availability.name, schema: AvailabilitySchema },
+      { name: Unavailability.name, schema: UnavailabilitySchema },
+      { name: Booking.name, schema: BookingSchema },
     ]),
     CloudinaryModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),

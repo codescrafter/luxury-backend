@@ -105,11 +105,8 @@ export class Kayak {
   @Prop({ default: false })
   isFeatured?: boolean;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Resort' })
-  resortId?: string;
-
-  @Prop({ default: 'pending', enum: ['pending', 'approved', 'rejected'] })
-  status: 'pending' | 'approved' | 'rejected';
+  @Prop({ default: 'pending', enum: ['pending', 'approved', 'revision', 'rejected'] })
+  status: 'pending' | 'approved' | 'revision' | 'rejected';
 
   @Prop({ default: 0 })
   resubmissionCount: number;
