@@ -9,7 +9,6 @@ import {
   Param,
   Put,
   Get,
-  Query,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
@@ -25,7 +24,8 @@ import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
 import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
 import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
-// Removed CreateUnavailabilityDto and CreateBookingDto imports
+import { CreateUnavailabilityDto } from './dto/unavailability.dto';
+import { CreateBookingDto } from './dto/booking.dto';
 
 import { ProductsService } from './products.service';
 
@@ -46,10 +46,7 @@ export class ProductsController {
     );
   }
 
-  // ----- UNIFIED PRODUCTS ENDPOINT -----
-  /**
-   * Get products with filtering. If no startDate/endDate are provided, defaults to today + next 6 days.
-   */
+
   @Get()
   async getProducts() {
     try {
@@ -427,6 +424,96 @@ export class ProductsController {
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('resubmit product', error);
+    }
+  }
+
+  @Post('unavailability')
+  async createUnavailability(@Body() dto: CreateUnavailabilityDto) {
+    try {
+      const created = await this.productsService.createUnavailability(dto);
+      return created;
+    } catch (error) {
+      return { error: error.message };
+    }
+  }
+
+  @Post('booking')
+  async createBooking(@Body() dto: CreateBookingDto) {
+    try {
+      const booking = await this.productsService.createBooking(dto);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Put('booking/:id/approve')
+  async approveBooking(@Param('id') id: string, @Body('partnerId') partnerId: string) {
+    try {
+      const booking = await this.productsService.approveBooking(id, partnerId);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Put('booking/:id/reject')
+  async rejectBooking(@Param('id') id: string, @Body('partnerId') partnerId: string, @Body('cancellationReason') cancellationReason?: string) {
+    try {
+      const booking = await this.productsService.rejectBooking(id, partnerId, cancellationReason);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Post('booking/:id/payment-confirmed')
+  async confirmPayment(@Param('id') id: string, @Body('transactionId') transactionId: string) {
+    try {
+      const booking = await this.productsService.confirmPayment(id, transactionId);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Post('booking/:id/cancel')
+  async cancelBooking(@Param('id') id: string, @Body('userId') userId: string, @Body('reason') reason?: string) {
+    try {
+      const booking = await this.productsService.cancelBooking(id, userId, reason);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Post('booking/:id/complete')
+  async completeBooking(@Param('id') id: string, @Body('partnerId') partnerId: string) {
+    try {
+      const booking = await this.productsService.completeBooking(id, partnerId);
+      return { success: true, data: booking };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Get('consumer/:consumerId/bookings')
+  async getBookingsForConsumer(@Param('consumerId') consumerId: string) {
+    try {
+      const bookings = await this.productsService.getBookingsForConsumer(consumerId);
+      return { success: true, data: bookings };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Get('partner/:partnerId/bookings')
+  async getBookingsForPartner(@Param('partnerId') partnerId: string) {
+    try {
+      const bookings = await this.productsService.getBookingsForPartner(partnerId);
+      return { success: true, data: bookings };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
   }
 }

@@ -118,9 +118,6 @@ export class Jetski {
   @Prop({ default: false })
   isFeatured?: boolean;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Resort' })
-  resortId?: string;
-
   @Prop({ default: 'pending', enum: ['pending', 'approved', 'revision', 'rejected'] })
   status: 'pending' | 'approved' | 'revision' | 'rejected';
 

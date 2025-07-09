@@ -8,11 +8,16 @@ import { Kayak, KayakDocument } from './entities/kayak.entity';
 import { Yacht, YachtDocument } from './entities/yacht.entity';
 import { Speedboat, SpeedboatDocument } from './entities/speedboat.entity';
 import { Resort, ResortDocument } from './entities/resort.entity';
+import { Unavailability } from './entities/unavailability.entity';
+import { Booking, BookingDocument, BookingStatus, PaymentStatus } from './entities/booking.entity';
 import { CreateJetskiDto, UpdateJetskiDto } from './dto/jetski.dto';
 import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
 import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
 import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
+import { CreateUnavailabilityDto } from './dto/unavailability.dto';
+import { CreateBookingDto } from './dto/booking.dto';
+import { HttpException, HttpStatus } from '@nestjs/common';
 // All booking and unavailability related methods and usages have been removed.
 
 @Injectable()
@@ -26,6 +31,8 @@ export class ProductsService {
     private readonly speedboatModel: Model<SpeedboatDocument>,
     @InjectModel(Resort.name)
     private readonly resortModel: Model<ResortDocument>,
+    @InjectModel(Unavailability.name) private unavailabilityModel: Model<Unavailability>,
+    @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -235,29 +242,6 @@ export class ProductsService {
       ...resorts,
     ];
   }
-
-  // --- UNAVAILABILITY METHODS ---
-
-  /**
-   * Create or update unavailability for a product (per day)
-   */
-  // Removed setUnavailability
-
-  // Removed getUnavailability
-
-  // Removed getUnavailableProductIds
-
-  // Removed bookProduct
-
-  // Removed getAllBookings
-
-  // Removed getUserBookings
-
-  // Removed approveBooking
-
-  // Removed rejectBooking
-
- // In the approveOrRejectProduct method, change this:
 async approveOrRejectProduct(
   type: string,
   id: string,
@@ -330,5 +314,224 @@ async approveOrRejectProduct(
     );
     if (!result) throw new Error('Product not found');
     return result;
+  }
+
+  async createUnavailability(dto: CreateUnavailabilityDto) {
+    // 1. Validate startTime and endTime
+    const start = new Date(dto.startTime);
+    const end = new Date(dto.endTime);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new HttpException('Invalid startTime or endTime', HttpStatus.BAD_REQUEST);
+    }
+    if (start >= end) {
+      throw new HttpException('startTime must be before endTime', HttpStatus.BAD_REQUEST);
+    }
+    // 2. Check not in the past
+    const now = new Date();
+    if (start < now) {
+      throw new HttpException('Cannot add unavailability in the past', HttpStatus.BAD_REQUEST);
+    }
+    // 3. Check for overlapping unavailability
+    const overlap = await this.unavailabilityModel.findOne({
+      productId: dto.productId,
+      productType: dto.productType,
+      $or: [
+        { startTime: { $lt: end }, endTime: { $gt: start } },
+      ],
+    });
+    if (overlap) {
+      throw new HttpException('Unavailability already exists for this time range', HttpStatus.CONFLICT);
+    }
+    // 4. Create unavailability
+    return this.unavailabilityModel.create(dto);
+  }
+
+  async createBooking(dto: CreateBookingDto) {
+    // 1. Validate startTime and endTime
+    const start = new Date(dto.startTime);
+    const end = new Date(dto.endTime);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new HttpException('Invalid startTime or endTime', HttpStatus.BAD_REQUEST);
+    }
+    if (start >= end) {
+      throw new HttpException('startTime must be before endTime', HttpStatus.BAD_REQUEST);
+    }
+    const now = new Date();
+    if (start < now) {
+      throw new HttpException('Cannot book in the past', HttpStatus.BAD_REQUEST);
+    }
+    // 2. Check for overlapping unavailability (including booked)
+    const overlap = await this.unavailabilityModel.findOne({
+      productId: dto.productId,
+      productType: dto.productType,
+      $or: [
+        { startTime: { $lt: end }, endTime: { $gt: start } },
+      ],
+    });
+    if (overlap) {
+      throw new HttpException('Product is unavailable for this time range', HttpStatus.CONFLICT);
+    }
+    // 3. Validate price (fetch product and compare expected price)
+    let product: any;
+    switch (dto.productType) {
+      case 'jetski':
+        product = await this.jetSkiModel.findById(dto.productId);
+        break;
+      case 'kayak':
+        product = await this.kayakModel.findById(dto.productId);
+        break;
+      case 'yacht':
+        product = await this.yachtModel.findById(dto.productId);
+        break;
+      case 'speedboat':
+        product = await this.speedboatModel.findById(dto.productId);
+        break;
+      case 'resort':
+        product = await this.resortModel.findById(dto.productId);
+        break;
+      default:
+        throw new HttpException('Invalid product type', HttpStatus.BAD_REQUEST);
+    }
+    if (!product) {
+      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+    }
+    // Calculate expected price (simple example: pricePerDay * days or pricePerHour * hours)
+    let expectedPrice = 0;
+    const durationMs = end.getTime() - start.getTime();
+    const hours = durationMs / (1000 * 60 * 60);
+    if (product.pricePerDay && hours >= 24) {
+      expectedPrice = Math.ceil(hours / 24) * product.pricePerDay;
+    } else if (product.pricePerHour) {
+      expectedPrice = Math.ceil(hours) * product.pricePerHour;
+    } else {
+      throw new HttpException('Product does not have pricing info', HttpStatus.BAD_REQUEST);
+    }
+    if (dto.totalPrice !== expectedPrice) {
+      throw new HttpException('Total price does not match expected price', HttpStatus.BAD_REQUEST);
+    }
+    // 4. Create booking
+    const booking = await this.bookingModel.create({
+      ...dto,
+      paymentStatus: PaymentStatus.PENDING,
+      bookingStatus: BookingStatus.PENDING,
+      startTime: start,
+      endTime: end,
+    });
+    // 5. Create unavailability for this booking
+    await this.unavailabilityModel.create({
+      productId: dto.productId,
+      consumerId: dto.consumerId,
+      productType: dto.productType,
+      unavailabilityType: 'booked',
+      startTime: start,
+      endTime: end,
+    });
+    return booking;
+  }
+
+  async approveBooking(bookingId: string, partnerId: string) {
+    const booking = await this.bookingModel.findOne({ _id: bookingId, partnerId });
+    if (!booking) {
+      throw new HttpException('Booking not found or unauthorized', HttpStatus.NOT_FOUND);
+    }
+    if (booking.bookingStatus !== BookingStatus.PENDING) {
+      throw new HttpException('Only pending bookings can be approved', HttpStatus.BAD_REQUEST);
+    }
+    booking.bookingStatus = BookingStatus.CONFIRMED;
+    await booking.save();
+    return booking;
+  }
+
+  async rejectBooking(bookingId: string, partnerId: string, cancellationReason?: string) {
+    const booking = await this.bookingModel.findOne({ _id: bookingId, partnerId });
+    if (!booking) {
+      throw new HttpException('Booking not found or unauthorized', HttpStatus.NOT_FOUND);
+    }
+    if (booking.bookingStatus !== BookingStatus.PENDING) {
+      throw new HttpException('Only pending bookings can be rejected', HttpStatus.BAD_REQUEST);
+    }
+    booking.bookingStatus = BookingStatus.CANCELLED;
+    booking.cancellationReason = cancellationReason || 'Rejected by partner';
+    await booking.save();
+    // Remove the unavailability for this booking
+    await this.unavailabilityModel.deleteOne({
+      productId: booking.productId,
+      consumerId: booking.consumerId,
+      productType: booking.productType,
+      unavailabilityType: 'booked',
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+    });
+    return booking;
+  }
+
+  async confirmPayment(bookingId: string, transactionId: string) {
+    const booking = await this.bookingModel.findById(bookingId);
+    if (!booking) {
+      throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
+    }
+    if (booking.paymentStatus === PaymentStatus.PAID) {
+      throw new HttpException('Payment already confirmed', HttpStatus.BAD_REQUEST);
+    }
+    booking.paymentStatus = PaymentStatus.PAID;
+    booking.transactionId = transactionId;
+    if (booking.bookingStatus !== BookingStatus.CANCELLED) {
+      booking.bookingStatus = BookingStatus.CONFIRMED;
+    }
+    await booking.save();
+    return booking;
+  }
+
+  async cancelBooking(bookingId: string, userId: string, reason?: string) {
+    const booking = await this.bookingModel.findById(bookingId);
+    if (!booking) {
+      throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
+    }
+    if (
+      booking.consumerId.toString() !== userId &&
+      booking.partnerId.toString() !== userId
+    ) {
+      throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
+    }
+    if (
+      booking.bookingStatus === BookingStatus.CANCELLED ||
+      booking.bookingStatus === BookingStatus.COMPLETED
+    ) {
+      throw new HttpException('Cannot cancel this booking', HttpStatus.BAD_REQUEST);
+    }
+    booking.bookingStatus = BookingStatus.CANCELLED;
+    booking.cancellationReason = reason || 'Cancelled';
+    await booking.save();
+    // Remove the unavailability for this booking
+    await this.unavailabilityModel.deleteOne({
+      productId: booking.productId,
+      consumerId: booking.consumerId,
+      productType: booking.productType,
+      unavailabilityType: 'booked',
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+    });
+    return booking;
+  }
+
+  async completeBooking(bookingId: string, partnerId: string) {
+    const booking = await this.bookingModel.findOne({ _id: bookingId, partnerId });
+    if (!booking) {
+      throw new HttpException('Booking not found or unauthorized', HttpStatus.NOT_FOUND);
+    }
+    if (booking.bookingStatus !== BookingStatus.CONFIRMED) {
+      throw new HttpException('Only confirmed bookings can be completed', HttpStatus.BAD_REQUEST);
+    }
+    booking.bookingStatus = BookingStatus.COMPLETED;
+    await booking.save();
+    return booking;
+  }
+
+  async getBookingsForConsumer(consumerId: string) {
+    return this.bookingModel.find({ consumerId });
+  }
+
+  async getBookingsForPartner(partnerId: string) {
+    return this.bookingModel.find({ partnerId });
   }
 }

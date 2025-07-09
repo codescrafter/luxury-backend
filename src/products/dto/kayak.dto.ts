@@ -142,10 +142,6 @@ export class CreateKayakDto {
   isFeatured?: boolean;
 
   @IsOptional()
-  @IsMongoId()
-  resortId?: string;
-
-  @IsOptional()
   @IsEnum(['pending', 'approved', 'rejected'])
   status?: 'pending' | 'approved' | 'rejected';
 
