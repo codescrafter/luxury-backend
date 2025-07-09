@@ -105,8 +105,8 @@ export class Resort {
   @Prop({ type: Number, default: 0 })
   reviewCount?: number;
 
-  @Prop({ default: 'pending', enum: ['pending', 'approved', 'rejected'] })
-  status: 'pending' | 'approved' | 'rejected';
+  @Prop({ default: 'pending', enum: ['pending', 'approved', 'revision', 'rejected'] })
+  status: 'pending' | 'approved' | 'revision' | 'rejected';
 
   @Prop({ default: 0 })
   resubmissionCount: number;

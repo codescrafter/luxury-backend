@@ -13,9 +13,17 @@ import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
 import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
 import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
-import { Availability, AvailabilityDocument } from './entities/availability.entity';
-import { CreateAvailabilityDto } from './dto/create-availability.dto';
-import { GetProductsDto, ProductType, SortBy } from './dto/get-products.dto';
+import {
+  Unavailability,
+  UnavailabilityDocument,
+} from './entities/unavailability.entity';
+import { CreateUnavailabilityDto } from './dto/create-unavailability.dto';
+import {
+  Booking,
+  BookingDocument,
+  BookingStatus,
+} from './entities/booking.entity';
+import { CreateBookingDto, BookingProductType } from './dto/booking.dto';
 
 @Injectable()
 export class ProductsService {
@@ -28,8 +36,10 @@ export class ProductsService {
     private readonly speedboatModel: Model<SpeedboatDocument>,
     @InjectModel(Resort.name)
     private readonly resortModel: Model<ResortDocument>,
-    @InjectModel(Availability.name)
-    private readonly availabilityModel: Model<AvailabilityDocument>,
+    @InjectModel(Unavailability.name)
+    private readonly unavailabilityModel: Model<UnavailabilityDocument>,
+    @InjectModel(Booking.name)
+    private readonly bookingModel: Model<BookingDocument>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -47,8 +57,6 @@ export class ProductsService {
       ),
     );
   }
-
-
 
   async createJetSkiHandler(
     dto: CreateJetskiDto,
@@ -78,18 +86,8 @@ export class ProductsService {
     );
   }
 
-
-
   async getJetSkiById(id: string) {
     return this.jetSkiModel.findById(id);
-  }
-
-  async approveJetSkiHandler(id: string) {
-    return this.jetSkiModel.findByIdAndUpdate(
-      id,
-      { status: 'approved' },
-      { new: true },
-    );
   }
 
   async createKayakHandler(
@@ -120,18 +118,8 @@ export class ProductsService {
     );
   }
 
-
-
   async getKayakById(id: string) {
     return this.kayakModel.findById(id);
-  }
-
-  async approveKayakHandler(id: string) {
-    return this.kayakModel.findByIdAndUpdate(
-      id,
-      { status: 'approved' },
-      { new: true },
-    );
   }
 
   async createYachtHandler(
@@ -162,18 +150,8 @@ export class ProductsService {
     );
   }
 
-
-
   async getYachtById(id: string) {
     return this.yachtModel.findById(id);
-  }
-
-  async approveYachtHandler(id: string) {
-    return this.yachtModel.findByIdAndUpdate(
-      id,
-      { status: 'approved' },
-      { new: true },
-    );
   }
 
   async createSpeedboatHandler(
@@ -204,18 +182,8 @@ export class ProductsService {
     );
   }
 
-
-
   async getSpeedboatById(id: string) {
     return this.speedboatModel.findById(id);
-  }
-
-  async approveSpeedboatHandler(id: string) {
-    return this.speedboatModel.findByIdAndUpdate(
-      id,
-      { status: 'approved' },
-      { new: true },
-    );
   }
 
   async createResortHandler(
@@ -246,300 +214,377 @@ export class ProductsService {
     );
   }
 
-
-
   async getResortById(id: string) {
     return this.resortModel.findById(id);
   }
 
-  async approveResortHandler(id: string) {
-    return this.resortModel.findByIdAndUpdate(
-      id,
-      { status: 'approved' },
-      { new: true },
-    );
-  }
-
-  async getAllPendingProducts() {
+  async getAllPendingProducts(showRejected = false) {
+    const statusFilter = showRejected ? ['pending', 'revision', 'rejected'] : ['pending', 'revision'];
     const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
-      this.jetSkiModel.find({ status: 'pending' }),
-      this.kayakModel.find({ status: 'pending' }),
-      this.yachtModel.find({ status: 'pending' }),
-      this.speedboatModel.find({ status: 'pending' }),
-      this.resortModel.find({ status: 'pending' }),
+      this.jetSkiModel.find({ status: { $in: statusFilter } }),
+      this.kayakModel.find({ status: { $in: statusFilter } }),
+      this.yachtModel.find({ status: { $in: statusFilter } }),
+      this.speedboatModel.find({ status: { $in: statusFilter } }),
+      this.resortModel.find({ status: { $in: statusFilter } }),
     ]);
     return { jetskis, kayaks, yachts, speedboats, resorts };
   }
 
-  // --- AVAILABILITY METHODS ---
+  // --- UNAVAILABILITY METHODS ---
 
   /**
-   * Create or update availability for a product (per day)
+   * Create or update unavailability for a product (per day)
    */
-  async setAvailability(dto: CreateAvailabilityDto) {
-    // Upsert: update if exists, else create
-    return this.availabilityModel.findOneAndUpdate(
-      {
-        productId: dto.productId,
-        date: new Date(dto.date),
-      },
-      {
-        $set: {
-          status: dto.status,
-        },
-      },
-      { upsert: true, new: true }
-    );
+  async setUnavailability(dto: CreateUnavailabilityDto) {
+    // Resort: only allow full-day unavailability
+    // Others: allow per-hour unavailability, prevent overlap
+    const { productId, date, startHour, endHour } = dto;
+    const product = await this.getProductById(productId);
+    const isResort = product && product.type === 'resort';
+    if (isResort) {
+      // Only allow full-day
+      const conflict = await this.unavailabilityModel.findOne({
+        productId,
+        date: new Date(date),
+      });
+      if (conflict)
+        throw new Error('Resort is already unavailable for this date');
+      return this.unavailabilityModel.create({
+        productId,
+        date: new Date(date),
+      });
+    } else {
+      // Per-hour unavailability
+      if (typeof startHour !== 'number' || typeof endHour !== 'number') {
+        throw new Error(
+          'startHour and endHour are required for hourly unavailability',
+        );
+      }
+      if (startHour < 0 || endHour > 24 || startHour >= endHour) {
+        throw new Error('Invalid unavailability hours');
+      }
+      // Prevent overlap
+      const conflict = await this.unavailabilityModel.findOne({
+        productId,
+        date: new Date(date),
+        $or: [{ startHour: { $lt: endHour }, endHour: { $gt: startHour } }],
+      });
+      if (conflict)
+        throw new Error('Product is already unavailable for this time slot');
+      return this.unavailabilityModel.create({
+        productId,
+        date: new Date(date),
+        startHour,
+        endHour,
+      });
+    }
+  }
+
+  // Helper to get product by id and type
+  private async getProductById(productId: string) {
+    // Try all models
+    let product = await this.jetSkiModel.findById(productId);
+    if (product) return product;
+    product = await this.kayakModel.findById(productId);
+    if (product) return product;
+    product = await this.yachtModel.findById(productId);
+    if (product) return product;
+    product = await this.speedboatModel.findById(productId);
+    if (product) return product;
+    product = await this.resortModel.findById(productId);
+    if (product) return product;
+    return null;
   }
 
   /**
-   * Get availability for a product (for calendar display)
+   * Get unavailability for a product (for calendar display)
    */
-  async getAvailability(productId: string) {
-    return this.availabilityModel.find({
-      productId,
-    }).sort({ date: 1 });
+  async getUnavailability(productId: string, query: any = {}) {
+    // Accept startDate/endDate/startHour/endHour for filtering
+    let { startDate, endDate, startHour, endHour } = query;
+    if (!startDate || !endDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const next6 = new Date(today);
+      next6.setDate(today.getDate() + 6);
+      startDate = today.toISOString();
+      endDate = next6.toISOString();
+    }
+    const dateFilter = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    const findQuery: any = { productId, date: dateFilter };
+    if (typeof startHour === 'number' && typeof endHour === 'number') {
+      findQuery.startHour = { $lt: endHour };
+      findQuery.endHour = { $gt: startHour };
+    }
+    return this.unavailabilityModel.find(findQuery).sort({ date: 1 });
   }
-
-
 
   /**
    * Unified method to get products with comprehensive filtering
    */
-  async getProducts(filters: GetProductsDto) {
-    const {
-      productType = ProductType.ALL,
-      startDate,
-      endDate,
-      page = 1,
-      limit = 20,
-      sortBy = SortBy.CREATED_AT,
-      ...otherFilters
-    } = filters;
-
-    // Build base query
-    const baseQuery = this.buildAdvancedFilterQuery(otherFilters);
-    
-    // Handle date range filtering for availability
-    let unavailableProductIds: string[] = [];
-    if (startDate && endDate) {
-      unavailableProductIds = await this.getUnavailableProductIds(startDate, endDate);
-    }
-
-    // Get products based on type
-    let products: any[] = [];
-    let totalCount = 0;
-
-    if (productType === ProductType.ALL) {
-      // Get all product types
-      const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
-        this.getProductsByType('jetski', baseQuery, unavailableProductIds, sortBy),
-        this.getProductsByType('kayak', baseQuery, unavailableProductIds, sortBy),
-        this.getProductsByType('yacht', baseQuery, unavailableProductIds, sortBy),
-        this.getProductsByType('speedboat', baseQuery, unavailableProductIds, sortBy),
-        this.getProductsByType('resort', baseQuery, unavailableProductIds, sortBy),
-      ]);
-
-      // Combine and sort all products
-      products = [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
-      totalCount = products.length;
-      
-      // Sort combined results
-      products = this.sortProducts(products, sortBy);
-    } else {
-      // Get specific product type
-      const result = await this.getProductsByType(productType, baseQuery, unavailableProductIds, sortBy);
-      products = result;
-      totalCount = result.length;
-    }
-
-    // Apply pagination
-    const skip = (page - 1) * limit;
-    const paginatedProducts = products.slice(skip, skip + limit);
-
-    return {
-      products: paginatedProducts,
-      pagination: {
-        page,
-        limit,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-        hasNext: page < Math.ceil(totalCount / limit),
-        hasPrev: page > 1,
-      },
-      filters: {
-        productType,
-        startDate,
-        endDate,
-        ...otherFilters,
-      },
-    };
-  }
-
-  /**
-   * Build advanced filter query with all available filters
-   */
-  private buildAdvancedFilterQuery(filters: any) {
-    const query: any = {};
-
-    // Location filters
-    if (filters.city) query.city = { $regex: filters.city, $options: 'i' };
-    if (filters.region) query.region = { $regex: filters.region, $options: 'i' };
-    if (filters.country) query.country = { $regex: filters.country, $options: 'i' };
-
-    // Capacity filter
-    if (filters.numberOfPeople) query.capacity = { $gte: +filters.numberOfPeople };
-
-    // Price filters
-    if (filters.minPrice || filters.maxPrice) {
-      query.$or = [
-        { pricePerHour: { $gte: filters.minPrice || 0, $lte: filters.maxPrice || Number.MAX_SAFE_INTEGER } },
-        { pricePerDay: { $gte: filters.minPrice || 0, $lte: filters.maxPrice || Number.MAX_SAFE_INTEGER } },
-      ];
-    }
-
-    // Security deposit filter
-    if (filters.maxSecurityDeposit) query.securityDeposit = { $lte: filters.maxSecurityDeposit };
-
-    // Rating and review filters
-    if (filters.minRating) query.averageRating = { $gte: filters.minRating };
-    if (filters.minReviewCount) query.reviewCount = { $gte: filters.minReviewCount };
-
-    // Product-specific filters
-    if (filters.brand) query.brand = { $regex: filters.brand, $options: 'i' };
-    if (filters.engineType) query.engineType = { $regex: filters.engineType, $options: 'i' };
-    if (filters.minEnginePower) query.enginePower = { $regex: new RegExp(`\\d+cc.*${filters.minEnginePower}`, 'i') };
-    if (filters.maxSpeed) query.maxSpeed = { $lte: filters.maxSpeed };
-    if (filters.color) query.color = { $regex: filters.color, $options: 'i' };
-    if (filters.modelYear) query.modelYear = filters.modelYear;
-
-    // Boolean filters
-    if (filters.fuelIncluded !== undefined) query.fuelIncluded = filters.fuelIncluded;
-    if (filters.insuranceIncluded !== undefined) query.insuranceIncluded = filters.insuranceIncluded;
-    if (filters.licenseRequired !== undefined) query.licenseRequired = filters.licenseRequired;
-    if (filters.lifeJacketsIncluded !== undefined) query.lifeJacketsIncluded = filters.lifeJacketsIncluded;
-    if (filters.isFeatured !== undefined) query.isFeatured = filters.isFeatured;
-    if (filters.isRental !== undefined) query.isRental = filters.isRental;
-    if (filters.isEventProperty !== undefined) query.isEventProperty = filters.isEventProperty;
-
-    // Status filter
-    if (filters.status) query.status = filters.status;
-    else query.status = 'approved'; // Default to approved products only
-
-    // Owner filter
-    if (filters.ownerId) query.ownerId = filters.ownerId;
-
-    // Search filter
-    if (filters.search) {
-      query.$or = [
-        { title: { $regex: filters.search, $options: 'i' } },
-        { description: { $regex: filters.search, $options: 'i' } },
-        { brand: { $regex: filters.search, $options: 'i' } },
-        { tags: { $in: [new RegExp(filters.search, 'i')] } },
-      ];
-    }
-
-    // Tags filter
-    if (filters.tags && filters.tags.length > 0) {
-      query.tags = { $in: filters.tags.map(tag => new RegExp(tag, 'i')) };
-    }
-
-    return query;
-  }
-
-  /**
-   * Get products by specific type with filters
-   */
-  private async getProductsByType(type: string, baseQuery: any, unavailableProductIds: string[], sortBy: SortBy) {
-    let model;
-    switch (type) {
-      case 'jetski': model = this.jetSkiModel; break;
-      case 'kayak': model = this.kayakModel; break;
-      case 'yacht': model = this.yachtModel; break;
-      case 'speedboat': model = this.speedboatModel; break;
-      case 'resort': model = this.resortModel; break;
-      default: throw new Error('Invalid product type');
-    }
-
-    const query = {
-      ...baseQuery,
-      ...(unavailableProductIds.length > 0 && { _id: { $nin: unavailableProductIds } }),
-    };
-
-    const sortOptions = this.getSortOptions(sortBy);
-    return model.find(query).sort(sortOptions).lean();
+  async getProducts() {
+    // get all approved products from all models
+    const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+      this.jetSkiModel.find({ status: 'approved' }),
+      this.kayakModel.find({ status: 'approved' }),
+      this.yachtModel.find({ status: 'approved' }),
+      this.speedboatModel.find({ status: 'approved' }),
+      this.resortModel.find({ status: 'approved' }),
+    ]);
+    return [ ...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts ];
   }
 
   /**
    * Get unavailable product IDs for date range
    */
-  private async getUnavailableProductIds(startDate: string, endDate: string): Promise<string[]> {
+  private async getUnavailableProductIds(
+    startDate: string,
+    endDate: string,
+    productType?: string,
+    filters?: any,
+  ): Promise<string[]> {
     const start = new Date(startDate);
     const end = new Date(endDate);
-
-    const availabilities = await this.availabilityModel.aggregate([
-      {
-        $match: {
-          date: { $gte: start, $lte: end },
-          status: { $in: ['unavailable', 'booked'] },
-        }
-      },
-      {
-        $group: {
-          _id: '$productId',
-          unavailableDates: { $addToSet: '$date' },
-        }
-      },
-    ]);
-
-    return availabilities.map(a => a._id.toString());
-  }
-
-  /**
-   * Get sort options for different sort types
-   */
-  private getSortOptions(sortBy: SortBy) {
-    switch (sortBy) {
-      case SortBy.PRICE_LOW_TO_HIGH:
-        return { pricePerDay: 1, pricePerHour: 1 };
-      case SortBy.PRICE_HIGH_TO_LOW:
-        return { pricePerDay: -1, pricePerHour: -1 };
-      case SortBy.RATING:
-        return { averageRating: -1, reviewCount: -1 };
-      case SortBy.REVIEWS:
-        return { reviewCount: -1, averageRating: -1 };
-      case SortBy.BOOKINGS:
-        return { totalBookings: -1 };
-      case SortBy.FEATURED:
-        return { isFeatured: -1, createdAt: -1 };
-      case SortBy.CREATED_AT:
-      default:
-        return { createdAt: -1 };
+    let availabilities = [];
+    if (productType === 'resort') {
+      // Resort: only date
+      availabilities = await this.unavailabilityModel.aggregate([
+        {
+          $match: {
+            date: { $gte: start, $lte: end },
+          },
+        },
+        {
+          $group: {
+            _id: '$productId',
+            unavailableDates: { $addToSet: '$date' },
+          },
+        },
+      ]);
+    } else {
+      // Per-hour: check for overlap
+      const { startHour, endHour } = filters || {};
+      if (typeof startHour !== 'number' || typeof endHour !== 'number')
+        return [];
+      availabilities = await this.unavailabilityModel.aggregate([
+        {
+          $match: {
+            date: { $gte: start, $lte: end },
+            startHour: { $lt: endHour },
+            endHour: { $gt: startHour },
+          },
+        },
+        {
+          $group: {
+            _id: '$productId',
+            unavailableDates: { $addToSet: '$date' },
+          },
+        },
+      ]);
     }
+    return availabilities.map((a) => a._id.toString());
   }
 
   /**
-   * Sort products array (for combined results)
+   * Book a product (user API)
    */
-  private sortProducts(products: any[], sortBy: SortBy) {
-    return products.sort((a, b) => {
-      switch (sortBy) {
-        case SortBy.PRICE_LOW_TO_HIGH:
-          return (a.pricePerDay || a.pricePerHour || 0) - (b.pricePerDay || b.pricePerHour || 0);
-        case SortBy.PRICE_HIGH_TO_LOW:
-          return (b.pricePerDay || b.pricePerHour || 0) - (a.pricePerDay || a.pricePerHour || 0);
-        case SortBy.RATING:
-          return (b.averageRating || 0) - (a.averageRating || 0);
-        case SortBy.REVIEWS:
-          return (b.reviewCount || 0) - (a.reviewCount || 0);
-        case SortBy.BOOKINGS:
-          return (b.totalBookings || 0) - (a.totalBookings || 0);
-        case SortBy.FEATURED:
-          return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
-        case SortBy.CREATED_AT:
-        default:
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  async bookProduct(dto: CreateBookingDto, user: UserDocument) {
+    // Check for overlapping bookings
+    const { productId, productType, date, startHour, endHour } = dto;
+    const bookingDate = new Date(date);
+    let conflict;
+    if (productType === BookingProductType.RESORT) {
+      // Resort: only one booking per day
+      conflict = await this.bookingModel.findOne({
+        productId,
+        productType,
+        date: bookingDate,
+        status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+      });
+      if (conflict) throw new Error('Resort is already booked for this date');
+    } else {
+      // Per-hour: check for overlapping time slots
+      if (typeof startHour !== 'number' || typeof endHour !== 'number') {
+        throw new Error(
+          'startHour and endHour are required for per-hour bookings',
+        );
       }
+      if (startHour < 0 || endHour > 24 || startHour >= endHour) {
+        throw new Error('Invalid booking hours');
+      }
+      conflict = await this.bookingModel.findOne({
+        productId,
+        productType,
+        date: bookingDate,
+        status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+        $or: [
+          { startHour: { $lt: endHour }, endHour: { $gt: startHour } }, // overlap
+        ],
+      });
+      if (conflict)
+        throw new Error('Product is already booked for this time slot');
+    }
+    // Create booking
+    const booking = await this.bookingModel.create({
+      userId: user._id,
+      productId,
+      productType,
+      date: bookingDate,
+      startHour:
+        productType === BookingProductType.RESORT ? undefined : startHour,
+      endHour: productType === BookingProductType.RESORT ? undefined : endHour,
+      status: BookingStatus.PENDING,
     });
+    return booking;
+  }
+
+  /**
+   * Get all bookings (admin/partner)
+   */
+  async getAllBookings(query: any = {}) {
+    // Accept startDate/endDate/startHour/endHour for filtering
+    let { startDate, endDate, startHour, endHour } = query;
+    if (!startDate || !endDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const next6 = new Date(today);
+      next6.setDate(today.getDate() + 6);
+      startDate = today.toISOString();
+      endDate = next6.toISOString();
+    }
+    const dateFilter = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    const findQuery: any = { date: dateFilter };
+    if (typeof startHour === 'number' && typeof endHour === 'number') {
+      findQuery.startHour = { $lt: endHour };
+      findQuery.endHour = { $gt: startHour };
+    }
+    return this.bookingModel
+      .find(findQuery)
+      .populate('userId')
+      .populate('productId')
+      .sort({ createdAt: -1 });
+  }
+
+  /**
+   * Get bookings for a user
+   */
+  async getUserBookings(userId: string, query: any = {}) {
+    // Accept startDate/endDate/startHour/endHour for filtering
+    let { startDate, endDate, startHour, endHour } = query;
+    if (!startDate || !endDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const next6 = new Date(today);
+      next6.setDate(today.getDate() + 6);
+      startDate = today.toISOString();
+      endDate = next6.toISOString();
+    }
+    const dateFilter = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    const findQuery: any = { userId, date: dateFilter };
+    if (typeof startHour === 'number' && typeof endHour === 'number') {
+      findQuery.startHour = { $lt: endHour };
+      findQuery.endHour = { $gt: startHour };
+    }
+    return this.bookingModel
+      .find(findQuery)
+      .populate('productId')
+      .sort({ createdAt: -1 });
+  }
+
+  /**
+   * Approve a booking (partner/admin)
+   */
+  async approveBooking(bookingId: string) {
+    return this.bookingModel.findByIdAndUpdate(
+      bookingId,
+      { status: BookingStatus.CONFIRMED },
+      { new: true },
+    );
+  }
+
+  /**
+   * Reject a booking (partner/admin)
+   */
+  async rejectBooking(bookingId: string) {
+    return this.bookingModel.findByIdAndUpdate(
+      bookingId,
+      { status: BookingStatus.CANCELLED },
+      { new: true },
+    );
+  }
+
+ // In the approveOrRejectProduct method, change this:
+async approveOrRejectProduct(
+  type: string,
+  id: string,
+  action: 'approve' | 'revision' | 'reject',
+) {
+  let model;
+  switch (type) {
+    case 'jetski':
+      model = this.jetSkiModel;
+      break;
+    case 'kayak':
+      model = this.kayakModel;
+      break;
+    case 'yacht':
+      model = this.yachtModel;
+      break;
+    case 'speedboat':
+      model = this.speedboatModel;
+      break;
+    case 'resort':
+      model = this.resortModel;
+      break;
+    default:
+      throw new Error('Invalid product type');
+  }
+  
+  let update: any = {};
+  if (action === 'approve') {
+    // FIXED: Don't reset resubmissionCount when approving
+    update = { status: 'approved' };
+  } else if (action === 'revision') {
+    update = { status: 'revision', $inc: { resubmissionCount: 1 } };
+  } else if (action === 'reject') {
+    // FIXED: Don't increment resubmissionCount when rejecting
+    update = { status: 'rejected' };
+  } else {
+    throw new Error('Invalid action');
+  }
+  
+  const result = await model.findByIdAndUpdate(id, update, { new: true });
+  if (!result) throw new Error('Product not found');
+  return result;
+}
+
+  async resubmitProduct(type: string, id: string) {
+    let model;
+    switch (type) {
+      case 'jetski':
+        model = this.jetSkiModel;
+        break;
+      case 'kayak':
+        model = this.kayakModel;
+        break;
+      case 'yacht':
+        model = this.yachtModel;
+        break;
+      case 'speedboat':
+        model = this.speedboatModel;
+        break;
+      case 'resort':
+        model = this.resortModel;
+        break;
+      default:
+        throw new Error('Invalid product type');
+    }
+    const result = await model.findByIdAndUpdate(
+      id,
+      { status: 'pending', $inc: { resubmissionCount: 1 } },
+      { new: true },
+    );
+    if (!result) throw new Error('Product not found');
+    return result;
   }
 }

@@ -25,8 +25,8 @@ import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
 import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
 import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
-import { CreateAvailabilityDto } from './dto/create-availability.dto';
-import { GetProductsDto } from './dto/get-products.dto';
+import { CreateUnavailabilityDto } from './dto/create-unavailability.dto';
+import { CreateBookingDto } from './dto/booking.dto';
 
 import { ProductsService } from './products.service';
 
@@ -35,20 +35,27 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   private catchResponse(action: string, error: any) {
-    const status = error?.status || error?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
-    throw new HttpException({
-      success: false,
-      message: `Failed to ${action}`,
-      error: error.message,
-    }, status);
+    const status =
+      error?.status || error?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+    throw new HttpException(
+      {
+        success: false,
+        message: `Failed to ${action}`,
+        error: error.message,
+      },
+      status,
+    );
   }
 
   // ----- UNIFIED PRODUCTS ENDPOINT -----
+  /**
+   * Get products with filtering. If no startDate/endDate are provided, defaults to today + next 6 days.
+   */
   @Get()
-  async getProducts(@Query() filters: GetProductsDto) {
+  async getProducts() {
     try {
-      const result = await this.productsService.getProducts(filters);
-      return { success: true, data: result };
+      const result = await this.productsService.getProducts();
+      return { success: true, data:result };
     } catch (error) {
       this.catchResponse('get products', error);
     }
@@ -102,18 +109,6 @@ export class ProductsController {
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('update jetski', error);
-    }
-  }
-
-  @Put('jetski/:id/approve')
-  @Roles(Role.ADMIN)
-  @UseGuards(AuthGuard(), RolesGuard)
-  async approveJetski(@Param('id') id: string) {
-    try {
-      const result = await this.productsService.approveJetSkiHandler(id);
-      return { success: true, data: result };
-    } catch (error) {
-      this.catchResponse('approve jetski', error);
     }
   }
 
@@ -179,18 +174,6 @@ export class ProductsController {
     }
   }
 
-  @Put('kayak/:id/approve')
-  @Roles(Role.ADMIN)
-  @UseGuards(AuthGuard(), RolesGuard)
-  async approveKayak(@Param('id') id: string) {
-    try {
-      const result = await this.productsService.approveKayakHandler(id);
-      return { success: true, data: result };
-    } catch (error) {
-      this.catchResponse('approve kayak', error);
-    }
-  }
-
   @Get('kayak/:id')
   @UseGuards(AuthGuard('jwt'))
   async getKayakById(@Param('id') id: string) {
@@ -250,18 +233,6 @@ export class ProductsController {
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('update yacht', error);
-    }
-  }
-
-  @Put('yacht/:id/approve')
-  @Roles(Role.ADMIN)
-  @UseGuards(AuthGuard(), RolesGuard)
-  async approveYacht(@Param('id') id: string) {
-    try {
-      const result = await this.productsService.approveYachtHandler(id);
-      return { success: true, data: result };
-    } catch (error) {
-      this.catchResponse('approve yacht', error);
     }
   }
 
@@ -327,18 +298,6 @@ export class ProductsController {
     }
   }
 
-  @Put('speedboat/:id/approve')
-  @Roles(Role.ADMIN)
-  @UseGuards(AuthGuard(), RolesGuard)
-  async approveSpeedboat(@Param('id') id: string) {
-    try {
-      const result = await this.productsService.approveSpeedboatHandler(id);
-      return { success: true, data: result };
-    } catch (error) {
-      this.catchResponse('approve speedboat', error);
-    }
-  }
-
   @Get('speedboat/:id')
   @UseGuards(AuthGuard())
   async getSpeedboatById(@Param('id') id: string) {
@@ -401,18 +360,6 @@ export class ProductsController {
     }
   }
 
-  @Put('resort/:id/approve')
-  @Roles(Role.ADMIN)
-  @UseGuards(AuthGuard(), RolesGuard)
-  async approveResort(@Param('id') id: string) {
-    try {
-      const result = await this.productsService.approveResortHandler(id);
-      return { success: true, data: result };
-    } catch (error) {
-      this.catchResponse('approve resort', error);
-    }
-  }
-
   @Get('resort/:id')
   @UseGuards(AuthGuard())
   async getResortById(@Param('id') id: string) {
@@ -427,39 +374,192 @@ export class ProductsController {
   @Get('pending')
   @Roles(Role.ADMIN)
   @UseGuards(AuthGuard(), RolesGuard)
-  async getAllPendingProducts() {
+  async getAllPendingProducts(@Query('showRejected') showRejected: string) {
     try {
-      const result = await this.productsService.getAllPendingProducts();
+      const result = await this.productsService.getAllPendingProducts(showRejected === 'true');
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get pending products', error);
     }
   }
 
-  // --- AVAILABILITY ENDPOINTS ---
+  // --- UNAVAILABILITY ENDPOINTS ---
 
   /**
-   * Partner: Set or update availability for a product
+   * Partner: Set or update unavailability for a product
    */
-  @Post(':id/availability')
+  @Post(':id/unavailability')
   @Roles(Role.PARTNER)
   @UseGuards(AuthGuard(), RolesGuard)
-  async setAvailability(
+  async setUnavailability(
     @Param('id') productId: string,
-    @Body() dto: CreateAvailabilityDto,
+    @Body() dto: CreateUnavailabilityDto,
   ) {
     dto.productId = productId;
-    const result = await this.productsService.setAvailability(dto);
+    const result = await this.productsService.setUnavailability(dto);
     return { success: true, data: result };
   }
 
   /**
-   * User: Get availability for a product (for calendar)
+   * User: Get unavailability for a product (for calendar). If no date range is provided, defaults to today + next 6 days.
    */
-  @Get(':id/availability')
+  @Get(':id/unavailability')
   @UseGuards(AuthGuard())
-  async getAvailability(@Param('id') productId: string) {
-    const result = await this.productsService.getAvailability(productId);
+  async getUnavailability(@Param('id') productId: string, @Query() query: any) {
+    const result = await this.productsService.getUnavailability(
+      productId,
+      query,
+    );
     return { success: true, data: result };
+  }
+
+  /**
+   * Book a product (user API). If date is not provided, defaults to today. startHour/endHour are for non-resort products only.
+   */
+  @Post(':id/book')
+  @UseGuards(AuthGuard())
+  async bookProduct(
+    @Param('id') productId: string,
+    @Body() dto: CreateBookingDto,
+    @Req() req,
+  ) {
+    try {
+      dto.productId = productId;
+      // productType and date must be provided in body (date defaults to today if not provided)
+      if (!dto.date) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        dto.date = today.toISOString();
+      }
+      const booking = await this.productsService.bookProduct(dto, req.user);
+      return { success: true, data: booking };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  // --- BOOKINGS API ---
+
+  /**
+   * Get all bookings (admin/partner). If no startDate/endDate are provided, defaults to today + next 6 days. Supports startHour/endHour for per-hour filtering.
+   */
+  @Get('bookings')
+  @Roles(Role.ADMIN, Role.PARTNER)
+  @UseGuards(AuthGuard(), RolesGuard)
+  async getAllBookings(@Query() query: any) {
+    // Default date range if not provided
+    if (!query.startDate || !query.endDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const next6 = new Date(today);
+      next6.setDate(today.getDate() + 6);
+      query.startDate = today.toISOString();
+      query.endDate = next6.toISOString();
+    }
+    const bookings = await this.productsService.getAllBookings(query);
+    return { success: true, data: bookings };
+  }
+
+  /**
+   * Get bookings for current user. If no startDate/endDate are provided, defaults to today + next 6 days. Supports startHour/endHour for per-hour filtering.
+   */
+  @Get('my-bookings')
+  @UseGuards(AuthGuard())
+  async getUserBookings(@Req() req, @Query() query: any) {
+    if (!query.startDate || !query.endDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const next6 = new Date(today);
+      next6.setDate(today.getDate() + 6);
+      query.startDate = today.toISOString();
+      query.endDate = next6.toISOString();
+    }
+    const bookings = await this.productsService.getUserBookings(
+      req.user._id,
+      query,
+    );
+    return { success: true, data: bookings };
+  }
+
+  /**
+   * Approve a booking (partner/admin)
+   */
+  @Put('bookings/:id/approve')
+  @Roles(Role.ADMIN, Role.PARTNER)
+  @UseGuards(AuthGuard(), RolesGuard)
+  async approveBooking(@Param('id') bookingId: string) {
+    const booking = await this.productsService.approveBooking(bookingId);
+    return { success: true, data: booking };
+  }
+
+  /**
+   * Reject a booking (partner/admin)
+   */
+  @Put('bookings/:id/reject')
+  @Roles(Role.ADMIN, Role.PARTNER)
+  @UseGuards(AuthGuard(), RolesGuard)
+  async rejectBooking(@Param('id') bookingId: string) {
+    const booking = await this.productsService.rejectBooking(bookingId);
+    return { success: true, data: booking };
+  }
+
+  /**
+   * Approve a product (admin)
+   */
+  @Put(':type/:id/approve')
+  @Roles(Role.ADMIN)
+  @UseGuards(AuthGuard(), RolesGuard)
+  async approveProduct(@Param('type') type: string, @Param('id') id: string) {
+    try {
+      const result = await this.productsService.approveOrRejectProduct(type, id, 'approve');
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('approve product', error);
+    }
+  }
+
+  /**
+   * Mark a product for revision (admin)
+   */
+  @Put(':type/:id/revision')
+  @Roles(Role.ADMIN)
+  @UseGuards(AuthGuard(), RolesGuard)
+  async revisionProduct(@Param('type') type: string, @Param('id') id: string) {
+    try {
+      const result = await this.productsService.approveOrRejectProduct(type, id, 'revision');
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('revision product', error);
+    }
+  }
+
+  /**
+   * Reject a product (admin, not shown in pending)
+   */
+  @Put(':type/:id/reject')
+  @Roles(Role.ADMIN)
+  @UseGuards(AuthGuard(), RolesGuard)
+  async rejectProduct(@Param('type') type: string, @Param('id') id: string) {
+    try {
+      const result = await this.productsService.approveOrRejectProduct(type, id, 'reject');
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('reject product', error);
+    }
+  }
+
+  /**
+   * Resubmit a product (partner)
+   */
+  @Put(':type/:id/resubmit')
+  @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  async resubmitProduct(@Param('type') type: string, @Param('id') id: string) {
+    try {
+      const result = await this.productsService.resubmitProduct(type, id);
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('resubmit product', error);
+    }
   }
 }
