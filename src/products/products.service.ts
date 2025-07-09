@@ -242,6 +242,25 @@ export class ProductsService {
       ...resorts,
     ];
   }
+
+  /**
+   * Get products by status, optionally filtered by ownerId
+   */
+  async getProductsByStatus(
+    status: string | string[],
+    ownerId?: string,
+  ) {
+    const statusFilter = Array.isArray(status) ? status : [status];
+    const ownerFilter = ownerId ? { ownerId } : {};
+    const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+      this.jetSkiModel.find({ status: { $in: statusFilter }, ...ownerFilter }),
+      this.kayakModel.find({ status: { $in: statusFilter }, ...ownerFilter }),
+      this.yachtModel.find({ status: { $in: statusFilter }, ...ownerFilter }),
+      this.speedboatModel.find({ status: { $in: statusFilter }, ...ownerFilter }),
+      this.resortModel.find({ status: { $in: statusFilter }, ...ownerFilter }),
+    ]);
+    return { jetskis, kayaks, yachts, speedboats, resorts };
+  }
 async approveOrRejectProduct(
   type: string,
   id: string,
