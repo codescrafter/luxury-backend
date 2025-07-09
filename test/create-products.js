@@ -3,20 +3,13 @@ const { createKayak } = require('./create-kayak');
 const { createYacht } = require('./create-yacht');
 const { createSpeedboat } = require('./create-speedboat');
 const { createResort } = require('./create-resort');
-const { resubmitProduct } = require('./resubmit-product');
 
 const { approveProduct } = require('./approve-product');
 const { markProductForRevision } = require('./revision-product');
 const { rejectProduct } = require('./reject-product');
 const { getProducts } = require('./get-products');
 const { testPendingProductVisibility } = require('./get-pending-products');
-const axios = require('axios');
 
-// Utility to fetch a single product by type and id
-async function getProductById(type, id) {
-  const products = await getProducts({ productType: type });
-  return products.find((p) => p._id === id);
-}
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
@@ -24,6 +17,7 @@ const isProductVisible = async (type, id) => {
   const products = await getProducts({ productType: type });
   return products.some((p) => p._id === id);
 };
+
 
 const runFlow = async (type, createFn) => {
   const created = await createFn();
