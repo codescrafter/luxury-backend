@@ -46,14 +46,83 @@ export class ProductsController {
     );
   }
 
-
-  @Get()
+  @Get() // This is for users and it will show only approved products
+  @UseGuards(AuthGuard())
   async getProducts() {
     try {
       const result = await this.productsService.getProducts();
-      return { success: true, data:result };
+      return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get products', error);
+    }
+  }
+
+  /**
+   * Get all pending products (admin: all, partner: own)
+   */
+  @Get('pending')
+  @UseGuards(AuthGuard())
+  async getPendingProducts(@Req() req) {
+    try {
+      const isAdmin = req.user.role.includes(Role.ADMIN);
+      const isPartner = req.user.role.includes(Role.PARTNER);
+      if (!isAdmin && !isPartner) {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      }
+      const ownerId = isPartner ? req.user._id : undefined;
+      const result = await this.productsService.getProductsByStatus(
+        ['pending', 'revision'],
+        ownerId,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('get pending products', error);
+    }
+  }
+
+  /**
+   * Get all approved products (admin: all, partner: own)
+   */
+  @Get('approved')
+  @UseGuards(AuthGuard())
+  async getApprovedProducts(@Req() req) {
+    try {
+      const isAdmin = req.user.role.includes(Role.ADMIN);
+      const isPartner = req.user.role.includes(Role.PARTNER);
+      if (!isAdmin && !isPartner) {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      }
+      const ownerId = isPartner ? req.user._id : undefined;
+      const result = await this.productsService.getProductsByStatus(
+        'approved',
+        ownerId,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('get approved products', error);
+    }
+  }
+
+  /**
+   * Get all rejected products (admin: all, partner: own)
+   */
+  @Get('rejected')
+  @UseGuards(AuthGuard())
+  async getRejectedProducts(@Req() req) {
+    try {
+      const isAdmin = req.user.role.includes(Role.ADMIN);
+      const isPartner = req.user.role.includes(Role.PARTNER);
+      if (!isAdmin && !isPartner) {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      }
+      const ownerId = isPartner ? req.user._id : undefined;
+      const result = await this.productsService.getProductsByStatus(
+        'rejected',
+        ownerId,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('get rejected products', error);
     }
   }
 
@@ -375,7 +444,11 @@ export class ProductsController {
   @UseGuards(AuthGuard(), RolesGuard)
   async approveProduct(@Param('type') type: string, @Param('id') id: string) {
     try {
-      const result = await this.productsService.approveOrRejectProduct(type, id, 'approve');
+      const result = await this.productsService.approveOrRejectProduct(
+        type,
+        id,
+        'approve',
+      );
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('approve product', error);
@@ -390,7 +463,11 @@ export class ProductsController {
   @UseGuards(AuthGuard(), RolesGuard)
   async revisionProduct(@Param('type') type: string, @Param('id') id: string) {
     try {
-      const result = await this.productsService.approveOrRejectProduct(type, id, 'revision');
+      const result = await this.productsService.approveOrRejectProduct(
+        type,
+        id,
+        'revision',
+      );
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('revision product', error);
@@ -405,7 +482,11 @@ export class ProductsController {
   @UseGuards(AuthGuard(), RolesGuard)
   async rejectProduct(@Param('type') type: string, @Param('id') id: string) {
     try {
-      const result = await this.productsService.approveOrRejectProduct(type, id, 'reject');
+      const result = await this.productsService.approveOrRejectProduct(
+        type,
+        id,
+        'reject',
+      );
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('reject product', error);
@@ -448,7 +529,10 @@ export class ProductsController {
   }
 
   @Put('booking/:id/approve')
-  async approveBooking(@Param('id') id: string, @Body('partnerId') partnerId: string) {
+  async approveBooking(
+    @Param('id') id: string,
+    @Body('partnerId') partnerId: string,
+  ) {
     try {
       const booking = await this.productsService.approveBooking(id, partnerId);
       return { success: true, data: booking };
@@ -458,9 +542,17 @@ export class ProductsController {
   }
 
   @Put('booking/:id/reject')
-  async rejectBooking(@Param('id') id: string, @Body('partnerId') partnerId: string, @Body('cancellationReason') cancellationReason?: string) {
+  async rejectBooking(
+    @Param('id') id: string,
+    @Body('partnerId') partnerId: string,
+    @Body('cancellationReason') cancellationReason?: string,
+  ) {
     try {
-      const booking = await this.productsService.rejectBooking(id, partnerId, cancellationReason);
+      const booking = await this.productsService.rejectBooking(
+        id,
+        partnerId,
+        cancellationReason,
+      );
       return { success: true, data: booking };
     } catch (error) {
       return { success: false, error: error.message };
@@ -468,9 +560,15 @@ export class ProductsController {
   }
 
   @Post('booking/:id/payment-confirmed')
-  async confirmPayment(@Param('id') id: string, @Body('transactionId') transactionId: string) {
+  async confirmPayment(
+    @Param('id') id: string,
+    @Body('transactionId') transactionId: string,
+  ) {
     try {
-      const booking = await this.productsService.confirmPayment(id, transactionId);
+      const booking = await this.productsService.confirmPayment(
+        id,
+        transactionId,
+      );
       return { success: true, data: booking };
     } catch (error) {
       return { success: false, error: error.message };
@@ -478,9 +576,17 @@ export class ProductsController {
   }
 
   @Post('booking/:id/cancel')
-  async cancelBooking(@Param('id') id: string, @Body('userId') userId: string, @Body('reason') reason?: string) {
+  async cancelBooking(
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+    @Body('reason') reason?: string,
+  ) {
     try {
-      const booking = await this.productsService.cancelBooking(id, userId, reason);
+      const booking = await this.productsService.cancelBooking(
+        id,
+        userId,
+        reason,
+      );
       return { success: true, data: booking };
     } catch (error) {
       return { success: false, error: error.message };
@@ -488,7 +594,10 @@ export class ProductsController {
   }
 
   @Post('booking/:id/complete')
-  async completeBooking(@Param('id') id: string, @Body('partnerId') partnerId: string) {
+  async completeBooking(
+    @Param('id') id: string,
+    @Body('partnerId') partnerId: string,
+  ) {
     try {
       const booking = await this.productsService.completeBooking(id, partnerId);
       return { success: true, data: booking };
@@ -500,7 +609,8 @@ export class ProductsController {
   @Get('consumer/:consumerId/bookings')
   async getBookingsForConsumer(@Param('consumerId') consumerId: string) {
     try {
-      const bookings = await this.productsService.getBookingsForConsumer(consumerId);
+      const bookings =
+        await this.productsService.getBookingsForConsumer(consumerId);
       return { success: true, data: bookings };
     } catch (error) {
       return { success: false, error: error.message };
@@ -510,7 +620,8 @@ export class ProductsController {
   @Get('partner/:partnerId/bookings')
   async getBookingsForPartner(@Param('partnerId') partnerId: string) {
     try {
-      const bookings = await this.productsService.getBookingsForPartner(partnerId);
+      const bookings =
+        await this.productsService.getBookingsForPartner(partnerId);
       return { success: true, data: bookings };
     } catch (error) {
       return { success: false, error: error.message };
