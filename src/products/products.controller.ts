@@ -70,10 +70,11 @@ export class ProductsController {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
       const ownerId = isPartner ? req.user._id : undefined;
-      const result = await this.productsService.getProductsByStatus(
+      const result = await this.productsService.getProductsByOwnerAndStatus(
         ['pending', 'revision'],
         ownerId,
       );
+
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get pending products', error);
@@ -93,8 +94,8 @@ export class ProductsController {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
       const ownerId = isPartner ? req.user._id : undefined;
-      const result = await this.productsService.getProductsByStatus(
-        'approved',
+      const result = await this.productsService.getProductsByOwnerAndStatus(
+        ['approved'],
         ownerId,
       );
       return { success: true, data: result };
@@ -116,8 +117,8 @@ export class ProductsController {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
       const ownerId = isPartner ? req.user._id : undefined;
-      const result = await this.productsService.getProductsByStatus(
-        'rejected',
+      const result = await this.productsService.getProductsByOwnerAndStatus(
+        ['rejected'],
         ownerId,
       );
       return { success: true, data: result };
@@ -625,6 +626,30 @@ export class ProductsController {
       return { success: true, data: bookings };
     } catch (error) {
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get unavailability for a product (partner only, must be owner)
+   */
+  @Get(':type/:productId/unavailability')
+  @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  async getUnavailabilityForProduct(
+    @Param('type') type: string,
+    @Param('productId') productId: string,
+    @Req() req,
+  ) {
+    try {
+      const userId = req.user._id;
+      const result = await this.productsService.getUnavailabilityForProduct(
+        type,
+        productId,
+        userId,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('get unavailability for product', error);
     }
   }
 }

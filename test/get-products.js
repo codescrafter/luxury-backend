@@ -20,4 +20,32 @@ async function getProducts(filters = {}) {
   }
 }
 
-module.exports = { getProducts };
+async function getRejectedProducts() {
+  try {
+    const res = await axios.get(`${BASE_URL}/products/rejected`, {
+      headers: {
+        Authorization: `Bearer ${AUTH_TOKEN}`,
+      },
+    });
+    return res.data?.data || [];
+  } catch (error) {
+    console.error('❌ Failed to fetch rejected products:', error.response?.data || error.message);
+    return [];
+  }
+}
+
+async function getApprovedProducts() {
+  try {
+    const res = await axios.get(`${BASE_URL}/products/approved`, {
+      headers: {
+        Authorization: `Bearer ${AUTH_TOKEN}`,
+      },
+    });
+    return res.data?.data || [];
+  } catch (error) {
+    console.error('❌ Failed to fetch approved products:', error.response?.data || error.message);
+    return [];
+  }
+}
+
+module.exports = { getProducts, getRejectedProducts, getApprovedProducts };

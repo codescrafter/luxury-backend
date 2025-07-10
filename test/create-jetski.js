@@ -39,7 +39,7 @@ function getJetskiTestData() {
   };
 }
 
-async function createJetski() {
+async function createJetski(token = AUTH_TOKEN) {
   const form = new FormData();
   const imagePath = createTestImage();
   form.append('images', fs.createReadStream(imagePath));
@@ -56,7 +56,7 @@ async function createJetski() {
   try {
     const response = await axios.post(`${BASE_URL}/products/jetski`, form, {
       headers: {
-        Authorization: `Bearer ${AUTH_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         ...form.getHeaders(),
       },
       maxContentLength: Infinity,
@@ -77,4 +77,4 @@ async function createJetski() {
   }
 }
 
-module.exports = { createJetski };
+module.exports = { createJetski, getJetskiTestData };

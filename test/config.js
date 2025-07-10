@@ -1,4 +1,8 @@
-// Test configuration for all test scripts
+// To run the end-to-end product status flow:
+// 1. Use the Partner token to create a product.
+// 2. Use the Admin token to approve or reject the product.
+// 3. Use the appropriate token to fetch products by status.
+// Switch the AUTH_TOKEN value as needed for each step.
 
 const path = require("path");
 const fs = require("fs");
@@ -17,12 +21,14 @@ function createTestImage() {
   return testImagePath;
 }
 
+
 module.exports = {
   BASE_URL: 'http://localhost:8080',
-  AUTH_TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NjQ5OGUzMzAyNTc1ZTMzMjAzNzMxMiIsImlhdCI6MTc1MTU0NzQ0NywiZXhwIjoxNzUyMTUyMjQ3fQ.o10h6oPXoO7izlZLWjCvaeC3gSdUVu0uxEwSqRwCAl0', // Replace with a valid JWT for your environment
+  AUTH_TOKEN: '',
   OWNER_ID: '686498e3302575e332037312',
   createTestImage,
-  // Add more shared config variables as needed
+  PARTNER_1_TOKEN:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NzAyMDkxMjczZTAwOGVlNWJlOWI5NSIsImlhdCI6MTc1MjE4NTA4NCwiZXhwIjoxNzUyNzg5ODg0fQ.04gS2Bfwl8979uclnXn6HYCGmrIzk7OrjKXyFK_AmvY',
+  PARTNER_2_TOKEN:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NzAyNmVkMjczZTAwOGVlNWJlOWI5OSIsImlhdCI6MTc1MjE4NTE2MywiZXhwIjoxNzUyNzg5OTYzfQ.A0I6aIbfg4xR9PDgaLG_Fg94nuM1JeeMLqE6wFNXWEY',
+  ADMIN_TOKEN:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NjQ5OGUzMzAyNTc1ZTMzMjAzNzMxMiIsImlhdCI6MTc1MjE4NTAzMiwiZXhwIjoxNzUyNzg5ODMyfQ.FCqlW-xIdgbb3NkSs1XU8PYT5er4RX5wapRJhYqcyQ4',
+  USER_TOKEN:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NzAyMWIyMjczZTAwOGVlNWJlOWI5NyIsImlhdCI6MTc1MjE4NTEzOSwiZXhwIjoxNzUyNzg5OTM5fQ.cw6BZOO0_a7C1kQCpUcq4gxrpDWfQ3VZk40rtUh8iTQ'
 }; 
-
-
