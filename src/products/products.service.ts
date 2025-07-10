@@ -18,6 +18,7 @@ import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
 import { CreateUnavailabilityDto } from './dto/unavailability.dto';
 import { CreateBookingDto } from './dto/booking.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
+const mongoose = require('mongoose');
 // All booking and unavailability related methods and usages have been removed.
 
 @Injectable()
@@ -211,18 +212,6 @@ export class ProductsService {
     return this.resortModel.findById(id);
   }
 
-  async getAllPendingProducts(showRejected = false) {
-    const statusFilter = showRejected ? ['pending', 'revision', 'rejected'] : ['pending', 'revision'];
-    const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
-      this.jetSkiModel.find({ status: { $in: statusFilter } }),
-      this.kayakModel.find({ status: { $in: statusFilter } }),
-      this.yachtModel.find({ status: { $in: statusFilter } }),
-      this.speedboatModel.find({ status: { $in: statusFilter } }),
-      this.resortModel.find({ status: { $in: statusFilter } }),
-    ]);
-    return { jetskis, kayaks, yachts, speedboats, resorts };
-  }
-
   /**
    * Get all approved products from all models
    */
@@ -243,24 +232,34 @@ export class ProductsService {
     ];
   }
 
-  /**
-   * Get products by status, optionally filtered by ownerId
-   */
-  async getProductsByStatus(
-    status: string | string[],
-    ownerId?: string,
-  ) {
-    const statusFilter = Array.isArray(status) ? status : [status];
-    const ownerFilter = ownerId ? { ownerId } : {};
+  async getProductsByOwnerAndStatus(statuses: string[], ownerId?: string) {
+    const filter: any = {
+      status: { $in: statuses },
+    };
+  
+    if (ownerId) {
+      filter.ownerId = ownerId;
+    }
+  
     const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
-      this.jetSkiModel.find({ status: { $in: statusFilter }, ...ownerFilter }),
-      this.kayakModel.find({ status: { $in: statusFilter }, ...ownerFilter }),
-      this.yachtModel.find({ status: { $in: statusFilter }, ...ownerFilter }),
-      this.speedboatModel.find({ status: { $in: statusFilter }, ...ownerFilter }),
-      this.resortModel.find({ status: { $in: statusFilter }, ...ownerFilter }),
+      this.jetSkiModel.find(filter),
+      this.kayakModel.find(filter),
+      this.yachtModel.find(filter),
+      this.speedboatModel.find(filter),
+      this.resortModel.find(filter),
     ]);
-    return { jetskis, kayaks, yachts, speedboats, resorts };
+  
+    return [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
   }
+  
+  
+
 async approveOrRejectProduct(
   type: string,
   id: string,
@@ -552,5 +551,38 @@ async approveOrRejectProduct(
 
   async getBookingsForPartner(partnerId: string) {
     return this.bookingModel.find({ partnerId });
+  }
+
+  /**
+   * Get unavailability for a product by productId and type, only if user is owner
+   */
+  async getUnavailabilityForProduct(type: string, productId: string, userId: string) {
+    let product;
+    switch (type) {
+      case 'jetski':
+        product = await this.jetSkiModel.findById(productId);
+        break;
+      case 'kayak':
+        product = await this.kayakModel.findById(productId);
+        break;
+      case 'yacht':
+        product = await this.yachtModel.findById(productId);
+        break;
+      case 'speedboat':
+        product = await this.speedboatModel.findById(productId);
+        break;
+      case 'resort':
+        product = await this.resortModel.findById(productId);
+        break;
+      default:
+        throw new HttpException('Invalid product type', HttpStatus.BAD_REQUEST);
+    }
+    if (!product) {
+      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+    }
+    if (product.ownerId.toString() !== userId) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+    return this.unavailabilityModel.find({ productId, productType: type });
   }
 }
