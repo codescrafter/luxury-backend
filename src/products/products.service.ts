@@ -378,7 +378,7 @@ async approveOrRejectProduct(
     if (start < now) {
       throw new HttpException('Cannot book in the past', HttpStatus.BAD_REQUEST);
     }
-    // 2. Check for overlapping unavailability (including booked)
+    // 2. Check for overlapping unavailability and confirmed bookings
     const overlap = await this.unavailabilityModel.findOne({
       productId: dto.productId,
       productType: dto.productType,
@@ -388,6 +388,19 @@ async approveOrRejectProduct(
     });
     if (overlap) {
       throw new HttpException('Product is unavailable for this time range', HttpStatus.CONFLICT);
+    }
+    
+    // Also check for overlapping confirmed bookings
+    const overlappingBooking = await this.bookingModel.findOne({
+      productId: dto.productId,
+      productType: dto.productType,
+      bookingStatus: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] },
+      $or: [
+        { startTime: { $lt: end }, endTime: { $gt: start } },
+      ],
+    });
+    if (overlappingBooking) {
+      throw new HttpException('Product is already booked for this time range', HttpStatus.CONFLICT);
     }
     // 3. Validate price (fetch product and compare expected price)
     let product: any;
@@ -427,7 +440,7 @@ async approveOrRejectProduct(
     if (dto.totalPrice !== expectedPrice) {
       throw new HttpException('Total price does not match expected price', HttpStatus.BAD_REQUEST);
     }
-    // 4. Create booking
+    // 4. Create booking (without creating unavailability yet)
     const booking = await this.bookingModel.create({
       ...dto,
       paymentStatus: PaymentStatus.PENDING,
@@ -435,15 +448,7 @@ async approveOrRejectProduct(
       startTime: start,
       endTime: end,
     });
-    // 5. Create unavailability for this booking
-    await this.unavailabilityModel.create({
-      productId: dto.productId,
-      consumerId: dto.consumerId,
-      productType: dto.productType,
-      unavailabilityType: 'booked',
-      startTime: start,
-      endTime: end,
-    });
+    // Note: Unavailability will be created only after payment confirmation or partner approval
     return booking;
   }
 
@@ -457,6 +462,28 @@ async approveOrRejectProduct(
     }
     booking.bookingStatus = BookingStatus.CONFIRMED;
     await booking.save();
+    
+    // Create unavailability for this booking after partner approval (if not already created)
+    const existingUnavailability = await this.unavailabilityModel.findOne({
+      productId: booking.productId,
+      consumerId: booking.consumerId,
+      productType: booking.productType,
+      unavailabilityType: 'booked',
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+    });
+    
+    if (!existingUnavailability) {
+      await this.unavailabilityModel.create({
+        productId: booking.productId,
+        consumerId: booking.consumerId,
+        productType: booking.productType,
+        unavailabilityType: 'booked',
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+      });
+    }
+    
     return booking;
   }
 
@@ -497,6 +524,28 @@ async approveOrRejectProduct(
       booking.bookingStatus = BookingStatus.CONFIRMED;
     }
     await booking.save();
+    
+    // Create unavailability for this booking after payment confirmation (if not already created)
+    const existingUnavailability = await this.unavailabilityModel.findOne({
+      productId: booking.productId,
+      consumerId: booking.consumerId,
+      productType: booking.productType,
+      unavailabilityType: 'booked',
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+    });
+    
+    if (!existingUnavailability) {
+      await this.unavailabilityModel.create({
+        productId: booking.productId,
+        consumerId: booking.consumerId,
+        productType: booking.productType,
+        unavailabilityType: 'booked',
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+      });
+    }
+    
     return booking;
   }
 

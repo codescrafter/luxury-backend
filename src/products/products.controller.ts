@@ -69,7 +69,7 @@ export class ProductsController {
       if (!isAdmin && !isPartner) {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
-      const ownerId = isPartner ? req.user._id : undefined;
+      const ownerId = isPartner && !isAdmin ? req.user._id : undefined;
       const result = await this.productsService.getProductsByOwnerAndStatus(
         ['pending', 'revision'],
         ownerId,
