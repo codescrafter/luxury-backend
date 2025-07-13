@@ -36,10 +36,22 @@ export class CreateResortDto {
   @Transform(({ value }) => value === 'true' || value === true)
   canHostEvent: boolean;
 
+  // @IsOptional()
+  // @IsArray()
+  // @IsString({ each: true })
+  // @Transform(({ value }) => value ? JSON.parse(value) : undefined)
+  // amenities?: string[];
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    if (Array.isArray(value)) return value;
+    return value
+      .split(',')
+      .map((item: string) => item.trim())
+      .filter((item) => item.length > 0);
+  })
   @IsString({ each: true })
-  @Transform(({ value }) => value ? JSON.parse(value) : undefined)
   amenities?: string[];
 
   @IsOptional()
