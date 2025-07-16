@@ -629,7 +629,7 @@ async approveOrRejectProduct(
     if (!product) {
       throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
     }
-    if (product.ownerId.toString() !== userId) {
+    if (product.ownerId.toString() !== userId.toString()) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
     return this.unavailabilityModel.find({ productId, productType: type });
