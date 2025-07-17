@@ -633,7 +633,7 @@ export class ProductsController {
    * Get unavailability for a product (partner only, must be owner)
    */
   @Get(':type/:productId/unavailability')
-  @Roles(Role.PARTNER)
+  // @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   async getUnavailabilityForProduct(
     @Param('type') type: string,
