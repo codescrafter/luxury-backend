@@ -529,7 +529,7 @@ export class ProductsController {
     }
   }
 
-  @Put('booking/:id/approve')
+  @Post('booking/:id/approve')
   async approveBooking(
     @Param('id') id: string,
     @Body('partnerId') partnerId: string,
