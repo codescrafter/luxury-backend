@@ -15,7 +15,6 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["node", "express"],
     "strict": false,
     "noImplicitAny": false,
     "skipLibCheck": true,
