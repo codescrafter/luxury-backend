@@ -14,7 +14,7 @@ export class CloudinaryService {
   ) {}
 
   async uploadImage(
-    file: Express.Multer.File,
+    file: any,
     folder: string,
   ): Promise<UploadApiResponse | UploadApiErrorResponse> {
     return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ export class CloudinaryService {
   }
 
   async uploadVideo(
-    file: Express.Multer.File,
+    file: any,
     folder: string,
   ): Promise<UploadApiResponse | UploadApiErrorResponse> {
     return new Promise((resolve, reject) => {

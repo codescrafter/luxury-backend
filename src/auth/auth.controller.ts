@@ -155,7 +155,7 @@ export class AuthController {
     @Body() updateUserDto: EditUserDto,
     @UploadedFiles()
     files: {
-      avatar?: Express.Multer.File[];
+      avatar?: any[];
     },
   ): Promise<any> {
     try {

@@ -142,7 +142,7 @@ export class ProductsController {
   )
   async createJetski(
     @UploadedFiles()
-    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: CreateJetskiDto,
     @Req() req,
   ) {
@@ -204,7 +204,7 @@ export class ProductsController {
   )
   async createKayak(
     @UploadedFiles()
-    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: CreateKayakDto,
     @Req() req,
   ) {
@@ -266,7 +266,7 @@ export class ProductsController {
   )
   async createYacht(
     @UploadedFiles()
-    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: CreateYachtDto,
     @Req() req,
   ) {
@@ -328,7 +328,7 @@ export class ProductsController {
   )
   async createSpeedboat(
     @UploadedFiles()
-    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: CreateSpeedboatDto,
     @Req() req,
   ) {
@@ -390,7 +390,7 @@ export class ProductsController {
   )
   async createResort(
     @UploadedFiles()
-    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: CreateResortDto,
     @Req() req,
   ) {

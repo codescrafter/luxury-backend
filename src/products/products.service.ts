@@ -38,7 +38,7 @@ export class ProductsService {
   ) {}
 
   private async uploadMedia(
-    files: Express.Multer.File[] | undefined,
+    files: any[] | undefined,
     folder: string,
   ) {
     if (!files) return [];
