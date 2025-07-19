@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import mongoose, { Document, Types } from 'mongoose';
 
 export type BookingDocument = Booking & Document;
 
@@ -19,17 +19,18 @@ export enum BookingStatus {
 
 @Schema({ timestamps: true })
 export class Booking {
-  @Prop({ required: true, type: Types.ObjectId })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
   consumerId: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId })
+  // product id can be from yacht, jetski, kayak, resort, speedboat
+  @Prop({ required: true, type: mongoose.Schema.Types.ObjectId })
   productId: Types.ObjectId;
 
   @Prop({ required: true })
   productType: string;
 
-  @Prop({ required: true, type: Types.ObjectId })
-  partnerId: Types.ObjectId;
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
+  partnerId:Types.ObjectId;
 
   @Prop({ required: true })
   startTime: Date;
@@ -68,4 +69,4 @@ export class Booking {
   childrenCount?: number;
 }
 
-export const BookingSchema = SchemaFactory.createForClass(Booking); 
+export const BookingSchema = SchemaFactory.createForClass(Booking);

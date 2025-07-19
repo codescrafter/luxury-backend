@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 
 @Schema()
 export class UserVerification {
@@ -31,7 +31,7 @@ export class UserVerification {
   isPartnerApplicationApproved: boolean;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
-  userId: mongoose.Schema.Types.ObjectId;
+  userId: Types.ObjectId;
 }
 
 export const UserVerificationSchema =

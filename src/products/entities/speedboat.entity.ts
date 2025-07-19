@@ -1,5 +1,5 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import mongoose from "mongoose";
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import mongoose, { Types } from 'mongoose';
 
 export type SpeedboatDocument = Speedboat & Document;
 
@@ -11,7 +11,7 @@ export class Speedboat {
   @Prop({ required: true })
   description: string;
 
-  @Prop({ required: false, default: "speedboat" })
+  @Prop({ required: false, default: 'speedboat' })
   type: string;
 
   @Prop({ required: false, default: true })
@@ -87,7 +87,7 @@ export class Speedboat {
   maintenanceNotes?: string;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
-  ownerId: mongoose.Schema.Types.ObjectId;
+  ownerId: Types.ObjectId;
 
   @Prop({ required: true })
   lat: number;
@@ -114,7 +114,10 @@ export class Speedboat {
   @Prop({ default: false })
   isFeatured?: boolean;
 
-  @Prop({ default: 'pending', enum: ['pending', 'approved', 'revision', 'rejected'] })
+  @Prop({
+    default: 'pending',
+    enum: ['pending', 'approved', 'revision', 'rejected'],
+  })
   status: 'pending' | 'approved' | 'revision' | 'rejected';
 
   @Prop({ default: 0 })

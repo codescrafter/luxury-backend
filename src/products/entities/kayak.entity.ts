@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { Document } from 'mongoose';
+import mongoose, { Document, Types } from 'mongoose';
 
 export type KayakDocument = Kayak & Document;
 
@@ -11,7 +11,7 @@ export class Kayak {
   @Prop({ required: true })
   description: string;
 
-  @Prop({ required: false, default: "kayak" })
+  @Prop({ required: false, default: 'kayak' })
   type: string;
 
   @Prop({ required: false, default: true })
@@ -78,7 +78,7 @@ export class Kayak {
   maintenanceNotes?: string;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
-  ownerId: mongoose.Schema.Types.ObjectId;
+  ownerId: Types.ObjectId;
 
   @Prop({ required: true })
   lat: number;
@@ -105,7 +105,10 @@ export class Kayak {
   @Prop({ default: false })
   isFeatured?: boolean;
 
-  @Prop({ default: 'pending', enum: ['pending', 'approved', 'revision', 'rejected'] })
+  @Prop({
+    default: 'pending',
+    enum: ['pending', 'approved', 'revision', 'rejected'],
+  })
   status: 'pending' | 'approved' | 'revision' | 'rejected';
 
   @Prop({ default: 0 })
@@ -113,6 +116,3 @@ export class Kayak {
 }
 
 export const KayakSchema = SchemaFactory.createForClass(Kayak);
-
-
-

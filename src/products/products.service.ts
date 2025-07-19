@@ -683,16 +683,61 @@ export class ProductsService {
     return booking;
   }
 
-  async getBookingsForConsumer(consumerId: string) {
-    return this.bookingModel.find({
-      consumerId: new Types.ObjectId(consumerId),
-    });
+  getModelBasedOnProductType(productType: string) {
+    // speedboat, jetski, kayak, yacht, resort
+    switch (productType) {
+      case 'speedboat':
+        return this.speedboatModel;
+      case 'jetski':
+        return this.jetSkiModel;
+      case 'kayak':
+        return this.kayakModel;
+      case 'yacht':
+        return this.yachtModel;
+      case 'resort':
+        return this.resortModel;
+    }
+  }
+  async getBookingsForConsumer(consumerId: string): Promise<any[]> {
+    const bookings = await this.bookingModel
+      .find({ consumerId: new Types.ObjectId(consumerId) })
+      .populate('partnerId')
+      .lean();
+
+    const populatedBookings = await Promise.all(
+      bookings.map(async (booking) => {
+        const model = this.getModelBasedOnProductType(booking.productType);
+        if (model) {
+          // @ts-ignore
+          const product = await model.findById(booking.productId).lean();
+          return { ...booking, productId: product };
+        }
+        return booking;
+      }),
+    );
+
+    return populatedBookings;
   }
 
-  async getBookingsForPartner(partnerId: string) {
-    return this.bookingModel
+  async getBookingsForPartner(partnerId: string): Promise<any[]> {
+    const bookings = await this.bookingModel
       .find({ partnerId: new Types.ObjectId(partnerId) })
-      .populate('consumerId');
+      .populate('consumerId')
+      .lean();
+
+    const populatedBookings = await Promise.all(
+      bookings.map(async (booking) => {
+        const model = this.getModelBasedOnProductType(booking.productType);
+        if (model) {
+          // @ts-ignore
+          const product = await model.findById(booking.productId).lean();
+          return { ...booking, productId: product };
+        }
+        return booking;
+      }),
+    );
+
+    return populatedBookings;
   }
 
   async getBookingByIdForUserOrPartner(bookingId: string, userId: string) {
@@ -715,10 +760,7 @@ export class ProductsService {
   /**
    * Get unavailability for a product by productId and type, only if user is owner
    */
-  async getUnavailabilityForProduct(
-    type: string,
-    productId: string,
-  ) {
+  async getUnavailabilityForProduct(type: string, productId: string) {
     let product;
     switch (type) {
       case 'jetski':
@@ -742,7 +784,7 @@ export class ProductsService {
     if (!product) {
       throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
     }
-  
+
     return this.unavailabilityModel.find({ productId, productType: type });
   }
 }

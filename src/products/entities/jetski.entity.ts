@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { Document } from 'mongoose';
+import mongoose, { Document, Types } from 'mongoose';
 
 export type JetskiDocument = Jetski & Document;
 
@@ -91,7 +91,7 @@ export class Jetski {
   maintenanceNotes?: string;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
-  ownerId: mongoose.Schema.Types.ObjectId;
+  ownerId: Types.ObjectId;
 
   @Prop({ required: true })
   lat: number;
