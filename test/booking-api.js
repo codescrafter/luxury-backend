@@ -176,22 +176,22 @@ async function main() {
   }
 
   // 5. Reject booking (should fail if already approved)
-//  const res= await rejectBooking(booking._id);
-//  if (res) {
-//     console.log('✅ Rejected booking:', booking._id);
-//   }
+ const res= await rejectBooking(booking._id);
+ if (res) {
+    console.log('✅ Rejected booking:', booking._id);
+  }
  
 
 
 //   // 6. Cancel booking (as user)
-// const res1=  await cancelBooking(booking._id);
-// if (res1) {
-//   console.log('✅ Cancelled booking:', booking._id);
-// }
+const res1=  await cancelBooking(booking._id);
+if (res1) {
+  console.log('✅ Cancelled booking:', booking._id);
+}
 
 //   // 7. Complete booking (as partner)
- const res= await completeBooking(booking._id);
-  if (res) {
+ const res3= await completeBooking(booking._id);
+  if (res3) {
     console.log('✅ Completed booking:', booking._id);
   }
 

@@ -663,14 +663,11 @@ export class ProductsController {
    */
   @Get(':type/:productId/unavailability')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
   async getUnavailabilityForProduct(
     @Param('type') type: string,
     @Param('productId') productId: string,
-    @Req() req,
   ) {
     try {
-      const userId = req.user._id;
       const result = await this.productsService.getUnavailabilityForProduct(
         type,
         productId,
