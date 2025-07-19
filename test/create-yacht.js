@@ -7,7 +7,7 @@ function getYachtTestData() {
   return {
     title: 'Luxury Ocean Pearl',
     description: 'Experience ultimate luxury on the water with this premium yacht.',
-    pricePerHour: 500,
+    pricePerHour: 100,
     pricePerDay: 3500,
     securityDeposit: 1000,
     fuelIncluded: true,

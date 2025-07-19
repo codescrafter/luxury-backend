@@ -472,7 +472,15 @@ export class ProductsService {
       if (product.pricePerDay && hours >= 24) {
         expectedPrice = Math.ceil(hours / 24) * product.pricePerDay;
       } else if (product.pricePerHour) {
-        expectedPrice = Math.ceil(hours) * product.pricePerHour;
+        // Allow booking by half-hour increments (minimum 0.5 hour)
+        const halfHourBlocks = Math.round(hours * 2) / 2;
+        if (halfHourBlocks < 0.5) {
+          throw new HttpException(
+            'Minimum booking duration is 0.5 hour',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        expectedPrice = halfHourBlocks * product.pricePerHour;
       } else {
         throw new HttpException(
           'Product does not have pricing info',
@@ -482,7 +490,7 @@ export class ProductsService {
     }
     if (dto.totalPrice !== expectedPrice) {
       throw new HttpException(
-        'Total price does not match expected price',
+        `Total price does not match expected price (${expectedPrice})`,
         HttpStatus.BAD_REQUEST,
       );
     }

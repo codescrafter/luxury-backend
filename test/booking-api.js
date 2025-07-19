@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { createJetski } = require('./create-jetski');
+const { createYacht } = require('./create-yacht');
 const { approveProduct } = require('./approve-product');
 const { BASE_URL, USER_TOKEN, PARTNER_1_TOKEN, OWNER_ID } = require('./config');
 
@@ -9,9 +10,9 @@ async function createBooking(product) {
   const endTime = new Date(now.getTime() + 4 * 60 * 60 * 1000); // 4 hours from now
   const bookingDto = {
     productId: product._id,
-    productType: 'jetski',
-    startTime: startTime.toISOString(),
-    endTime: endTime.toISOString(),
+    productType: 'yacht',
+    startTime: "2025-07-22T19:00",
+    endTime: "2025-07-22T20:00",
     totalPrice: 100,
     currency: 'USD',
     paymentMethod: 'cash',
@@ -23,6 +24,7 @@ async function createBooking(product) {
     const res = await axios.post(`${BASE_URL}/products/booking`, bookingDto, {
       headers: { Authorization: `Bearer ${USER_TOKEN}` },
     });
+    console.log(res.data)
     return res.data.data;
   } catch (error) {
     console.error(
@@ -150,16 +152,16 @@ async function getBookingById(bookingId) {
 
 async function main() {
   // 1. Create product
-  const product = await createJetski();
+  const product = await createYacht();
   if (!product || !product._id) {
-    console.error('❌ Could not create test jetski');
+    console.error('❌ Could not create test yacht');
     return;
   }
-  console.log('✅ Created jetski:', product._id);
+  console.log('✅ Created yacht:', product._id);
 
   // 2. Approve product
-  await approveProduct('jetski', product._id);
-  console.log('✅ Approved jetski');
+  await approveProduct('yacht', product._id);
+  console.log('✅ Approved yacht');
 
   // 3. Create booking
   const booking = await createBooking(product);

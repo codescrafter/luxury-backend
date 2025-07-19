@@ -7,7 +7,7 @@ function getJetskiTestData() {
   return {
     title: 'Test Jet Ski',
     description: 'A fast and fun jetski.',
-    pricePerHour: 50,
+    pricePerHour: 22.2,
     pricePerDay: 300,
     securityDeposit: 100,
     fuelIncluded: true,
