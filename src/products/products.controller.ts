@@ -524,9 +524,10 @@ export class ProductsController {
   @Post('booking')
   @Roles(Role.USER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  async createBooking(@Body() dto: CreateBookingDto) {
+  async createBooking(@Body() dto: CreateBookingDto, @Req() req) {
     try {
-      const booking = await this.productsService.createBooking(dto);
+      // Pass consumerId as a separate argument
+      const booking = await this.productsService.createBooking(dto, req.user._id);
       return { success: true, data: booking };
     } catch (error) {
       return { success: false, error: error.message };

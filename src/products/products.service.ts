@@ -377,7 +377,7 @@ async approveOrRejectProduct(
     return this.unavailabilityModel.create(dto);
   }
 
-  async createBooking(dto: CreateBookingDto) {
+  async createBooking(dto: CreateBookingDto, consumerId: string) {
     // 1. Validate startTime and endTime
     const start = new Date(dto.startTime);
     const end = new Date(dto.endTime);
@@ -402,7 +402,6 @@ async approveOrRejectProduct(
     if (overlap) {
       throw new HttpException('Product is unavailable for this time range', HttpStatus.CONFLICT);
     }
-    
     // Also check for overlapping confirmed bookings
     const overlappingBooking = await this.bookingModel.findOne({
       productId: dto.productId,
@@ -446,9 +445,7 @@ async approveOrRejectProduct(
     const durationMs = end.getTime() - start.getTime();
     const hours = durationMs / (1000 * 60 * 60);
     const days = Math.ceil(hours / 24);
-    
     if (dto.productType === 'resort') {
-      // For resorts, use daily or yearly pricing
       if (days >= 365 && product.yearlyPrice) {
         expectedPrice = product.yearlyPrice;
       } else if (product.dailyPrice) {
@@ -457,7 +454,6 @@ async approveOrRejectProduct(
         throw new HttpException('Resort does not have pricing info', HttpStatus.BAD_REQUEST);
       }
     } else {
-      // For other products, use existing logic
       if (product.pricePerDay && hours >= 24) {
         expectedPrice = Math.ceil(hours / 24) * product.pricePerDay;
       } else if (product.pricePerHour) {
@@ -472,13 +468,13 @@ async approveOrRejectProduct(
     // 4. Create booking (without creating unavailability yet)
     const booking = await this.bookingModel.create({
       ...dto,
+      consumerId,
       partnerId,
       paymentStatus: PaymentStatus.PENDING,
       bookingStatus: BookingStatus.PENDING,
       startTime: start,
       endTime: end,
     });
-    // Note: Unavailability will be created only after payment confirmation or partner approval
     return booking;
   }
 

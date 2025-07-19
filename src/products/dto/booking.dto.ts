@@ -3,9 +3,6 @@ import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateBookingDto {
   @IsMongoId()
-  consumerId: string;
-
-  @IsMongoId()
   productId: string;
 
   @IsString()
