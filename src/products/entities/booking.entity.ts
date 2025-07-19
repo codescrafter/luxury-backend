@@ -43,7 +43,7 @@ export class Booking {
   @Prop({ required: true })
   currency: string;
 
-  @Prop({ required: true, enum: PaymentStatus, default: PaymentStatus.PENDING })
+  @Prop({ enum: PaymentStatus, default: PaymentStatus.PENDING })
   paymentStatus: PaymentStatus;
 
   @Prop({ required: true })
@@ -55,7 +55,7 @@ export class Booking {
   @Prop()
   specialRequests?: string;
 
-  @Prop({ required: true, enum: BookingStatus, default: BookingStatus.PENDING })
+  @Prop({ enum: BookingStatus, default: BookingStatus.PENDING })
   bookingStatus: BookingStatus;
 
   @Prop()

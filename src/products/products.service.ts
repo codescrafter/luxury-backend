@@ -417,6 +417,7 @@ async approveOrRejectProduct(
     }
     // 3. Validate price (fetch product and compare expected price)
     let product: any;
+    let partnerId: Types.ObjectId;
     switch (dto.productType) {
       case 'jetski':
         product = await this.jetSkiModel.findById(dto.productId);
@@ -439,6 +440,7 @@ async approveOrRejectProduct(
     if (!product) {
       throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
     }
+    partnerId = product.ownerId;
     // Calculate expected price based on product type
     let expectedPrice = 0;
     const durationMs = end.getTime() - start.getTime();
@@ -470,6 +472,7 @@ async approveOrRejectProduct(
     // 4. Create booking (without creating unavailability yet)
     const booking = await this.bookingModel.create({
       ...dto,
+      partnerId,
       paymentStatus: PaymentStatus.PENDING,
       bookingStatus: BookingStatus.PENDING,
       startTime: start,
@@ -626,7 +629,7 @@ async approveOrRejectProduct(
   }
 
   async getBookingsForPartner(partnerId: string) {
-    return this.bookingModel.find({ partnerId });
+    return this.bookingModel.find({ partnerId }).populate('consumerId');
   }
 
   /**
