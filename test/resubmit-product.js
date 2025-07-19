@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { BASE_URL, AUTH_TOKEN } = require('./config');
+const { BASE_URL, PARTNER_1_TOKEN } = require('./config');
 
 /**
  * Resubmit a product (Partner)
@@ -8,7 +8,7 @@ async function resubmitProduct(type, id) {
   try {
     const res = await axios.put(`${BASE_URL}/products/${type}/${id}/resubmit`, null, {
       headers: {
-        Authorization: `Bearer ${AUTH_TOKEN}`,
+        Authorization: `Bearer ${PARTNER_1_TOKEN}`,
       },
     });
     console.log(`📤 Resubmitted ${type}: ${id}`);

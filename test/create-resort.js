@@ -1,7 +1,7 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-const { createTestImage, BASE_URL, AUTH_TOKEN, OWNER_ID } = require('./config');
+const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN } = require('./config');
 
 function getResortTestData() {
   return {
@@ -15,6 +15,8 @@ function getResortTestData() {
     numberOfBathrooms: 120,
     totalAreaInSqFt: 50000,
     starRating: 4.8,
+    dailyPrice: 150.00,
+    yearlyPrice: 45000.00,
     checkInTime: '14:00',
     checkOutTime: '11:00',
     capacity: 240,
@@ -53,7 +55,7 @@ async function createResort() {
   try {
     const response = await axios.post(`${BASE_URL}/products/resort`, form, {
       headers: {
-        Authorization: `Bearer ${AUTH_TOKEN}`,
+        Authorization: `Bearer ${PARTNER_1_TOKEN}`,
         ...form.getHeaders(),
       },
       maxContentLength: Infinity,

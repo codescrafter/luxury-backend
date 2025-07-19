@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   ValidateNested,
+  ValidateIf,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
@@ -73,6 +74,18 @@ export class CreateResortDto {
   @IsNumber()
   @Transform(({ value }) => value ? parseFloat(value) : undefined)
   starRating?: number;
+
+  @ValidateIf((o) => o.isDailyResort === true)
+  @IsNumber()
+  @IsNotEmpty({ message: 'Daily price is required when resort is marked as daily' })
+  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  dailyPrice?: number;
+
+  @ValidateIf((o) => o.isAnnualResort === true)
+  @IsNumber()
+  @IsNotEmpty({ message: 'Yearly price is required when resort is marked as annual' })
+  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  yearlyPrice?: number;
 
   @IsOptional()
   @IsString()

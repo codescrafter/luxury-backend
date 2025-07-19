@@ -1,7 +1,7 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-const { createTestImage, BASE_URL, AUTH_TOKEN, OWNER_ID } = require('./config');
+const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN } = require('./config');
 
 function getJetskiTestData() {
   return {
@@ -39,7 +39,7 @@ function getJetskiTestData() {
   };
 }
 
-async function createJetski(token = AUTH_TOKEN) {
+async function createJetski(token = PARTNER_1_TOKEN) {
   const form = new FormData();
   const imagePath = createTestImage();
   form.append('images', fs.createReadStream(imagePath));

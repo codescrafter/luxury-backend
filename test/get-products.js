@@ -1,11 +1,11 @@
 const axios = require('axios');
-const { BASE_URL, AUTH_TOKEN } = require('./config');
+const { BASE_URL, PARTNER_1_TOKEN } = require('./config');
 
 async function getProducts(filters = {}) {
   try {
     const res = await axios.get(`${BASE_URL}/products`, {
       headers: {
-        Authorization: `Bearer ${AUTH_TOKEN}`,
+        Authorization: `Bearer ${PARTNER_1_TOKEN}`,
       },
       params: filters,
     });
@@ -24,7 +24,7 @@ async function getRejectedProducts() {
   try {
     const res = await axios.get(`${BASE_URL}/products/rejected`, {
       headers: {
-        Authorization: `Bearer ${AUTH_TOKEN}`,
+        Authorization: `Bearer ${PARTNER_1_TOKEN}`,
       },
     });
     return res.data?.data || [];
@@ -38,7 +38,7 @@ async function getApprovedProducts() {
   try {
     const res = await axios.get(`${BASE_URL}/products/approved`, {
       headers: {
-        Authorization: `Bearer ${AUTH_TOKEN}`,
+        Authorization: `Bearer ${PARTNER_1_TOKEN}`,
       },
     });
     return res.data?.data || [];

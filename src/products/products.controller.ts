@@ -61,7 +61,8 @@ export class ProductsController {
    * Get all pending products (admin: all, partner: own)
    */
   @Get('pending')
-  @UseGuards(AuthGuard())
+  @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(Role.ADMIN, Role.PARTNER)
   async getPendingProducts(@Req() req) {
     try {
       const isAdmin = req.user.role.includes(Role.ADMIN);
@@ -74,6 +75,7 @@ export class ProductsController {
         ['pending', 'revision'],
         ownerId,
       );
+
 
       return { success: true, data: result };
     } catch (error) {

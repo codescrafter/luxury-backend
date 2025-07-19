@@ -4,12 +4,12 @@ const { createYacht } = require('./create-yacht');
 const { createSpeedboat } = require('./create-speedboat');
 const { createResort } = require('./create-resort');
 const axios = require('axios');
-const { BASE_URL, AUTH_TOKEN } = require('./config');
+const { BASE_URL, PARTNER_1_TOKEN } = require('./config');
 
 async function editProduct(type, id, updates) {
   try {
     const res = await axios.put(`${BASE_URL}/products/${type}/${id}`, updates, {
-      headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
+      headers: { Authorization: `Bearer ${PARTNER_1_TOKEN}` },
     });
     console.log(`✏️ Edited ${type}: ${id}`);
     return res.data?.data;

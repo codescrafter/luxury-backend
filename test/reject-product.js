@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { BASE_URL, AUTH_TOKEN } = require('./config');
+const { BASE_URL, ADMIN_TOKEN } = require('./config');
 
 /**
  * Reject a product (Admin)
@@ -8,7 +8,7 @@ async function rejectProduct(type, id) {
   try {
     const res = await axios.put(`${BASE_URL}/products/${type}/${id}/reject`, null, {
       headers: {
-        Authorization: `Bearer ${AUTH_TOKEN}`,
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
       },
     });
     console.log(`✅ Rejected ${type}: ${id}`);

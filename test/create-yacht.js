@@ -1,7 +1,7 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-const { createTestImage, BASE_URL, AUTH_TOKEN, OWNER_ID } = require('./config');
+const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN } = require('./config');
 
 function getYachtTestData() {
   return {
@@ -55,7 +55,7 @@ async function createYacht() {
   try {
     const response = await axios.post(`${BASE_URL}/products/yacht`, form, {
       headers: {
-        Authorization: `Bearer ${AUTH_TOKEN}`,
+        Authorization: `Bearer ${PARTNER_1_TOKEN}`,
         ...form.getHeaders(),
       },
       maxContentLength: Infinity,

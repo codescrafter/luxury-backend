@@ -42,6 +42,12 @@ export class Resort {
   starRating?: number;
 
   @Prop()
+  dailyPrice?: number;
+
+  @Prop()
+  yearlyPrice?: number;
+
+  @Prop()
   checkInTime?: string;
 
   @Prop()

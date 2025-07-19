@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { BASE_URL, AUTH_TOKEN, OWNER_ID } = require('./config');
+const { BASE_URL, OWNER_ID, PARTNER_1_TOKEN } = require('./config');
 
 async function createUnavailability({ productId, productType, startTime, endTime, consumerId, unavailabilityType = 'booked' }) {
   try {
@@ -15,7 +15,7 @@ async function createUnavailability({ productId, productType, startTime, endTime
       },
       {
         headers: {
-          Authorization: `Bearer ${AUTH_TOKEN}`,
+          Authorization: `Bearer ${PARTNER_1_TOKEN}`,
         },
       }
     );

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { UserDocument } from 'src/auth/schemas/user-schema';
 import { Jetski, JetskiDocument } from './entities/jetski.entity';
@@ -238,15 +238,28 @@ export class ProductsService {
     };
   
     if (ownerId) {
-      filter.ownerId = ownerId;
+      filter.ownerId = new Types.ObjectId(ownerId);
     }
-  
+
+    // If ownerId is not provided, it's an admin request: populate owner details
+    const populateOwner = !ownerId;
+
     const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
-      this.jetSkiModel.find(filter),
-      this.kayakModel.find(filter),
-      this.yachtModel.find(filter),
-      this.speedboatModel.find(filter),
-      this.resortModel.find(filter),
+      populateOwner
+        ? this.jetSkiModel.find(filter).populate('ownerId')
+        : this.jetSkiModel.find(filter),
+      populateOwner
+        ? this.kayakModel.find(filter).populate('ownerId')
+        : this.kayakModel.find(filter),
+      populateOwner
+        ? this.yachtModel.find(filter).populate('ownerId')
+        : this.yachtModel.find(filter),
+      populateOwner
+        ? this.speedboatModel.find(filter).populate('ownerId')
+        : this.speedboatModel.find(filter),
+      populateOwner
+        ? this.resortModel.find(filter).populate('ownerId')
+        : this.resortModel.find(filter),
     ]);
   
     return [
@@ -426,16 +439,30 @@ async approveOrRejectProduct(
     if (!product) {
       throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
     }
-    // Calculate expected price (simple example: pricePerDay * days or pricePerHour * hours)
+    // Calculate expected price based on product type
     let expectedPrice = 0;
     const durationMs = end.getTime() - start.getTime();
     const hours = durationMs / (1000 * 60 * 60);
-    if (product.pricePerDay && hours >= 24) {
-      expectedPrice = Math.ceil(hours / 24) * product.pricePerDay;
-    } else if (product.pricePerHour) {
-      expectedPrice = Math.ceil(hours) * product.pricePerHour;
+    const days = Math.ceil(hours / 24);
+    
+    if (dto.productType === 'resort') {
+      // For resorts, use daily or yearly pricing
+      if (days >= 365 && product.yearlyPrice) {
+        expectedPrice = product.yearlyPrice;
+      } else if (product.dailyPrice) {
+        expectedPrice = days * product.dailyPrice;
+      } else {
+        throw new HttpException('Resort does not have pricing info', HttpStatus.BAD_REQUEST);
+      }
     } else {
-      throw new HttpException('Product does not have pricing info', HttpStatus.BAD_REQUEST);
+      // For other products, use existing logic
+      if (product.pricePerDay && hours >= 24) {
+        expectedPrice = Math.ceil(hours / 24) * product.pricePerDay;
+      } else if (product.pricePerHour) {
+        expectedPrice = Math.ceil(hours) * product.pricePerHour;
+      } else {
+        throw new HttpException('Product does not have pricing info', HttpStatus.BAD_REQUEST);
+      }
     }
     if (dto.totalPrice !== expectedPrice) {
       throw new HttpException('Total price does not match expected price', HttpStatus.BAD_REQUEST);
