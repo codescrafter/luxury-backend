@@ -575,14 +575,16 @@ async approveOrRejectProduct(
     return booking;
   }
 
-  async cancelBooking(bookingId: string, userId: string, reason?: string) {
+  async cancelBooking(bookingId: string, userId: Types.ObjectId, reason?: string) {
     const booking = await this.bookingModel.findById(bookingId);
     if (!booking) {
       throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
     }
+//  only partner and consumer can cancel
     if (
-      booking.consumerId.toString() !== userId &&
-      booking.partnerId.toString() !== userId
+      !booking.consumerId.equals(userId)
+      && !booking.partnerId.equals(userId)
+ 
     ) {
       throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
     }
@@ -621,11 +623,11 @@ async approveOrRejectProduct(
   }
 
   async getBookingsForConsumer(consumerId: string) {
-    return this.bookingModel.find({ consumerId });
+    return this.bookingModel.find({ consumerId:new Types.ObjectId(consumerId) })
   }
 
   async getBookingsForPartner(partnerId: string) {
-    return this.bookingModel.find({ partnerId }).populate('consumerId');
+    return this.bookingModel.find({ partnerId:new Types.ObjectId(partnerId) }).populate('consumerId');
   }
 
   async getBookingByIdForUserOrPartner(bookingId: string, userId: string) {

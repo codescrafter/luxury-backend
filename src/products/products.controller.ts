@@ -28,6 +28,7 @@ import { CreateUnavailabilityDto } from './dto/unavailability.dto';
 import { CreateBookingDto } from './dto/booking.dto';
 
 import { ProductsService } from './products.service';
+import { Types } from 'mongoose';
 
 @Controller('products')
 export class ProductsController {
@@ -75,7 +76,6 @@ export class ProductsController {
         ['pending', 'revision'],
         ownerId,
       );
-
 
       return { success: true, data: result };
     } catch (error) {
@@ -131,8 +131,8 @@ export class ProductsController {
 
   // ----- Jetski -----
   @Post('jetski')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -161,8 +161,8 @@ export class ProductsController {
   }
 
   @Put('jetski/:id')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   async updateJetski(
     @Param('id') id: string,
     @Body() dto: UpdateJetskiDto,
@@ -193,8 +193,8 @@ export class ProductsController {
 
   // ----- Kayak -----
   @Post('kayak')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -223,8 +223,8 @@ export class ProductsController {
   }
 
   @Put('kayak/:id')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   async updateKayak(
     @Param('id') id: string,
     @Body() dto: UpdateKayakDto,
@@ -255,8 +255,8 @@ export class ProductsController {
 
   // ----- Yacht -----
   @Post('yacht')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -285,8 +285,8 @@ export class ProductsController {
   }
 
   @Put('yacht/:id')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   async updateYacht(
     @Param('id') id: string,
     @Body() dto: UpdateYachtDto,
@@ -317,8 +317,8 @@ export class ProductsController {
 
   // ----- Speedboat -----
   @Post('speedboat')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(Role.PARTNER)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -379,8 +379,8 @@ export class ProductsController {
 
   // ----- Resort -----
   @Post('resort')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -409,8 +409,8 @@ export class ProductsController {
   }
 
   @Put('resort/:id')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   async updateResort(
     @Param('id') id: string,
     @Body() dto: UpdateResortDto,
@@ -443,8 +443,8 @@ export class ProductsController {
    * Approve a product (admin)
    */
   @Put(':type/:id/approve')
-  @Roles(Role.ADMIN)
   @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(Role.ADMIN)
   async approveProduct(@Param('type') type: string, @Param('id') id: string) {
     try {
       const result = await this.productsService.approveOrRejectProduct(
@@ -462,8 +462,8 @@ export class ProductsController {
    * Mark a product for revision (admin)
    */
   @Put(':type/:id/revision')
-  @Roles(Role.ADMIN)
   @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(Role.ADMIN)
   async revisionProduct(@Param('type') type: string, @Param('id') id: string) {
     try {
       const result = await this.productsService.approveOrRejectProduct(
@@ -481,8 +481,8 @@ export class ProductsController {
    * Reject a product (admin, not shown in pending)
    */
   @Put(':type/:id/reject')
-  @Roles(Role.ADMIN)
   @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(Role.ADMIN)
   async rejectProduct(@Param('type') type: string, @Param('id') id: string) {
     try {
       const result = await this.productsService.approveOrRejectProduct(
@@ -500,8 +500,8 @@ export class ProductsController {
    * Resubmit a product (partner)
    */
   @Put(':type/:id/resubmit')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   async resubmitProduct(@Param('type') type: string, @Param('id') id: string) {
     try {
       const result = await this.productsService.resubmitProduct(type, id);
@@ -522,12 +522,15 @@ export class ProductsController {
   }
 
   @Post('booking')
-  @Roles(Role.USER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.USER)
   async createBooking(@Body() dto: CreateBookingDto, @Req() req) {
     try {
       // Pass consumerId as a separate argument
-      const booking = await this.productsService.createBooking(dto, req.user._id);
+      const booking = await this.productsService.createBooking(
+        dto,
+        req.user._id,
+      );
       return { success: true, data: booking };
     } catch (error) {
       return { success: false, error: error.message };
@@ -535,55 +538,43 @@ export class ProductsController {
   }
 
   @Post('booking/:id/approve')
+  @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.PARTNER)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  async approveBooking(
-    @Param('id') id: string,
-    @Body('partnerId') partnerId: string,
-  ) {
+  async approveBooking(@Param('id') id: string, @Req() req) {
     try {
-      const booking = await this.productsService.approveBooking(id, partnerId);
+      const booking = await this.productsService.approveBooking(
+        id,
+        req.user._id,
+      );
       return { success: true, data: booking };
     } catch (error) {
-      return { success: false, error: error.message };
+      throw new HttpException(
+        error.message || 'Booking not found or unauthorized',
+        error.status || HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
-  @Put('booking/:id/reject')
+  @Post('booking/:id/reject')
+  @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.PARTNER)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async rejectBooking(
     @Param('id') id: string,
-    @Body('partnerId') partnerId: string,
+    @Req() req,
     @Body('cancellationReason') cancellationReason?: string,
   ) {
     try {
       const booking = await this.productsService.rejectBooking(
         id,
-        partnerId,
+        req.user._id,
         cancellationReason,
       );
       return { success: true, data: booking };
     } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }
-
-  @Post('booking/:id/payment-confirmed')
-  @Roles(Role.PARTNER)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  async confirmPayment(
-    @Param('id') id: string,
-    @Body('transactionId') transactionId: string,
-  ) {
-    try {
-      const booking = await this.productsService.confirmPayment(
-        id,
-        transactionId,
+      throw new HttpException(
+        error.message || 'Booking not found or unauthorized',
+        error.status || HttpStatus.BAD_REQUEST,
       );
-      return { success: true, data: booking };
-    } catch (error) {
-      return { success: false, error: error.message };
     }
   }
 
@@ -591,39 +582,45 @@ export class ProductsController {
   @UseGuards(AuthGuard('jwt'))
   async cancelBooking(
     @Param('id') id: string,
-    @Body('userId') userId: string,
+    @Req() req,
     @Body('reason') reason?: string,
   ) {
     try {
       const booking = await this.productsService.cancelBooking(
         id,
-        userId,
+        new Types.ObjectId(req.user._id),
         reason,
       );
       return { success: true, data: booking };
     } catch (error) {
-      return { success: false, error: error.message };
+      throw new HttpException(
+        error.message || 'Booking not found or unauthorized',
+        error.status || HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
   @Post('booking/:id/complete')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  async completeBooking(
-    @Param('id') id: string,
-    @Body('partnerId') partnerId: string,
-  ) {
+  @Roles(Role.PARTNER)
+  async completeBooking(@Param('id') id: string, @Req() req) {
     try {
-      const booking = await this.productsService.completeBooking(id, partnerId);
+      const booking = await this.productsService.completeBooking(
+        id,
+        req.user._id,
+      );
       return { success: true, data: booking };
     } catch (error) {
-      return { success: false, error: error.message };
+      throw new HttpException(
+        error.message || 'Booking not found or unauthorized',
+        error.status || HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
   @Get('consumer/:consumerId/bookings')
-  @Roles(Role.USER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.USER)
   async getBookingsForConsumer(@Param('consumerId') consumerId: string) {
     try {
       const bookings =
@@ -635,8 +632,8 @@ export class ProductsController {
   }
 
   @Get('partner/:partnerId/bookings')
-  @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   async getBookingsForPartner(@Param('partnerId') partnerId: string) {
     try {
       const bookings =
@@ -651,7 +648,10 @@ export class ProductsController {
   @UseGuards(AuthGuard('jwt'))
   async getBookingById(@Param('id') id: string, @Req() req) {
     try {
-      const booking = await this.productsService.getBookingByIdForUserOrPartner(id, req.user._id);
+      const booking = await this.productsService.getBookingByIdForUserOrPartner(
+        id,
+        req.user._id,
+      );
       return { success: true, data: booking };
     } catch (error) {
       return { success: false, error: error.message };
@@ -662,8 +662,8 @@ export class ProductsController {
    * Get unavailability for a product (partner only, must be owner)
    */
   @Get(':type/:productId/unavailability')
-  // @Roles(Role.PARTNER)
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
   async getUnavailabilityForProduct(
     @Param('type') type: string,
     @Param('productId') productId: string,
