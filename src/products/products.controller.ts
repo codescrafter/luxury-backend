@@ -522,6 +522,8 @@ export class ProductsController {
   }
 
   @Post('booking')
+  @Roles(Role.USER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async createBooking(@Body() dto: CreateBookingDto) {
     try {
       const booking = await this.productsService.createBooking(dto);
@@ -532,6 +534,8 @@ export class ProductsController {
   }
 
   @Post('booking/:id/approve')
+  @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async approveBooking(
     @Param('id') id: string,
     @Body('partnerId') partnerId: string,
@@ -545,6 +549,8 @@ export class ProductsController {
   }
 
   @Put('booking/:id/reject')
+  @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async rejectBooking(
     @Param('id') id: string,
     @Body('partnerId') partnerId: string,
@@ -563,6 +569,8 @@ export class ProductsController {
   }
 
   @Post('booking/:id/payment-confirmed')
+  @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async confirmPayment(
     @Param('id') id: string,
     @Body('transactionId') transactionId: string,
@@ -579,6 +587,7 @@ export class ProductsController {
   }
 
   @Post('booking/:id/cancel')
+  @UseGuards(AuthGuard('jwt'))
   async cancelBooking(
     @Param('id') id: string,
     @Body('userId') userId: string,
@@ -597,6 +606,8 @@ export class ProductsController {
   }
 
   @Post('booking/:id/complete')
+  @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async completeBooking(
     @Param('id') id: string,
     @Body('partnerId') partnerId: string,
@@ -610,6 +621,8 @@ export class ProductsController {
   }
 
   @Get('consumer/:consumerId/bookings')
+  @Roles(Role.USER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async getBookingsForConsumer(@Param('consumerId') consumerId: string) {
     try {
       const bookings =
@@ -621,11 +634,24 @@ export class ProductsController {
   }
 
   @Get('partner/:partnerId/bookings')
+  @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   async getBookingsForPartner(@Param('partnerId') partnerId: string) {
     try {
       const bookings =
         await this.productsService.getBookingsForPartner(partnerId);
       return { success: true, data: bookings };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Get('booking/:id')
+  @UseGuards(AuthGuard('jwt'))
+  async getBookingById(@Param('id') id: string, @Req() req) {
+    try {
+      const booking = await this.productsService.getBookingByIdForUserOrPartner(id, req.user._id);
+      return { success: true, data: booking };
     } catch (error) {
       return { success: false, error: error.message };
     }

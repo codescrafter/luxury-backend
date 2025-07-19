@@ -632,6 +632,20 @@ async approveOrRejectProduct(
     return this.bookingModel.find({ partnerId }).populate('consumerId');
   }
 
+  async getBookingByIdForUserOrPartner(bookingId: string, userId: string) {
+    const booking = await this.bookingModel.findById(bookingId);
+    if (!booking) {
+      throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
+    }
+    if (
+      booking.consumerId.toString() !== userId &&
+      booking.partnerId.toString() !== userId
+    ) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+    return booking;
+  }
+
   /**
    * Get unavailability for a product by productId and type, only if user is owner
    */
