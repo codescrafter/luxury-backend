@@ -674,7 +674,6 @@ export class ProductsController {
       const result = await this.productsService.getUnavailabilityForProduct(
         type,
         productId,
-        userId,
       );
       return { success: true, data: result };
     } catch (error) {

@@ -9,7 +9,12 @@ import { Yacht, YachtDocument } from './entities/yacht.entity';
 import { Speedboat, SpeedboatDocument } from './entities/speedboat.entity';
 import { Resort, ResortDocument } from './entities/resort.entity';
 import { Unavailability } from './entities/unavailability.entity';
-import { Booking, BookingDocument, BookingStatus, PaymentStatus } from './entities/booking.entity';
+import {
+  Booking,
+  BookingDocument,
+  BookingStatus,
+  PaymentStatus,
+} from './entities/booking.entity';
 import { CreateJetskiDto, UpdateJetskiDto } from './dto/jetski.dto';
 import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
@@ -32,15 +37,13 @@ export class ProductsService {
     private readonly speedboatModel: Model<SpeedboatDocument>,
     @InjectModel(Resort.name)
     private readonly resortModel: Model<ResortDocument>,
-    @InjectModel(Unavailability.name) private unavailabilityModel: Model<Unavailability>,
+    @InjectModel(Unavailability.name)
+    private unavailabilityModel: Model<Unavailability>,
     @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  private async uploadMedia(
-    files: any[] | undefined,
-    folder: string,
-  ) {
+  private async uploadMedia(files: any[] | undefined, folder: string) {
     if (!files) return [];
     return Promise.all(
       files.map((file) =>
@@ -223,20 +226,14 @@ export class ProductsService {
       this.speedboatModel.find({ status: 'approved' }),
       this.resortModel.find({ status: 'approved' }),
     ]);
-    return [
-      ...jetskis,
-      ...kayaks,
-      ...yachts,
-      ...speedboats,
-      ...resorts,
-    ];
+    return [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
   }
 
   async getProductsByOwnerAndStatus(statuses: string[], ownerId?: string) {
     const filter: any = {
       status: { $in: statuses },
     };
-  
+
     if (ownerId) {
       filter.ownerId = new Types.ObjectId(ownerId);
     }
@@ -261,61 +258,53 @@ export class ProductsService {
         ? this.resortModel.find(filter).populate('ownerId')
         : this.resortModel.find(filter),
     ]);
-  
-    return [
-      ...jetskis,
-      ...kayaks,
-      ...yachts,
-      ...speedboats,
-      ...resorts,
-    ];
-  }
-  
-  
 
-async approveOrRejectProduct(
-  type: string,
-  id: string,
-  action: 'approve' | 'revision' | 'reject',
-) {
-  let model;
-  switch (type) {
-    case 'jetski':
-      model = this.jetSkiModel;
-      break;
-    case 'kayak':
-      model = this.kayakModel;
-      break;
-    case 'yacht':
-      model = this.yachtModel;
-      break;
-    case 'speedboat':
-      model = this.speedboatModel;
-      break;
-    case 'resort':
-      model = this.resortModel;
-      break;
-    default:
-      throw new Error('Invalid product type');
+    return [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
   }
-  
-  let update: any = {};
-  if (action === 'approve') {
-    // FIXED: Don't reset resubmissionCount when approving
-    update = { status: 'approved' };
-  } else if (action === 'revision') {
-    update = { status: 'revision', $inc: { resubmissionCount: 1 } };
-  } else if (action === 'reject') {
-    // FIXED: Don't increment resubmissionCount when rejecting
-    update = { status: 'rejected' };
-  } else {
-    throw new Error('Invalid action');
+
+  async approveOrRejectProduct(
+    type: string,
+    id: string,
+    action: 'approve' | 'revision' | 'reject',
+  ) {
+    let model;
+    switch (type) {
+      case 'jetski':
+        model = this.jetSkiModel;
+        break;
+      case 'kayak':
+        model = this.kayakModel;
+        break;
+      case 'yacht':
+        model = this.yachtModel;
+        break;
+      case 'speedboat':
+        model = this.speedboatModel;
+        break;
+      case 'resort':
+        model = this.resortModel;
+        break;
+      default:
+        throw new Error('Invalid product type');
+    }
+
+    let update: any = {};
+    if (action === 'approve') {
+      // FIXED: Don't reset resubmissionCount when approving
+      update = { status: 'approved' };
+    } else if (action === 'revision') {
+      update = { status: 'revision', $inc: { resubmissionCount: 1 } };
+    } else if (action === 'reject') {
+      // FIXED: Don't increment resubmissionCount when rejecting
+      update = { status: 'rejected' };
+    } else {
+      throw new Error('Invalid action');
+    }
+
+    const result = await model.findByIdAndUpdate(id, update, { new: true });
+    if (!result) throw new Error('Product not found');
+    return result;
   }
-  
-  const result = await model.findByIdAndUpdate(id, update, { new: true });
-  if (!result) throw new Error('Product not found');
-  return result;
-}
 
   async resubmitProduct(type: string, id: string) {
     let model;
@@ -352,26 +341,36 @@ async approveOrRejectProduct(
     const start = new Date(dto.startTime);
     const end = new Date(dto.endTime);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      throw new HttpException('Invalid startTime or endTime', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Invalid startTime or endTime',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     if (start >= end) {
-      throw new HttpException('startTime must be before endTime', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'startTime must be before endTime',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     // 2. Check not in the past
     const now = new Date();
     if (start < now) {
-      throw new HttpException('Cannot add unavailability in the past', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Cannot add unavailability in the past',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     // 3. Check for overlapping unavailability
     const overlap = await this.unavailabilityModel.findOne({
       productId: dto.productId,
       productType: dto.productType,
-      $or: [
-        { startTime: { $lt: end }, endTime: { $gt: start } },
-      ],
+      $or: [{ startTime: { $lt: end }, endTime: { $gt: start } }],
     });
     if (overlap) {
-      throw new HttpException('Unavailability already exists for this time range', HttpStatus.CONFLICT);
+      throw new HttpException(
+        'Unavailability already exists for this time range',
+        HttpStatus.CONFLICT,
+      );
     }
     // 4. Create unavailability
     return this.unavailabilityModel.create(dto);
@@ -382,37 +381,50 @@ async approveOrRejectProduct(
     const start = new Date(dto.startTime);
     const end = new Date(dto.endTime);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      throw new HttpException('Invalid startTime or endTime', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Invalid startTime or endTime',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     if (start >= end) {
-      throw new HttpException('startTime must be before endTime', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'startTime must be before endTime',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     const now = new Date();
     if (start < now) {
-      throw new HttpException('Cannot book in the past', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Cannot book in the past',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     // 2. Check for overlapping unavailability and confirmed bookings
     const overlap = await this.unavailabilityModel.findOne({
       productId: dto.productId,
       productType: dto.productType,
-      $or: [
-        { startTime: { $lt: end }, endTime: { $gt: start } },
-      ],
+      $or: [{ startTime: { $lt: end }, endTime: { $gt: start } }],
     });
     if (overlap) {
-      throw new HttpException('Product is unavailable for this time range', HttpStatus.CONFLICT);
+      throw new HttpException(
+        'Product is unavailable for this time range',
+        HttpStatus.CONFLICT,
+      );
     }
     // Also check for overlapping confirmed bookings
     const overlappingBooking = await this.bookingModel.findOne({
       productId: dto.productId,
       productType: dto.productType,
-      bookingStatus: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] },
-      $or: [
-        { startTime: { $lt: end }, endTime: { $gt: start } },
-      ],
+      bookingStatus: {
+        $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED],
+      },
+      $or: [{ startTime: { $lt: end }, endTime: { $gt: start } }],
     });
     if (overlappingBooking) {
-      throw new HttpException('Product is already booked for this time range', HttpStatus.CONFLICT);
+      throw new HttpException(
+        'Product is already booked for this time range',
+        HttpStatus.CONFLICT,
+      );
     }
     // 3. Validate price (fetch product and compare expected price)
     let product: any;
@@ -451,7 +463,10 @@ async approveOrRejectProduct(
       } else if (product.dailyPrice) {
         expectedPrice = days * product.dailyPrice;
       } else {
-        throw new HttpException('Resort does not have pricing info', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'Resort does not have pricing info',
+          HttpStatus.BAD_REQUEST,
+        );
       }
     } else {
       if (product.pricePerDay && hours >= 24) {
@@ -459,11 +474,17 @@ async approveOrRejectProduct(
       } else if (product.pricePerHour) {
         expectedPrice = Math.ceil(hours) * product.pricePerHour;
       } else {
-        throw new HttpException('Product does not have pricing info', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'Product does not have pricing info',
+          HttpStatus.BAD_REQUEST,
+        );
       }
     }
     if (dto.totalPrice !== expectedPrice) {
-      throw new HttpException('Total price does not match expected price', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Total price does not match expected price',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     // 4. Create booking (without creating unavailability yet)
     const booking = await this.bookingModel.create({
@@ -479,16 +500,25 @@ async approveOrRejectProduct(
   }
 
   async approveBooking(bookingId: string, partnerId: string) {
-    const booking = await this.bookingModel.findOne({ _id: bookingId, partnerId });
+    const booking = await this.bookingModel.findOne({
+      _id: bookingId,
+      partnerId,
+    });
     if (!booking) {
-      throw new HttpException('Booking not found or unauthorized', HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        'Booking not found or unauthorized',
+        HttpStatus.NOT_FOUND,
+      );
     }
     if (booking.bookingStatus !== BookingStatus.PENDING) {
-      throw new HttpException('Only pending bookings can be approved', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Only pending bookings can be approved',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     booking.bookingStatus = BookingStatus.CONFIRMED;
     await booking.save();
-    
+
     // Create unavailability for this booking after partner approval (if not already created)
     const existingUnavailability = await this.unavailabilityModel.findOne({
       productId: booking.productId,
@@ -498,7 +528,7 @@ async approveOrRejectProduct(
       startTime: booking.startTime,
       endTime: booking.endTime,
     });
-    
+
     if (!existingUnavailability) {
       await this.unavailabilityModel.create({
         productId: booking.productId,
@@ -509,17 +539,30 @@ async approveOrRejectProduct(
         endTime: booking.endTime,
       });
     }
-    
+
     return booking;
   }
 
-  async rejectBooking(bookingId: string, partnerId: string, cancellationReason?: string) {
-    const booking = await this.bookingModel.findOne({ _id: bookingId, partnerId });
+  async rejectBooking(
+    bookingId: string,
+    partnerId: string,
+    cancellationReason?: string,
+  ) {
+    const booking = await this.bookingModel.findOne({
+      _id: bookingId,
+      partnerId,
+    });
     if (!booking) {
-      throw new HttpException('Booking not found or unauthorized', HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        'Booking not found or unauthorized',
+        HttpStatus.NOT_FOUND,
+      );
     }
     if (booking.bookingStatus !== BookingStatus.PENDING) {
-      throw new HttpException('Only pending bookings can be rejected', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Only pending bookings can be rejected',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     booking.bookingStatus = BookingStatus.CANCELLED;
     booking.cancellationReason = cancellationReason || 'Rejected by partner';
@@ -542,7 +585,10 @@ async approveOrRejectProduct(
       throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
     }
     if (booking.paymentStatus === PaymentStatus.PAID) {
-      throw new HttpException('Payment already confirmed', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Payment already confirmed',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     booking.paymentStatus = PaymentStatus.PAID;
     booking.transactionId = transactionId;
@@ -550,7 +596,7 @@ async approveOrRejectProduct(
       booking.bookingStatus = BookingStatus.CONFIRMED;
     }
     await booking.save();
-    
+
     // Create unavailability for this booking after payment confirmation (if not already created)
     const existingUnavailability = await this.unavailabilityModel.findOne({
       productId: booking.productId,
@@ -560,7 +606,7 @@ async approveOrRejectProduct(
       startTime: booking.startTime,
       endTime: booking.endTime,
     });
-    
+
     if (!existingUnavailability) {
       await this.unavailabilityModel.create({
         productId: booking.productId,
@@ -571,20 +617,23 @@ async approveOrRejectProduct(
         endTime: booking.endTime,
       });
     }
-    
+
     return booking;
   }
 
-  async cancelBooking(bookingId: string, userId: Types.ObjectId, reason?: string) {
+  async cancelBooking(
+    bookingId: string,
+    userId: Types.ObjectId,
+    reason?: string,
+  ) {
     const booking = await this.bookingModel.findById(bookingId);
     if (!booking) {
       throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
     }
-//  only partner and consumer can cancel
+    //  only partner and consumer can cancel
     if (
-      !booking.consumerId.equals(userId)
-      && !booking.partnerId.equals(userId)
- 
+      !booking.consumerId.equals(userId) &&
+      !booking.partnerId.equals(userId)
     ) {
       throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
     }
@@ -592,7 +641,10 @@ async approveOrRejectProduct(
       booking.bookingStatus === BookingStatus.CANCELLED ||
       booking.bookingStatus === BookingStatus.COMPLETED
     ) {
-      throw new HttpException('Cannot cancel this booking', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Cannot cancel this booking',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     booking.bookingStatus = BookingStatus.CANCELLED;
     booking.cancellationReason = reason || 'Cancelled';
@@ -610,12 +662,21 @@ async approveOrRejectProduct(
   }
 
   async completeBooking(bookingId: string, partnerId: string) {
-    const booking = await this.bookingModel.findOne({ _id: bookingId, partnerId });
+    const booking = await this.bookingModel.findOne({
+      _id: bookingId,
+      partnerId,
+    });
     if (!booking) {
-      throw new HttpException('Booking not found or unauthorized', HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        'Booking not found or unauthorized',
+        HttpStatus.NOT_FOUND,
+      );
     }
     if (booking.bookingStatus !== BookingStatus.CONFIRMED) {
-      throw new HttpException('Only confirmed bookings can be completed', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Only confirmed bookings can be completed',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     booking.bookingStatus = BookingStatus.COMPLETED;
     await booking.save();
@@ -623,21 +684,28 @@ async approveOrRejectProduct(
   }
 
   async getBookingsForConsumer(consumerId: string) {
-    return this.bookingModel.find({ consumerId:new Types.ObjectId(consumerId) })
+    return this.bookingModel.find({
+      consumerId: new Types.ObjectId(consumerId),
+    });
   }
 
   async getBookingsForPartner(partnerId: string) {
-    return this.bookingModel.find({ partnerId:new Types.ObjectId(partnerId) }).populate('consumerId');
+    return this.bookingModel
+      .find({ partnerId: new Types.ObjectId(partnerId) })
+      .populate('consumerId');
   }
 
   async getBookingByIdForUserOrPartner(bookingId: string, userId: string) {
-    const booking = await this.bookingModel.findById(bookingId);
+    const booking = await this.bookingModel.findById(
+      new Types.ObjectId(bookingId),
+    );
     if (!booking) {
       throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
     }
+
     if (
-      booking.consumerId.toString() !== userId &&
-      booking.partnerId.toString() !== userId
+      !booking.consumerId.equals(userId) &&
+      !booking.partnerId.equals(userId)
     ) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
@@ -647,7 +715,10 @@ async approveOrRejectProduct(
   /**
    * Get unavailability for a product by productId and type, only if user is owner
    */
-  async getUnavailabilityForProduct(type: string, productId: string, userId: string) {
+  async getUnavailabilityForProduct(
+    type: string,
+    productId: string,
+  ) {
     let product;
     switch (type) {
       case 'jetski':

@@ -209,6 +209,7 @@ async function main() {
 
 //   // 10. Get booking by ID
   const bookingById = await getBookingById(booking._id);
+  console.log("booking",bookingById)
   if (bookingById) {
     console.log('✅ Fetched booking by ID:', bookingById._id);
   }
