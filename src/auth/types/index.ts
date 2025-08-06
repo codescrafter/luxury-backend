@@ -15,6 +15,7 @@ export type TUserReturn = {
   avatar: string;
   isPartnerApplicationSubmitted: boolean;
   isPartnerApplicationApproved: boolean;
+  language: string;
 };
 
 export type TSendVerificationCodeReturn =

@@ -1,12 +1,11 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN } = require('./config');
+const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN, testData } = require('./config');
 
 function getYachtTestData() {
   return {
-    title: 'Luxury Ocean Pearl',
-    description: 'Experience ultimate luxury on the water with this premium yacht.',
+    ...testData.yacht,
     pricePerHour: 100,
     pricePerDay: 3500,
     securityDeposit: 1000,
@@ -14,19 +13,12 @@ function getYachtTestData() {
     insuranceIncluded: true,
     licenseRequired: false,
     ageRequirement: 21,
-    cancellationPolicy: ['72hr notice', '50% refund'],
-    termsAndConditions: ['No pets', 'No smoking on deck'],
-    tags: ['luxury', 'party', 'family'],
     yachtType: 'Motor Yacht',
     lengthInFeet: 120,
     capacity: 20,
     ownerId: OWNER_ID,
     lat: 24.8607,
     lng: 67.0011,
-    city: 'Karachi',
-    region: 'Sindh',
-    country: 'Pakistan',
-    address: 'Harbor Marina',
     crewIncluded: true,
     captainIncluded: true,
     numberOfCabins: 8,

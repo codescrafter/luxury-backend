@@ -6,10 +6,16 @@ export type ResortDocument = Resort & Document;
 @Schema({ timestamps: true })
 export class Resort {
   @Prop({ required: true })
-  title: string;
+  titleEn: string;
 
   @Prop({ required: true })
-  description: string;
+  titleAr: string;
+
+  @Prop({ required: true })
+  descriptionEn: string;
+
+  @Prop({ required: true })
+  descriptionAr: string;
 
   @Prop({ required: false, default: "resort" })
   type: string;
@@ -27,7 +33,10 @@ export class Resort {
   canHostEvent: boolean;
 
   @Prop({ type: [String], default: [] })
-  amenities?: string[];
+  amenitiesEn?: string[];
+
+  @Prop({ type: [String], default: [] })
+  amenitiesAr?: string[];
 
   @Prop()
   numberOfRooms?: number;
@@ -66,13 +75,22 @@ export class Resort {
   wifiAvailable?: boolean;
 
   @Prop({ type: [String], default: [] })
-  cancellationPolicy?: string[];
+  cancellationPolicyEn?: string[];
 
   @Prop({ type: [String], default: [] })
-  termsAndConditions?: string[];
+  cancellationPolicyAr?: string[];
 
   @Prop({ type: [String], default: [] })
-  safetyFeatures?: string[];
+  termsAndConditionsEn?: string[];
+
+  @Prop({ type: [String], default: [] })
+  termsAndConditionsAr?: string[];
+
+  @Prop({ type: [String], default: [] })
+  safetyFeaturesEn?: string[];
+
+  @Prop({ type: [String], default: [] })
+  safetyFeaturesAr?: string[];
 
   @Prop({ default: false })
   insuranceProvided?: boolean;
@@ -82,13 +100,21 @@ export class Resort {
   @Prop({ required: true })
   lng: number;
   @Prop({ required: true })
-  city: string;
+  cityEn: string;
   @Prop({ required: true })
-  region: string;
+  cityAr: string;
   @Prop({ required: true })
-  country: string;
+  regionEn: string;
   @Prop({ required: true })
-  address: string;
+  regionAr: string;
+  @Prop({ required: true })
+  countryEn: string;
+  @Prop({ required: true })
+  countryAr: string;
+  @Prop({ required: true })
+  addressEn: string;
+  @Prop({ required: true })
+  addressAr: string;
 
   @Prop({ type: [String], default: [] })
   images?: string[];

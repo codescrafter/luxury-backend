@@ -29,6 +29,9 @@ export class User {
 
   @Prop({ isRequired: false })
   avatar: string;
+
+  @Prop({ default: 'en', enum: ['en', 'ar'] })
+  language: string;
 }
 
 export type UserDocument = User &

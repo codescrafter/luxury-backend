@@ -1,12 +1,11 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN } = require('./config');
+const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN, testData } = require('./config');
 
 function getJetskiTestData() {
   return {
-    title: 'Test Jet Ski',
-    description: 'A fast and fun jetski.',
+    ...testData.jetski,
     pricePerHour: 22.2,
     pricePerDay: 300,
     securityDeposit: 100,
@@ -14,9 +13,6 @@ function getJetskiTestData() {
     insuranceIncluded: true,
     licenseRequired: false,
     ageRequirement: 18,
-    cancellationPolicy: ['No refunds', 'Reschedule allowed'],
-    termsAndConditions: ['Wear safety gear', 'No alcohol'],
-    tags: ['fast', 'fun', 'family'],
     engineType: '4-stroke',
     enginePower: '180 HP',
     maxSpeed: 90,
@@ -31,10 +27,6 @@ function getJetskiTestData() {
     ownerId: OWNER_ID,
     lat: 24.8607,
     lng: 67.0011,
-    city: 'Karachi',
-    region: 'Sindh',
-    country: 'Pakistan',
-    address: 'Clifton Beach, Karachi',
     isFeatured: true,
   };
 }

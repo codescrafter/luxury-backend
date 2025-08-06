@@ -23,6 +23,7 @@ import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
 import { CreateUnavailabilityDto } from './dto/unavailability.dto';
 import { CreateBookingDto } from './dto/booking.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { transformProductForLanguage, transformProductsArrayForLanguage } from '../helpers/dto-helpers';
 const mongoose = require('mongoose');
 // All booking and unavailability related methods and usages have been removed.
 
@@ -83,8 +84,9 @@ export class ProductsService {
     );
   }
 
-  async getJetSkiById(id: string) {
-    return this.jetSkiModel.findById(id);
+  async getJetSkiById(id: string, lang: string = 'en') {
+    const jetski = await this.jetSkiModel.findById(id).lean();
+    return transformProductForLanguage(jetski, lang);
   }
 
   async createKayakHandler(
@@ -115,8 +117,9 @@ export class ProductsService {
     );
   }
 
-  async getKayakById(id: string) {
-    return this.kayakModel.findById(id);
+  async getKayakById(id: string, lang: string = 'en') {
+    const kayak = await this.kayakModel.findById(id).lean();
+    return transformProductForLanguage(kayak, lang);
   }
 
   async createYachtHandler(
@@ -147,8 +150,9 @@ export class ProductsService {
     );
   }
 
-  async getYachtById(id: string) {
-    return this.yachtModel.findById(id);
+  async getYachtById(id: string, lang: string = 'en') {
+    const yacht = await this.yachtModel.findById(id).lean();
+    return transformProductForLanguage(yacht, lang);
   }
 
   async createSpeedboatHandler(
@@ -179,8 +183,9 @@ export class ProductsService {
     );
   }
 
-  async getSpeedboatById(id: string) {
-    return this.speedboatModel.findById(id);
+  async getSpeedboatById(id: string, lang: string = 'en') {
+    const speedboat = await this.speedboatModel.findById(id).lean();
+    return transformProductForLanguage(speedboat, lang);
   }
 
   async createResortHandler(
@@ -211,25 +216,27 @@ export class ProductsService {
     );
   }
 
-  async getResortById(id: string) {
-    return this.resortModel.findById(id);
+  async getResortById(id: string, lang: string = 'en') {
+    const resort = await this.resortModel.findById(id).lean();
+    return transformProductForLanguage(resort, lang);
   }
 
   /**
    * Get all approved products from all models
    */
-  async getProducts() {
+  async getProducts(lang: string = 'en') {
     const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
-      this.jetSkiModel.find({ status: 'approved' }),
-      this.kayakModel.find({ status: 'approved' }),
-      this.yachtModel.find({ status: 'approved' }),
-      this.speedboatModel.find({ status: 'approved' }),
-      this.resortModel.find({ status: 'approved' }),
+      this.jetSkiModel.find({ status: 'approved' }).lean(),
+      this.kayakModel.find({ status: 'approved' }).lean(),
+      this.yachtModel.find({ status: 'approved' }).lean(),
+      this.speedboatModel.find({ status: 'approved' }).lean(),
+      this.resortModel.find({ status: 'approved' }).lean(),
     ]);
-    return [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
+    const allProducts = [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
+    return transformProductsArrayForLanguage(allProducts, lang);
   }
 
-  async getProductsByOwnerAndStatus(statuses: string[], ownerId?: string) {
+  async getProductsByOwnerAndStatus(statuses: string[], ownerId?: string, lang: string = 'en') {
     const filter: any = {
       status: { $in: statuses },
     };
@@ -243,23 +250,24 @@ export class ProductsService {
 
     const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
       populateOwner
-        ? this.jetSkiModel.find(filter).populate('ownerId')
-        : this.jetSkiModel.find(filter),
+        ? this.jetSkiModel.find(filter).populate('ownerId').lean()
+        : this.jetSkiModel.find(filter).lean(),
       populateOwner
-        ? this.kayakModel.find(filter).populate('ownerId')
-        : this.kayakModel.find(filter),
+        ? this.kayakModel.find(filter).populate('ownerId').lean()
+        : this.kayakModel.find(filter).lean(),
       populateOwner
-        ? this.yachtModel.find(filter).populate('ownerId')
-        : this.yachtModel.find(filter),
+        ? this.yachtModel.find(filter).populate('ownerId').lean()
+        : this.yachtModel.find(filter).lean(),
       populateOwner
-        ? this.speedboatModel.find(filter).populate('ownerId')
-        : this.speedboatModel.find(filter),
+        ? this.speedboatModel.find(filter).populate('ownerId').lean()
+        : this.speedboatModel.find(filter).lean(),
       populateOwner
-        ? this.resortModel.find(filter).populate('ownerId')
-        : this.resortModel.find(filter),
+        ? this.resortModel.find(filter).populate('ownerId').lean()
+        : this.resortModel.find(filter).lean(),
     ]);
 
-    return [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
+    const allProducts = [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
+    return transformProductsArrayForLanguage(allProducts, lang);
   }
 
   async approveOrRejectProduct(

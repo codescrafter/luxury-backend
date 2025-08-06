@@ -9,6 +9,7 @@ import {
   Param,
   Put,
   Get,
+  Query,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
@@ -49,12 +50,24 @@ export class ProductsController {
 
   @Get() // This is for users and it will show only approved products
   @UseGuards(AuthGuard())
-  async getProducts() {
+  async getProducts(@Req() req, @Query('lang') lang?: string) {
     try {
-      const result = await this.productsService.getProducts();
+      const userLang = req.user?.lang || 'en';
+      const queryLang = lang || userLang;
+      const result = await this.productsService.getProducts(queryLang);
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get products', error);
+    }
+  }
+
+  @Get('public') // Public endpoint for getting approved products
+  async getPublicProducts(@Query('lang') lang: string = 'en') {
+    try {
+      const result = await this.productsService.getProducts(lang);
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('get public products', error);
     }
   }
 
@@ -72,9 +85,12 @@ export class ProductsController {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
       const ownerId = isPartner && !isAdmin ? req.user._id : undefined;
+      const userLang = req.user?.lang || 'en';
+      const queryLang = req.query?.lang || userLang;
       const result = await this.productsService.getProductsByOwnerAndStatus(
         ['pending', 'revision'],
         ownerId,
+        queryLang,
       );
 
       return { success: true, data: result };
@@ -96,9 +112,12 @@ export class ProductsController {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
       const ownerId = isPartner ? req.user._id : undefined;
+      const userLang = req.user?.lang || 'en';
+      const queryLang = req.query?.lang || userLang;
       const result = await this.productsService.getProductsByOwnerAndStatus(
         ['approved'],
         ownerId,
+        queryLang,
       );
       return { success: true, data: result };
     } catch (error) {
@@ -181,10 +200,11 @@ export class ProductsController {
   }
 
   @Get('jetski/:id')
-  @UseGuards(AuthGuard('jwt'))
-  async getJetskiById(@Param('id') id: string) {
+  async getJetskiById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
     try {
-      const result = await this.productsService.getJetSkiById(id);
+      const userLang = req.user?.lang || 'en';
+      const queryLang = lang || userLang;
+      const result = await this.productsService.getJetSkiById(id, queryLang);
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get jetski', error);
@@ -243,10 +263,11 @@ export class ProductsController {
   }
 
   @Get('kayak/:id')
-  @UseGuards(AuthGuard('jwt'))
-  async getKayakById(@Param('id') id: string) {
+  async getKayakById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
     try {
-      const result = await this.productsService.getKayakById(id);
+      const userLang = req.user?.lang || 'en';
+      const queryLang = lang || userLang;
+      const result = await this.productsService.getKayakById(id, queryLang);
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get kayak', error);
@@ -305,10 +326,11 @@ export class ProductsController {
   }
 
   @Get('yacht/:id')
-  @UseGuards(AuthGuard())
-  async getYachtById(@Param('id') id: string) {
+  async getYachtById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
     try {
-      const result = await this.productsService.getYachtById(id);
+      const userLang = req.user?.lang || 'en';
+      const queryLang = lang || userLang;
+      const result = await this.productsService.getYachtById(id, queryLang);
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get yacht', error);
@@ -367,10 +389,11 @@ export class ProductsController {
   }
 
   @Get('speedboat/:id')
-  @UseGuards(AuthGuard())
-  async getSpeedboatById(@Param('id') id: string) {
+  async getSpeedboatById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
     try {
-      const result = await this.productsService.getSpeedboatById(id);
+      const userLang = req.user?.lang || 'en';
+      const queryLang = lang || userLang;
+      const result = await this.productsService.getSpeedboatById(id, queryLang);
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get speedboat', error);
@@ -429,10 +452,11 @@ export class ProductsController {
   }
 
   @Get('resort/:id')
-  @UseGuards(AuthGuard())
-  async getResortById(@Param('id') id: string) {
+  async getResortById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
     try {
-      const result = await this.productsService.getResortById(id);
+      const userLang = req.user?.lang || 'en';
+      const queryLang = lang || userLang;
+      const result = await this.productsService.getResortById(id, queryLang);
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get resort', error);

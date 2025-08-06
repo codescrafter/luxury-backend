@@ -17,11 +17,19 @@ import { LocationDto } from './location.dto';
 export class CreateKayakDto {
   @IsString()
   @IsNotEmpty()
-  title: string;
+  titleEn: string;
 
   @IsString()
   @IsNotEmpty()
-  description: string;
+  titleAr: string;
+
+  @IsString()
+  @IsNotEmpty()
+  descriptionEn: string;
+
+  @IsString()
+  @IsNotEmpty()
+  descriptionAr: string;
 
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
@@ -54,12 +62,22 @@ export class CreateKayakDto {
   @IsArray()
   @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
   @IsString({ each: true })
-  cancellationPolicy: string[];
+  cancellationPolicyEn: string[];
 
   @IsArray()
   @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
   @IsString({ each: true })
-  termsAndConditions: string[];
+  cancellationPolicyAr: string[];
+
+  @IsArray()
+  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @IsString({ each: true })
+  termsAndConditionsEn: string[];
+
+  @IsArray()
+  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @IsString({ each: true })
+  termsAndConditionsAr: string[];
 
   @IsString()
   kayakType: string;
@@ -80,19 +98,40 @@ export class CreateKayakDto {
   lng: number;
 
   @IsString()
-  city: string;
+  cityEn: string;
+
   @IsString()
-  region: string;
+  cityAr: string;
+
   @IsString()
-  country: string;
+  regionEn: string;
+
   @IsString()
-  address: string;
+  regionAr: string;
+
+  @IsString()
+  countryEn: string;
+
+  @IsString()
+  countryAr: string;
+
+  @IsString()
+  addressEn: string;
+
+  @IsString()
+  addressAr: string;
 
   @IsOptional()
   @IsArray()
   @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
   @IsString({ each: true })
-  tags?: string[];
+  tagsEn?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @IsString({ each: true })
+  tagsAr?: string[];
 
   @IsOptional()
   @IsString()

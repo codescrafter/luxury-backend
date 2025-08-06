@@ -6,10 +6,16 @@ export type KayakDocument = Kayak & Document;
 @Schema({ timestamps: true })
 export class Kayak {
   @Prop({ required: true })
-  title: string;
+  titleEn: string;
 
   @Prop({ required: true })
-  description: string;
+  titleAr: string;
+
+  @Prop({ required: true })
+  descriptionEn: string;
+
+  @Prop({ required: true })
+  descriptionAr: string;
 
   @Prop({ required: false, default: 'kayak' })
   type: string;
@@ -42,10 +48,16 @@ export class Kayak {
   ageRequirement: number;
 
   @Prop({ required: true, type: [String] })
-  cancellationPolicy: string[];
+  cancellationPolicyEn: string[];
 
   @Prop({ required: true, type: [String] })
-  termsAndConditions: string[];
+  cancellationPolicyAr: string[];
+
+  @Prop({ required: true, type: [String] })
+  termsAndConditionsEn: string[];
+
+  @Prop({ required: true, type: [String] })
+  termsAndConditionsAr: string[];
 
   @Prop({ type: [String], default: [] })
   images: string[];
@@ -54,10 +66,13 @@ export class Kayak {
   videos?: string[];
 
   @Prop({ type: [String], default: [] })
-  tags?: string[];
+  tagsEn?: string[];
+
+  @Prop({ type: [String], default: [] })
+  tagsAr?: string[];
 
   @Prop({ required: true })
-  kayakType: string; // e.g. sit-in, sit-on-top, tandem
+  kayakType: string;
 
   @Prop({ required: true })
   capacity: number;
@@ -85,13 +100,21 @@ export class Kayak {
   @Prop({ required: true })
   lng: number;
   @Prop({ required: true })
-  city: string;
+  cityEn: string;
   @Prop({ required: true })
-  region: string;
+  cityAr: string;
   @Prop({ required: true })
-  country: string;
+  regionEn: string;
   @Prop({ required: true })
-  address: string;
+  regionAr: string;
+  @Prop({ required: true })
+  countryEn: string;
+  @Prop({ required: true })
+  countryAr: string;
+  @Prop({ required: true })
+  addressEn: string;
+  @Prop({ required: true })
+  addressAr: string;
 
   @Prop({ type: Number, default: 0 })
   averageRating?: number;

@@ -78,6 +78,69 @@ function logTestResult(testName, passed, details = '') {
   console.log(`${status} ${testName}${details ? ` - ${details}` : ''}`);
 }
 
+// Test dual-language functionality for products
+async function testDualLanguageForProducts(products, testName) {
+  console.log(`\n🌐 Testing dual-language for ${testName}...`);
+  
+  if (products.length === 0) {
+    console.log('   No products to test');
+    return;
+  }
+
+  const product = products[0];
+  
+  // Test English retrieval
+  try {
+    const englishResponse = await axios.get(`${BASE_URL}/products/${product.type}/${product._id}`, {
+      params: { lang: 'en' }
+    });
+    
+    if (englishResponse.data.success) {
+      const englishProduct = englishResponse.data.data;
+      logTestResult(`${testName} English retrieval`, true, 
+        `${englishProduct.title} - ${englishProduct.city}`);
+    } else {
+      logTestResult(`${testName} English retrieval`, false);
+    }
+  } catch (error) {
+    logTestResult(`${testName} English retrieval`, false, error.message);
+  }
+
+  // Test Arabic retrieval
+  try {
+    const arabicResponse = await axios.get(`${BASE_URL}/products/${product.type}/${product._id}`, {
+      params: { lang: 'ar' }
+    });
+    
+    if (arabicResponse.data.success) {
+      const arabicProduct = arabicResponse.data.data;
+      logTestResult(`${testName} Arabic retrieval`, true, 
+        `${arabicProduct.title} - ${arabicProduct.city}`);
+    } else {
+      logTestResult(`${testName} Arabic retrieval`, false);
+    }
+  } catch (error) {
+    logTestResult(`${testName} Arabic retrieval`, false, error.message);
+  }
+
+  // Test language field validation
+  try {
+    const response = await axios.get(`${BASE_URL}/products/${product.type}/${product._id}`, {
+      params: { lang: 'en' }
+    });
+    
+    if (response.data.success) {
+      const testProduct = response.data.data;
+      const hasLanguageFields = testProduct.titleEn || testProduct.titleAr || 
+                               testProduct.cityEn || testProduct.cityAr;
+      
+      logTestResult(`${testName} language fields cleaned`, !hasLanguageFields);
+    }
+  } catch (error) {
+    logTestResult(`${testName} language field validation`, false, error.message);
+  }
+}
+
 async function runFlow() {
   console.log('🚀 Starting E2E Product Status Flow Tests...\n');
 
@@ -150,6 +213,9 @@ async function runFlow() {
   logTestResult('Admin sees Partner 2 jetski5 in pending', !!foundJetski5Admin);
   logTestResult('Admin sees all 6 jetskis in pending', pendingAdmin.length === 6);
 
+  // Test dual-language for pending products
+  await testDualLanguageForProducts(pendingAdmin, 'Pending Products');
+
   console.log('');
 
   // ===== PHASE 3: Test Approval Flow =====
@@ -187,6 +253,9 @@ async function runFlow() {
     !findProductById(pendingAfterApproval, jetski1._id) && 
     !findProductById(pendingAfterApproval, jetski4._id));
 
+  // Test dual-language for approved products
+  await testDualLanguageForProducts(approvedAdmin, 'Approved Products');
+
   console.log('');
 
   // ===== PHASE 4: Test Rejection Flow =====
@@ -223,6 +292,9 @@ async function runFlow() {
   logTestResult('Rejected products removed from pending', 
     !findProductById(pendingAfterRejection, jetski2._id) && 
     !findProductById(pendingAfterRejection, jetski5._id));
+
+  // Test dual-language for rejected products
+  await testDualLanguageForProducts(rejectedAdmin, 'Rejected Products');
 
   console.log('');
 
@@ -309,6 +381,40 @@ async function runFlow() {
   logTestResult('Rejected contains jetski2 and jetski5', 
     finalRejectedIds.includes(jetski2._id) && finalRejectedIds.includes(jetski5._id));
 
+  // ===== PHASE 8: Dual-Language Testing =====
+  console.log('\n🌐 PHASE 8: Dual-Language Testing');
+  console.log('==================================');
+
+  // Test public API access in both languages
+  console.log('📝 Testing public API access in both languages...');
+  
+  try {
+    const publicEn = await axios.get(`${BASE_URL}/products/public`, { params: { lang: 'en' } });
+    const publicAr = await axios.get(`${BASE_URL}/products/public`, { params: { lang: 'ar' } });
+    
+    if (publicEn.data.success && publicAr.data.success) {
+      const approvedProductsEn = publicEn.data.data.filter(p => 
+        finalApprovedIds.includes(p._id));
+      const approvedProductsAr = publicAr.data.data.filter(p => 
+        finalApprovedIds.includes(p._id));
+      
+      logTestResult('Public API returns approved products in English', approvedProductsEn.length === 2);
+      logTestResult('Public API returns approved products in Arabic', approvedProductsAr.length === 2);
+      
+      if (approvedProductsEn.length > 0 && approvedProductsAr.length > 0) {
+        const enProduct = approvedProductsEn[0];
+        const arProduct = approvedProductsAr[0];
+        
+        logTestResult('English and Arabic products have different titles', 
+          enProduct.title !== arProduct.title);
+        logTestResult('English and Arabic products have different cities', 
+          enProduct.city !== arProduct.city);
+      }
+    }
+  } catch (error) {
+    logTestResult('Public API dual-language testing', false, error.message);
+  }
+
   console.log('\n🎉 E2E Product Status Flow Tests Completed!');
   console.log('===========================================');
   console.log('Summary:');
@@ -319,6 +425,8 @@ async function runFlow() {
   console.log('- ✅ Resubmission flow');
   console.log('- ✅ Admin sees all products');
   console.log('- ✅ Partners see only their products');
+  console.log('- ✅ Dual-language support for all product statuses');
+  console.log('- ✅ Public API dual-language access');
 }
 
 runFlow().catch(console.error);

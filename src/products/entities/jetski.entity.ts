@@ -6,10 +6,16 @@ export type JetskiDocument = Jetski & Document;
 @Schema({ timestamps: true })
 export class Jetski {
   @Prop({ required: true })
-  title: string;
+  titleEn: string;
 
   @Prop({ required: true })
-  description: string;
+  titleAr: string;
+
+  @Prop({ required: true })
+  descriptionEn: string;
+
+  @Prop({ required: true })
+  descriptionAr: string;
 
   @Prop({ required: false, default: "jetski" })
   type: string;
@@ -42,12 +48,17 @@ export class Jetski {
   ageRequirement: number;
 
   @Prop({ required: true })
-  cancellationPolicy: string[];
+  cancellationPolicyEn: string[];
 
   @Prop({ required: true })
-  termsAndConditions: string[];
+  cancellationPolicyAr: string[];
 
   @Prop({ required: true })
+  termsAndConditionsEn: string[];
+
+  @Prop({ required: true })
+  termsAndConditionsAr: string[];
+
   @Prop({ type: [String], default: [] })
   images: string[];
 
@@ -55,16 +66,19 @@ export class Jetski {
   videos?: string[];
 
   @Prop({ type: [String], default: [] })
-  tags?: string[];
+  tagsEn?: string[];
+
+  @Prop({ type: [String], default: [] })
+  tagsAr?: string[];
 
   @Prop({ required: true })
-  engineType: string; // e.g. '4-stroke'
+  engineType: string;
 
   @Prop({ required: true })
-  enginePower: string; // e.g. '1800cc'
+  enginePower: string;
 
   @Prop({ required: true })
-  maxSpeed: number; // in km/h
+  maxSpeed: number;
 
   @Prop({ required: true })
   capacity: number;
@@ -76,7 +90,7 @@ export class Jetski {
   modelYear?: number;
 
   @Prop()
-  jetskiType?: string; // e.g. stand-up, sit-down
+  jetskiType?: string;
 
   @Prop()
   color?: string;
@@ -98,13 +112,21 @@ export class Jetski {
   @Prop({ required: true })
   lng: number;
   @Prop({ required: true })
-  city: string;
+  cityEn: string;
   @Prop({ required: true })
-  region: string;
+  cityAr: string;
   @Prop({ required: true })
-  country: string;
+  regionEn: string;
   @Prop({ required: true })
-  address: string;
+  regionAr: string;
+  @Prop({ required: true })
+  countryEn: string;
+  @Prop({ required: true })
+  countryAr: string;
+  @Prop({ required: true })
+  addressEn: string;
+  @Prop({ required: true })
+  addressAr: string;
 
   @Prop({ type: Number, default: 0 })
   averageRating?: number;
@@ -118,7 +140,10 @@ export class Jetski {
   @Prop({ default: false })
   isFeatured?: boolean;
 
-  @Prop({ default: 'pending', enum: ['pending', 'approved', 'revision', 'rejected'] })
+  @Prop({
+    default: 'pending',
+    enum: ['pending', 'approved', 'revision', 'rejected'],
+  })
   status: 'pending' | 'approved' | 'revision' | 'rejected';
 
   @Prop({ default: 0 })

@@ -1,22 +1,27 @@
-import { Transform } from 'class-transformer';
-import { IsOptional } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsEnum } from 'class-validator';
 
 export class EditUserDto {
   @IsOptional()
-  @Transform(({ value }) => value.trim())
-  readonly name: string;
+  @IsString()
+  name?: string;
 
   @IsOptional()
-  @Transform(({ value }) => value.trim())
-  readonly email: string;
+  @IsEmail()
+  email?: string;
 
   @IsOptional()
-  @Transform(({ value }) => value.trim())
-  readonly phone: string;
+  @IsString()
+  phone?: string;
 
   @IsOptional()
-  readonly emailCode: string;
+  @IsString()
+  emailCode?: string;
 
   @IsOptional()
-  readonly phoneCode: string;
+  @IsString()
+  phoneCode?: string;
+
+  @IsOptional()
+  @IsEnum(['en', 'ar'])
+  language?: string;
 }

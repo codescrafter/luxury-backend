@@ -23,6 +23,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new Error('Login first to access this resource');
     }
-    return user;
+    return {
+      ...user.toObject(),
+      lang: user.language || 'en'
+    };
   }
 }

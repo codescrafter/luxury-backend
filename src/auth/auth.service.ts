@@ -30,6 +30,9 @@ import {
 import { EditUserDto } from './dto/edit-user-dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import * as bcrypt from 'bcryptjs';
+import { Resend } from 'resend';
+
+const resend = new Resend('re_iWMcNFHK_NRKQ3xrx2eo6jeoMhJQtyYtJ');
 
 enum EMAIL_TEMPLATE_IDS {
   LOGIN_CODE_REQ = 'd-5ba849b1bed04a47874f167fb030ba28',
@@ -63,7 +66,9 @@ export class AuthService {
   ) {}
 
   private generateRandomCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    if (process.env.mode === 'dev') {
+      return '123456';
+    } else return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   private async sendEmail(emailProperties: EmailTemplateProperties) {
@@ -132,6 +137,34 @@ export class AuthService {
       console.log(e);
       throw new BadRequestException('Email sending failed');
     }
+  }
+
+  private async sendVerificationEmail(
+    toEmail: string,
+    verificationCode: string,
+  ) {
+    const { data, error } = await resend.emails.send({
+      from: 'The Baia <no-reply@tech-test.online>', // Must be verified domain
+      to: [toEmail],
+      subject: 'Your Baia Verification Code',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2 style="color: #01ab8d;">Welcome to Baia!</h2>
+          <p>We're excited to have you on board. Use the following code to verify your email:</p>
+          <p style="font-size: 24px; font-weight: bold; color: #01ab8d;">${verificationCode}</p>
+          <p>This code will expire in 10 minutes. Do not share this code with anyone.</p>
+          <br />
+          <p>Warm regards,<br/>The Baia Team</p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('Error sending verification email:', error);
+      throw new Error('Failed to send verification email');
+    }
+
+    console.log('Verification email sent:', data);
   }
 
   private async sendPhoneSms({
@@ -260,17 +293,17 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await this.sendEmail({
-      receiverEmail: email,
-      code: emailVerificationCode,
-      username: name,
-      template_id: EMAIL_TEMPLATE_IDS.SIGNUP_CODE_REQ,
-    });
-    await this.sendPhoneSms({
-      phone: phone,
-      message: `Your Baia verification code is: ${phoneVerificationCode}`,
-    });
+    // TODO: uncomment this when we have working services
 
+    // await this.sendPhoneSms({
+    //   phone: phone,
+    //   message: `Your Baia verification code is: ${phoneVerificationCode}`,
+    // });
+
+    if (process.env.mode !== 'dev') {
+      await this.sendVerificationEmail(email, emailVerificationCode);
+    }
+    
     const user = await this.userModel.findOneAndUpdate(
       { email: email, phone: phone },
       {
@@ -341,7 +374,10 @@ export class AuthService {
       },
     );
     // issue JWT token
-    const token = this.jwtService.sign({ id: user._id });
+    const token = this.jwtService.sign({
+      id: user._id,
+      lang: user.language || 'en',
+    });
 
     return { message: 'Account verified successfully', token: token };
   }
@@ -373,7 +409,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid password');
     }
 
-    const token = this.jwtService.sign({ id: user._id });
+    const token = this.jwtService.sign({
+      id: user._id,
+      lang: user.language || 'en',
+    });
     return { token };
   }
 
@@ -422,7 +461,10 @@ export class AuthService {
       });
     }
 
-    const token = this.jwtService.sign({ id: user._id });
+    const token = this.jwtService.sign({
+      id: user._id,
+      lang: user.language || 'en',
+    });
     return { token };
   }
 
@@ -466,6 +508,7 @@ export class AuthService {
         userVerification.isPartnerApplicationSubmitted,
       isPartnerApplicationApproved:
         userVerification.isPartnerApplicationApproved,
+      language: user.language || 'en',
     };
   }
 
@@ -650,7 +693,7 @@ export class AuthService {
   }
 
   async editUser(userId: string, editUserDto: EditUserDto, avatarUrl?: string) {
-    const { name, email, phone, emailCode, phoneCode } = editUserDto;
+    const { name, email, phone, emailCode, phoneCode, language } = editUserDto;
 
     if (avatarUrl) {
       // delete old avatar
@@ -704,6 +747,17 @@ export class AuthService {
         {
           phone,
         },
+      );
+      return {
+        message: 'User updated successfully',
+      };
+    } else if (language) {
+      await this.userModel.findOneAndUpdate(
+        { _id: userId },
+        {
+          language,
+        },
+        { new: true },
       );
       return {
         message: 'User updated successfully',
@@ -1007,5 +1061,22 @@ export class AuthService {
         avatar: user.avatar,
       };
     });
+  }
+
+  async updateLanguageAndGetNewToken(
+    userId: string,
+    language: string,
+  ): Promise<{ token: string }> {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Update user's language preference
+    await this.userModel.findByIdAndUpdate(userId, { language });
+
+    // Generate new token with updated language
+    const token = this.jwtService.sign({ id: user._id, lang: language });
+    return { token };
   }
 }

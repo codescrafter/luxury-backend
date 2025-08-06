@@ -17,11 +17,19 @@ import { LocationDto } from './location.dto';
 export class CreateSpeedboatDto {
   @IsString()
   @IsNotEmpty()
-  title: string;
+  titleEn: string;
 
   @IsString()
   @IsNotEmpty()
-  description: string;
+  titleAr: string;
+
+  @IsString()
+  @IsNotEmpty()
+  descriptionEn: string;
+
+  @IsString()
+  @IsNotEmpty()
+  descriptionAr: string;
 
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
@@ -54,12 +62,22 @@ export class CreateSpeedboatDto {
   @IsArray()
   @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
   @IsString({ each: true })
-  cancellationPolicy: string[];
+  cancellationPolicyEn: string[];
 
   @IsArray()
   @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
   @IsString({ each: true })
-  termsAndConditions: string[];
+  cancellationPolicyAr: string[];
+
+  @IsArray()
+  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @IsString({ each: true })
+  termsAndConditionsEn: string[];
+
+  @IsArray()
+  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @IsString({ each: true })
+  termsAndConditionsAr: string[];
 
   @IsString()
   engineType: string;
@@ -87,19 +105,40 @@ export class CreateSpeedboatDto {
   lng: number;
 
   @IsString()
-  city: string;
+  cityEn: string;
+
   @IsString()
-  region: string;
+  cityAr: string;
+
   @IsString()
-  country: string;
+  regionEn: string;
+
   @IsString()
-  address: string;
+  regionAr: string;
+
+  @IsString()
+  countryEn: string;
+
+  @IsString()
+  countryAr: string;
+
+  @IsString()
+  addressEn: string;
+
+  @IsString()
+  addressAr: string;
 
   @IsOptional()
   @IsArray()
   @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
   @IsString({ each: true })
-  tags?: string[];
+  tagsEn?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @IsString({ each: true })
+  tagsAr?: string[];
 
   @IsOptional()
   @IsString()

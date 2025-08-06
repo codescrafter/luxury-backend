@@ -266,4 +266,22 @@ export class AuthController {
       };
     }
   }
+
+  @Post('update-language')
+  @UseGuards(AuthGuard())
+  async updateLanguage(@Req() req, @Body() body: { language: string }): Promise<any> {
+    try {
+      const result = await this.authService.updateLanguageAndGetNewToken(
+        req.user._id,
+        body.language,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to update language',
+        error: error.message,
+      };
+    }
+  }
 }

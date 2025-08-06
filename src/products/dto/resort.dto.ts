@@ -19,11 +19,19 @@ import { Mongoose, Types } from 'mongoose';
 export class CreateResortDto {
   @IsString()
   @IsNotEmpty()
-  title: string;
+  titleEn: string;
 
   @IsString()
   @IsNotEmpty()
-  description: string;
+  titleAr: string;
+
+  @IsString()
+  @IsNotEmpty()
+  descriptionEn: string;
+
+  @IsString()
+  @IsNotEmpty()
+  descriptionAr: string;
 
   @IsBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
@@ -53,7 +61,20 @@ export class CreateResortDto {
       .filter((item) => item.length > 0);
   })
   @IsString({ each: true })
-  amenities?: string[];
+  amenitiesEn?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    if (Array.isArray(value)) return value;
+    return value
+      .split(',')
+      .map((item: string) => item.trim())
+      .filter((item) => item.length > 0);
+  })
+  @IsString({ each: true })
+  amenitiesAr?: string[];
 
   @IsOptional()
   @IsNumber()
@@ -124,19 +145,37 @@ export class CreateResortDto {
   @IsArray()
   @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
   @IsString({ each: true })
-  cancellationPolicy?: string[];
+  cancellationPolicyEn?: string[];
 
   @IsOptional()
   @IsArray()
   @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
   @IsString({ each: true })
-  termsAndConditions?: string[];
+  cancellationPolicyAr?: string[];
 
   @IsOptional()
   @IsArray()
   @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
   @IsString({ each: true })
-  safetyFeatures?: string[];
+  termsAndConditionsEn?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @IsString({ each: true })
+  termsAndConditionsAr?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @IsString({ each: true })
+  safetyFeaturesEn?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @IsString({ each: true })
+  safetyFeaturesAr?: string[];
 
   @IsOptional()
   @IsBoolean()
@@ -155,13 +194,28 @@ export class CreateResortDto {
   lng: number;
 
   @IsString()
-  city: string;
+  cityEn: string;
+
   @IsString()
-  region: string;
+  cityAr: string;
+
   @IsString()
-  country: string;
+  regionEn: string;
+
   @IsString()
-  address: string;
+  regionAr: string;
+
+  @IsString()
+  countryEn: string;
+
+  @IsString()
+  countryAr: string;
+
+  @IsString()
+  addressEn: string;
+
+  @IsString()
+  addressAr: string;
 
   @IsOptional()
   @IsArray()
