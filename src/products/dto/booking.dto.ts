@@ -1,4 +1,10 @@
-import { IsMongoId, IsString, IsDateString, IsNumber, IsOptional } from 'class-validator';
+import {
+  IsMongoId,
+  IsString,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+} from 'class-validator';
 import { PartialType } from '@nestjs/mapped-types';
 
 export class CreateBookingDto {
@@ -40,4 +46,4 @@ export class CreateBookingDto {
   childrenCount?: number;
 }
 
-export class UpdateBookingDto extends PartialType(CreateBookingDto) {} 
+export class UpdateBookingDto extends PartialType(CreateBookingDto) {}

@@ -14,7 +14,10 @@ async function editProduct(type, id, updates) {
     console.log(`✏️ Edited ${type}: ${id}`);
     return res.data?.data;
   } catch (error) {
-    console.error(`❌ Failed to edit ${type}:`, error.response?.data || error.message);
+    console.error(
+      `❌ Failed to edit ${type}:`,
+      error.response?.data || error.message,
+    );
     return null;
   }
 }
@@ -30,9 +33,13 @@ async function runEditTest(type, createFn, editField, newValue) {
   const updates = { [editField]: newValue };
   const edited = await editProduct(type, id, updates);
   if (edited && edited[editField] === newValue) {
-    console.log(`✅ ${type} edit reflected: ${editField} = ${edited[editField]}`);
+    console.log(
+      `✅ ${type} edit reflected: ${editField} = ${edited[editField]}`,
+    );
   } else {
-    console.error(`❌ ${type} edit NOT reflected: expected ${editField} = ${newValue}`);
+    console.error(
+      `❌ ${type} edit NOT reflected: expected ${editField} = ${newValue}`,
+    );
   }
 }
 
@@ -44,4 +51,4 @@ async function main() {
   await runEditTest('resort', createResort, 'title', 'Edited Resort');
 }
 
-main(); 
+main();

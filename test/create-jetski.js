@@ -1,7 +1,13 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN, testData } = require('./config');
+const {
+  createTestImage,
+  BASE_URL,
+  OWNER_ID,
+  PARTNER_1_TOKEN,
+  testData,
+} = require('./config');
 
 function getJetskiTestData() {
   return {

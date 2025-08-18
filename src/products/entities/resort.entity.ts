@@ -17,7 +17,7 @@ export class Resort {
   @Prop({ required: true })
   descriptionAr: string;
 
-  @Prop({ required: false, default: "resort" })
+  @Prop({ required: false, default: 'resort' })
   type: string;
 
   @Prop({ required: true })
@@ -137,7 +137,10 @@ export class Resort {
   @Prop({ type: Number, default: 0 })
   reviewCount?: number;
 
-  @Prop({ default: 'pending', enum: ['pending', 'approved', 'revision', 'rejected'] })
+  @Prop({
+    default: 'pending',
+    enum: ['pending', 'approved', 'revision', 'rejected'],
+  })
   status: 'pending' | 'approved' | 'revision' | 'rejected';
 
   @Prop({ default: 0 })

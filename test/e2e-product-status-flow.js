@@ -81,24 +81,30 @@ function logTestResult(testName, passed, details = '') {
 // Test dual-language functionality for products
 async function testDualLanguageForProducts(products, testName) {
   console.log(`\n🌐 Testing dual-language for ${testName}...`);
-  
+
   if (products.length === 0) {
     console.log('   No products to test');
     return;
   }
 
   const product = products[0];
-  
+
   // Test English retrieval
   try {
-    const englishResponse = await axios.get(`${BASE_URL}/products/${product.type}/${product._id}`, {
-      params: { lang: 'en' }
-    });
-    
+    const englishResponse = await axios.get(
+      `${BASE_URL}/products/${product.type}/${product._id}`,
+      {
+        params: { lang: 'en' },
+      },
+    );
+
     if (englishResponse.data.success) {
       const englishProduct = englishResponse.data.data;
-      logTestResult(`${testName} English retrieval`, true, 
-        `${englishProduct.title} - ${englishProduct.city}`);
+      logTestResult(
+        `${testName} English retrieval`,
+        true,
+        `${englishProduct.title} - ${englishProduct.city}`,
+      );
     } else {
       logTestResult(`${testName} English retrieval`, false);
     }
@@ -108,14 +114,20 @@ async function testDualLanguageForProducts(products, testName) {
 
   // Test Arabic retrieval
   try {
-    const arabicResponse = await axios.get(`${BASE_URL}/products/${product.type}/${product._id}`, {
-      params: { lang: 'ar' }
-    });
-    
+    const arabicResponse = await axios.get(
+      `${BASE_URL}/products/${product.type}/${product._id}`,
+      {
+        params: { lang: 'ar' },
+      },
+    );
+
     if (arabicResponse.data.success) {
       const arabicProduct = arabicResponse.data.data;
-      logTestResult(`${testName} Arabic retrieval`, true, 
-        `${arabicProduct.title} - ${arabicProduct.city}`);
+      logTestResult(
+        `${testName} Arabic retrieval`,
+        true,
+        `${arabicProduct.title} - ${arabicProduct.city}`,
+      );
     } else {
       logTestResult(`${testName} Arabic retrieval`, false);
     }
@@ -125,19 +137,29 @@ async function testDualLanguageForProducts(products, testName) {
 
   // Test language field validation
   try {
-    const response = await axios.get(`${BASE_URL}/products/${product.type}/${product._id}`, {
-      params: { lang: 'en' }
-    });
-    
+    const response = await axios.get(
+      `${BASE_URL}/products/${product.type}/${product._id}`,
+      {
+        params: { lang: 'en' },
+      },
+    );
+
     if (response.data.success) {
       const testProduct = response.data.data;
-      const hasLanguageFields = testProduct.titleEn || testProduct.titleAr || 
-                               testProduct.cityEn || testProduct.cityAr;
-      
+      const hasLanguageFields =
+        testProduct.titleEn ||
+        testProduct.titleAr ||
+        testProduct.cityEn ||
+        testProduct.cityAr;
+
       logTestResult(`${testName} language fields cleaned`, !hasLanguageFields);
     }
   } catch (error) {
-    logTestResult(`${testName} language field validation`, false, error.message);
+    logTestResult(
+      `${testName} language field validation`,
+      false,
+      error.message,
+    );
   }
 }
 
@@ -195,10 +217,22 @@ async function runFlow() {
   const foundJetski6Partner2 = findProductById(pending2, jetski6._id);
   const foundJetski1Partner2 = findProductById(pending2, jetski1._id);
 
-  logTestResult('Partner 2 sees their jetski4 in pending', !!foundJetski4Partner2);
-  logTestResult('Partner 2 sees their jetski5 in pending', !!foundJetski5Partner2);
-  logTestResult('Partner 2 sees their jetski6 in pending', !!foundJetski6Partner2);
-  logTestResult('Partner 2 does NOT see Partner 1 products', !foundJetski1Partner2);
+  logTestResult(
+    'Partner 2 sees their jetski4 in pending',
+    !!foundJetski4Partner2,
+  );
+  logTestResult(
+    'Partner 2 sees their jetski5 in pending',
+    !!foundJetski5Partner2,
+  );
+  logTestResult(
+    'Partner 2 sees their jetski6 in pending',
+    !!foundJetski6Partner2,
+  );
+  logTestResult(
+    'Partner 2 does NOT see Partner 1 products',
+    !foundJetski1Partner2,
+  );
 
   // Test Admin sees ALL pending products
   const pendingAdmin = await getPendingProductsWithToken(ADMIN_TOKEN);
@@ -211,7 +245,10 @@ async function runFlow() {
   logTestResult('Admin sees Partner 2 jetski4 in pending', !!foundJetski4Admin);
   logTestResult('Admin sees Partner 1 jetski2 in pending', !!foundJetski2Admin);
   logTestResult('Admin sees Partner 2 jetski5 in pending', !!foundJetski5Admin);
-  logTestResult('Admin sees all 6 jetskis in pending', pendingAdmin.length === 6);
+  logTestResult(
+    'Admin sees all 6 jetskis in pending',
+    pendingAdmin.length === 6,
+  );
 
   // Test dual-language for pending products
   await testDualLanguageForProducts(pendingAdmin, 'Pending Products');
@@ -224,12 +261,20 @@ async function runFlow() {
 
   // Admin approves Partner 1's jetski1
   console.log('--- Admin approving Partner 1 jetski1...');
-  const approveResult1 = await approveProductWithToken('jetski', jetski1._id, ADMIN_TOKEN);
+  const approveResult1 = await approveProductWithToken(
+    'jetski',
+    jetski1._id,
+    ADMIN_TOKEN,
+  );
   logTestResult('Admin can approve Partner 1 jetski1', !approveResult1.error);
 
   // Admin approves Partner 2's jetski4
   console.log('--- Admin approving Partner 2 jetski4...');
-  const approveResult2 = await approveProductWithToken('jetski', jetski4._id, ADMIN_TOKEN);
+  const approveResult2 = await approveProductWithToken(
+    'jetski',
+    jetski4._id,
+    ADMIN_TOKEN,
+  );
   logTestResult('Admin can approve Partner 2 jetski4', !approveResult2.error);
 
   // Test approved products visibility
@@ -240,18 +285,38 @@ async function runFlow() {
   const foundApprovedJetski1 = findProductById(approvedAdmin, jetski1._id);
   const foundApprovedJetski4 = findProductById(approvedAdmin, jetski4._id);
 
-  logTestResult('Admin sees approved Partner 1 jetski1', !!foundApprovedJetski1);
-  logTestResult('Admin sees approved Partner 2 jetski4', !!foundApprovedJetski4);
-  logTestResult('Partner 1 sees their approved jetski1', !!findProductById(approved1, jetski1._id));
-  logTestResult('Partner 2 sees their approved jetski4', !!findProductById(approved2, jetski4._id));
-  logTestResult('Partner 1 does NOT see Partner 2 approved products', !findProductById(approved1, jetski4._id));
-  logTestResult('Partner 2 does NOT see Partner 1 approved products', !findProductById(approved2, jetski1._id));
+  logTestResult(
+    'Admin sees approved Partner 1 jetski1',
+    !!foundApprovedJetski1,
+  );
+  logTestResult(
+    'Admin sees approved Partner 2 jetski4',
+    !!foundApprovedJetski4,
+  );
+  logTestResult(
+    'Partner 1 sees their approved jetski1',
+    !!findProductById(approved1, jetski1._id),
+  );
+  logTestResult(
+    'Partner 2 sees their approved jetski4',
+    !!findProductById(approved2, jetski4._id),
+  );
+  logTestResult(
+    'Partner 1 does NOT see Partner 2 approved products',
+    !findProductById(approved1, jetski4._id),
+  );
+  logTestResult(
+    'Partner 2 does NOT see Partner 1 approved products',
+    !findProductById(approved2, jetski1._id),
+  );
 
   // Test that approved products are no longer in pending
   const pendingAfterApproval = await getPendingProductsWithToken(ADMIN_TOKEN);
-  logTestResult('Approved products removed from pending', 
-    !findProductById(pendingAfterApproval, jetski1._id) && 
-    !findProductById(pendingAfterApproval, jetski4._id));
+  logTestResult(
+    'Approved products removed from pending',
+    !findProductById(pendingAfterApproval, jetski1._id) &&
+      !findProductById(pendingAfterApproval, jetski4._id),
+  );
 
   // Test dual-language for approved products
   await testDualLanguageForProducts(approvedAdmin, 'Approved Products');
@@ -264,12 +329,20 @@ async function runFlow() {
 
   // Admin rejects Partner 1's jetski2
   console.log('--- Admin rejecting Partner 1 jetski2...');
-  const rejectResult1 = await rejectProductWithToken('jetski', jetski2._id, ADMIN_TOKEN);
+  const rejectResult1 = await rejectProductWithToken(
+    'jetski',
+    jetski2._id,
+    ADMIN_TOKEN,
+  );
   logTestResult('Admin can reject Partner 1 jetski2', !rejectResult1.error);
 
   // Admin rejects Partner 2's jetski5
   console.log('--- Admin rejecting Partner 2 jetski5...');
-  const rejectResult2 = await rejectProductWithToken('jetski', jetski5._id, ADMIN_TOKEN);
+  const rejectResult2 = await rejectProductWithToken(
+    'jetski',
+    jetski5._id,
+    ADMIN_TOKEN,
+  );
   logTestResult('Admin can reject Partner 2 jetski5', !rejectResult2.error);
 
   // Test rejected products visibility
@@ -280,18 +353,38 @@ async function runFlow() {
   const foundRejectedJetski2 = findProductById(rejectedAdmin, jetski2._id);
   const foundRejectedJetski5 = findProductById(rejectedAdmin, jetski5._id);
 
-  logTestResult('Admin sees rejected Partner 1 jetski2', !!foundRejectedJetski2);
-  logTestResult('Admin sees rejected Partner 2 jetski5', !!foundRejectedJetski5);
-  logTestResult('Partner 1 sees their rejected jetski2', !!findProductById(rejected1, jetski2._id));
-  logTestResult('Partner 2 sees their rejected jetski5', !!findProductById(rejected2, jetski5._id));
-  logTestResult('Partner 1 does NOT see Partner 2 rejected products', !findProductById(rejected1, jetski5._id));
-  logTestResult('Partner 2 does NOT see Partner 1 rejected products', !findProductById(rejected2, jetski2._id));
+  logTestResult(
+    'Admin sees rejected Partner 1 jetski2',
+    !!foundRejectedJetski2,
+  );
+  logTestResult(
+    'Admin sees rejected Partner 2 jetski5',
+    !!foundRejectedJetski5,
+  );
+  logTestResult(
+    'Partner 1 sees their rejected jetski2',
+    !!findProductById(rejected1, jetski2._id),
+  );
+  logTestResult(
+    'Partner 2 sees their rejected jetski5',
+    !!findProductById(rejected2, jetski5._id),
+  );
+  logTestResult(
+    'Partner 1 does NOT see Partner 2 rejected products',
+    !findProductById(rejected1, jetski5._id),
+  );
+  logTestResult(
+    'Partner 2 does NOT see Partner 1 rejected products',
+    !findProductById(rejected2, jetski2._id),
+  );
 
   // Test that rejected products are no longer in pending
   const pendingAfterRejection = await getPendingProductsWithToken(ADMIN_TOKEN);
-  logTestResult('Rejected products removed from pending', 
-    !findProductById(pendingAfterRejection, jetski2._id) && 
-    !findProductById(pendingAfterRejection, jetski5._id));
+  logTestResult(
+    'Rejected products removed from pending',
+    !findProductById(pendingAfterRejection, jetski2._id) &&
+      !findProductById(pendingAfterRejection, jetski5._id),
+  );
 
   // Test dual-language for rejected products
   await testDualLanguageForProducts(rejectedAdmin, 'Rejected Products');
@@ -304,26 +397,48 @@ async function runFlow() {
 
   // Admin sends Partner 1's jetski3 for revision
   console.log('--- Admin sending Partner 1 jetski3 for revision...');
-  const revisionResult1 = await revisionProductWithToken('jetski', jetski3._id, ADMIN_TOKEN);
-  logTestResult('Admin can send Partner 1 jetski3 for revision', !revisionResult1.error);
+  const revisionResult1 = await revisionProductWithToken(
+    'jetski',
+    jetski3._id,
+    ADMIN_TOKEN,
+  );
+  logTestResult(
+    'Admin can send Partner 1 jetski3 for revision',
+    !revisionResult1.error,
+  );
 
   // Admin sends Partner 2's jetski6 for revision
   console.log('--- Admin sending Partner 2 jetski6 for revision...');
-  const revisionResult2 = await revisionProductWithToken('jetski', jetski6._id, ADMIN_TOKEN);
-  logTestResult('Admin can send Partner 2 jetski6 for revision', !revisionResult2.error);
+  const revisionResult2 = await revisionProductWithToken(
+    'jetski',
+    jetski6._id,
+    ADMIN_TOKEN,
+  );
+  logTestResult(
+    'Admin can send Partner 2 jetski6 for revision',
+    !revisionResult2.error,
+  );
 
   // Test that revision products are still in pending (revision counts as pending)
   const pendingAfterRevision = await getPendingProductsWithToken(ADMIN_TOKEN);
-  const pendingAfterRevision1 = await getPendingProductsWithToken(PARTNER_1_TOKEN);
-  const pendingAfterRevision2 = await getPendingProductsWithToken(PARTNER_2_TOKEN);
+  const pendingAfterRevision1 =
+    await getPendingProductsWithToken(PARTNER_1_TOKEN);
+  const pendingAfterRevision2 =
+    await getPendingProductsWithToken(PARTNER_2_TOKEN);
 
-  logTestResult('Revision products still in pending (admin view)', 
-    findProductById(pendingAfterRevision, jetski3._id) && 
-    findProductById(pendingAfterRevision, jetski6._id));
-  logTestResult('Partner 1 sees their revision jetski3 in pending', 
-    !!findProductById(pendingAfterRevision1, jetski3._id));
-  logTestResult('Partner 2 sees their revision jetski6 in pending', 
-    !!findProductById(pendingAfterRevision2, jetski6._id));
+  logTestResult(
+    'Revision products still in pending (admin view)',
+    findProductById(pendingAfterRevision, jetski3._id) &&
+      findProductById(pendingAfterRevision, jetski6._id),
+  );
+  logTestResult(
+    'Partner 1 sees their revision jetski3 in pending',
+    !!findProductById(pendingAfterRevision1, jetski3._id),
+  );
+  logTestResult(
+    'Partner 2 sees their revision jetski6 in pending',
+    !!findProductById(pendingAfterRevision2, jetski6._id),
+  );
 
   console.log('');
 
@@ -333,26 +448,42 @@ async function runFlow() {
 
   // Partner 1 resubmits their jetski3
   console.log('--- Partner 1 resubmitting their jetski3...');
-  const resubmitResult1 = await resubmitProductWithToken('jetski', jetski3._id, PARTNER_1_TOKEN);
+  const resubmitResult1 = await resubmitProductWithToken(
+    'jetski',
+    jetski3._id,
+    PARTNER_1_TOKEN,
+  );
   logTestResult('Partner 1 can resubmit their jetski3', !resubmitResult1.error);
 
   // Partner 2 resubmits their jetski6
   console.log('--- Partner 2 resubmitting their jetski6...');
-  const resubmitResult2 = await resubmitProductWithToken('jetski', jetski6._id, PARTNER_2_TOKEN);
+  const resubmitResult2 = await resubmitProductWithToken(
+    'jetski',
+    jetski6._id,
+    PARTNER_2_TOKEN,
+  );
   logTestResult('Partner 2 can resubmit their jetski6', !resubmitResult2.error);
 
   // Test that resubmitted products are back in pending
   const pendingAfterResubmit = await getPendingProductsWithToken(ADMIN_TOKEN);
-  const pendingAfterResubmit1 = await getPendingProductsWithToken(PARTNER_1_TOKEN);
-  const pendingAfterResubmit2 = await getPendingProductsWithToken(PARTNER_2_TOKEN);
+  const pendingAfterResubmit1 =
+    await getPendingProductsWithToken(PARTNER_1_TOKEN);
+  const pendingAfterResubmit2 =
+    await getPendingProductsWithToken(PARTNER_2_TOKEN);
 
-  logTestResult('Resubmitted products back in pending (admin view)', 
-    findProductById(pendingAfterResubmit, jetski3._id) && 
-    findProductById(pendingAfterResubmit, jetski6._id));
-  logTestResult('Partner 1 sees their resubmitted jetski3 in pending', 
-    !!findProductById(pendingAfterResubmit1, jetski3._id));
-  logTestResult('Partner 2 sees their resubmitted jetski6 in pending', 
-    !!findProductById(pendingAfterResubmit2, jetski6._id));
+  logTestResult(
+    'Resubmitted products back in pending (admin view)',
+    findProductById(pendingAfterResubmit, jetski3._id) &&
+      findProductById(pendingAfterResubmit, jetski6._id),
+  );
+  logTestResult(
+    'Partner 1 sees their resubmitted jetski3 in pending',
+    !!findProductById(pendingAfterResubmit1, jetski3._id),
+  );
+  logTestResult(
+    'Partner 2 sees their resubmitted jetski6 in pending',
+    !!findProductById(pendingAfterResubmit2, jetski6._id),
+  );
 
   console.log('');
 
@@ -365,21 +496,39 @@ async function runFlow() {
   const finalApproved = await getApprovedProductsWithToken(ADMIN_TOKEN);
   const finalRejected = await getRejectedProductsWithToken(ADMIN_TOKEN);
 
-  logTestResult('Final pending count is 2 (resubmitted products)', finalPending.length === 2);
-  logTestResult('Final approved count is 2 (jetski1, jetski4)', finalApproved.length === 2);
-  logTestResult('Final rejected count is 2 (jetski2, jetski5)', finalRejected.length === 2);
+  logTestResult(
+    'Final pending count is 2 (resubmitted products)',
+    finalPending.length === 2,
+  );
+  logTestResult(
+    'Final approved count is 2 (jetski1, jetski4)',
+    finalApproved.length === 2,
+  );
+  logTestResult(
+    'Final rejected count is 2 (jetski2, jetski5)',
+    finalRejected.length === 2,
+  );
 
   // Verify specific products in each status
-  const finalPendingIds = finalPending.map(p => p._id);
-  const finalApprovedIds = finalApproved.map(p => p._id);
-  const finalRejectedIds = finalRejected.map(p => p._id);
+  const finalPendingIds = finalPending.map((p) => p._id);
+  const finalApprovedIds = finalApproved.map((p) => p._id);
+  const finalRejectedIds = finalRejected.map((p) => p._id);
 
-  logTestResult('Pending contains resubmitted jetski3 and jetski6', 
-    finalPendingIds.includes(jetski3._id) && finalPendingIds.includes(jetski6._id));
-  logTestResult('Approved contains jetski1 and jetski4', 
-    finalApprovedIds.includes(jetski1._id) && finalApprovedIds.includes(jetski4._id));
-  logTestResult('Rejected contains jetski2 and jetski5', 
-    finalRejectedIds.includes(jetski2._id) && finalRejectedIds.includes(jetski5._id));
+  logTestResult(
+    'Pending contains resubmitted jetski3 and jetski6',
+    finalPendingIds.includes(jetski3._id) &&
+      finalPendingIds.includes(jetski6._id),
+  );
+  logTestResult(
+    'Approved contains jetski1 and jetski4',
+    finalApprovedIds.includes(jetski1._id) &&
+      finalApprovedIds.includes(jetski4._id),
+  );
+  logTestResult(
+    'Rejected contains jetski2 and jetski5',
+    finalRejectedIds.includes(jetski2._id) &&
+      finalRejectedIds.includes(jetski5._id),
+  );
 
   // ===== PHASE 8: Dual-Language Testing =====
   console.log('\n🌐 PHASE 8: Dual-Language Testing');
@@ -387,28 +536,44 @@ async function runFlow() {
 
   // Test public API access in both languages
   console.log('📝 Testing public API access in both languages...');
-  
+
   try {
-    const publicEn = await axios.get(`${BASE_URL}/products/public`, { params: { lang: 'en' } });
-    const publicAr = await axios.get(`${BASE_URL}/products/public`, { params: { lang: 'ar' } });
-    
+    const publicEn = await axios.get(`${BASE_URL}/products/public`, {
+      params: { lang: 'en' },
+    });
+    const publicAr = await axios.get(`${BASE_URL}/products/public`, {
+      params: { lang: 'ar' },
+    });
+
     if (publicEn.data.success && publicAr.data.success) {
-      const approvedProductsEn = publicEn.data.data.filter(p => 
-        finalApprovedIds.includes(p._id));
-      const approvedProductsAr = publicAr.data.data.filter(p => 
-        finalApprovedIds.includes(p._id));
-      
-      logTestResult('Public API returns approved products in English', approvedProductsEn.length === 2);
-      logTestResult('Public API returns approved products in Arabic', approvedProductsAr.length === 2);
-      
+      const approvedProductsEn = publicEn.data.data.filter((p) =>
+        finalApprovedIds.includes(p._id),
+      );
+      const approvedProductsAr = publicAr.data.data.filter((p) =>
+        finalApprovedIds.includes(p._id),
+      );
+
+      logTestResult(
+        'Public API returns approved products in English',
+        approvedProductsEn.length === 2,
+      );
+      logTestResult(
+        'Public API returns approved products in Arabic',
+        approvedProductsAr.length === 2,
+      );
+
       if (approvedProductsEn.length > 0 && approvedProductsAr.length > 0) {
         const enProduct = approvedProductsEn[0];
         const arProduct = approvedProductsAr[0];
-        
-        logTestResult('English and Arabic products have different titles', 
-          enProduct.title !== arProduct.title);
-        logTestResult('English and Arabic products have different cities', 
-          enProduct.city !== arProduct.city);
+
+        logTestResult(
+          'English and Arabic products have different titles',
+          enProduct.title !== arProduct.title,
+        );
+        logTestResult(
+          'English and Arabic products have different cities',
+          enProduct.city !== arProduct.city,
+        );
       }
     }
   } catch (error) {

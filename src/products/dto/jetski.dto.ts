@@ -150,7 +150,7 @@ export class CreateJetskiDto {
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lat: number;
-  
+
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lng: number;
@@ -210,4 +210,3 @@ export class CreateJetskiDto {
 }
 
 export class UpdateJetskiDto extends PartialType(CreateJetskiDto) {}
-

@@ -25,7 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
     return {
       ...user.toObject(),
-      lang: user.language || 'en'
+      lang: user.language || 'en',
     };
   }
 }

@@ -30,7 +30,7 @@ export class Booking {
   productType: string;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
-  partnerId:Types.ObjectId;
+  partnerId: Types.ObjectId;
 
   @Prop({ required: true })
   startTime: Date;

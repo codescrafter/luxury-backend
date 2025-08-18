@@ -60,22 +60,30 @@ export class CreateKayakDto {
   ageRequirement: number;
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   cancellationPolicyEn: string[];
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   cancellationPolicyAr: string[];
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   termsAndConditionsEn: string[];
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   termsAndConditionsAr: string[];
 
@@ -92,7 +100,7 @@ export class CreateKayakDto {
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lat: number;
-  
+
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lng: number;
@@ -123,13 +131,17 @@ export class CreateKayakDto {
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   tagsEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   tagsAr?: string[];
 
@@ -139,7 +151,7 @@ export class CreateKayakDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   modelYear?: number;
 
   @IsOptional()
@@ -153,7 +165,7 @@ export class CreateKayakDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   minimumHours?: number;
 
   @IsOptional()
@@ -162,17 +174,17 @@ export class CreateKayakDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   averageRating?: number;
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   reviewCount?: number;
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   totalBookings?: number;
 
   @IsOptional()
@@ -186,12 +198,11 @@ export class CreateKayakDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   resubmissionCount?: number;
 }
 
 export class UpdateKayakDto extends PartialType(CreateKayakDto) {}
-
 
 // import React, { useEffect, useState } from 'react';
 // import axios from 'axios';
@@ -285,4 +296,3 @@ export class UpdateKayakDto extends PartialType(CreateKayakDto) {}
 // };
 
 // export default CreateKayakForm;
-

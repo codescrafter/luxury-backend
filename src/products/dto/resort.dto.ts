@@ -78,34 +78,38 @@ export class CreateResortDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   numberOfRooms?: number;
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   numberOfBathrooms?: number;
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   totalAreaInSqFt?: number;
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   starRating?: number;
 
   @ValidateIf((o) => o.isDailyResort === true)
   @IsNumber()
-  @IsNotEmpty({ message: 'Daily price is required when resort is marked as daily' })
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @IsNotEmpty({
+    message: 'Daily price is required when resort is marked as daily',
+  })
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   dailyPrice?: number;
 
   @ValidateIf((o) => o.isAnnualResort === true)
   @IsNumber()
-  @IsNotEmpty({ message: 'Yearly price is required when resort is marked as annual' })
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @IsNotEmpty({
+    message: 'Yearly price is required when resort is marked as annual',
+  })
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   yearlyPrice?: number;
 
   @IsOptional()
@@ -118,7 +122,7 @@ export class CreateResortDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   capacity?: number;
 
   @IsOptional()
@@ -143,37 +147,49 @@ export class CreateResortDto {
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   cancellationPolicyEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   cancellationPolicyAr?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   termsAndConditionsEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   termsAndConditionsAr?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   safetyFeaturesEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   safetyFeaturesAr?: string[];
 
@@ -188,7 +204,7 @@ export class CreateResortDto {
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lat: number;
-  
+
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lng: number;
@@ -219,13 +235,17 @@ export class CreateResortDto {
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   images?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   videos?: string[];
 
@@ -241,7 +261,6 @@ export class CreateResortDto {
   @IsMongoId({ each: true }) // validates each array element as a MongoDB ObjectId
   availableProducts?: string[];
 
-
   @IsOptional()
   @IsBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
@@ -249,12 +268,12 @@ export class CreateResortDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   averageRating?: number;
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   reviewCount?: number;
 
   @IsOptional()
@@ -263,14 +282,11 @@ export class CreateResortDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   resubmissionCount?: number;
 }
 
 export class UpdateResortDto extends PartialType(CreateResortDto) {}
-
-
-
 
 // import React, { useEffect, useState } from 'react';
 // import axios from 'axios';
@@ -399,7 +415,6 @@ export class UpdateResortDto extends PartialType(CreateResortDto) {}
 //     appendArrayField('cancellationPolicy', form.cancellationPolicy);
 //     appendArrayField('termsAndConditions', form.termsAndConditions);
 //     appendArrayField('safetyFeatures', form.safetyFeatures);
-  
 
 //     // Append files
 //     images.forEach((img) => formData.append('images', img));

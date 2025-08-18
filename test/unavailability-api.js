@@ -1,7 +1,14 @@
 const axios = require('axios');
 const { BASE_URL, OWNER_ID, PARTNER_1_TOKEN } = require('./config');
 
-async function createUnavailability({ productId, productType, startTime, endTime, consumerId, unavailabilityType = 'booked' }) {
+async function createUnavailability({
+  productId,
+  productType,
+  startTime,
+  endTime,
+  consumerId,
+  unavailabilityType = 'booked',
+}) {
   try {
     const response = await axios.post(
       `${BASE_URL}/products/unavailability`,
@@ -17,11 +24,14 @@ async function createUnavailability({ productId, productType, startTime, endTime
         headers: {
           Authorization: `Bearer ${PARTNER_1_TOKEN}`,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
-    console.error('❌ Failed to create unavailability:', error.response?.data || error.message);
+    console.error(
+      '❌ Failed to create unavailability:',
+      error.response?.data || error.message,
+    );
     return null;
   }
 }
@@ -30,4 +40,4 @@ async function createUnavailability({ productId, productType, startTime, endTime
 
 module.exports = {
   createUnavailability,
-}; 
+};

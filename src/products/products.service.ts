@@ -23,7 +23,10 @@ import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
 import { CreateUnavailabilityDto } from './dto/unavailability.dto';
 import { CreateBookingDto } from './dto/booking.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { transformProductForLanguage, transformProductsArrayForLanguage } from '../helpers/dto-helpers';
+import {
+  transformProductForLanguage,
+  transformProductsArrayForLanguage,
+} from '../helpers/dto-helpers';
 const mongoose = require('mongoose');
 // All booking and unavailability related methods and usages have been removed.
 
@@ -232,11 +235,21 @@ export class ProductsService {
       this.speedboatModel.find({ status: 'approved' }).lean(),
       this.resortModel.find({ status: 'approved' }).lean(),
     ]);
-    const allProducts = [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
+    const allProducts = [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
     return transformProductsArrayForLanguage(allProducts, lang);
   }
 
-  async getProductsByOwnerAndStatus(statuses: string[], ownerId?: string, lang: string = 'en') {
+  async getProductsByOwnerAndStatus(
+    statuses: string[],
+    ownerId?: string,
+    lang: string = 'en',
+  ) {
     const filter: any = {
       status: { $in: statuses },
     };
@@ -266,7 +279,13 @@ export class ProductsService {
         : this.resortModel.find(filter).lean(),
     ]);
 
-    const allProducts = [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
+    const allProducts = [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
     return transformProductsArrayForLanguage(allProducts, lang);
   }
 

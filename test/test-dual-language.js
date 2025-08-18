@@ -12,29 +12,39 @@ async function testLanguageUpdate() {
   try {
     // Test updating user language preference to Arabic
     console.log('📝 Testing language update to Arabic...');
-    const response = await axios.post(`${BASE_URL}/auth/update-language`, {
-      language: 'ar'
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${USER_TOKEN}`
-      }
-    });
+    const response = await axios.post(
+      `${BASE_URL}/auth/update-language`,
+      {
+        language: 'ar',
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${USER_TOKEN}`,
+        },
+      },
+    );
 
     if (response.data.success) {
       console.log('✅ Language update to Arabic successful');
-      console.log(`   New token: ${response.data.data.token.substring(0, 50)}...`);
-      
+      console.log(
+        `   New token: ${response.data.data.token.substring(0, 50)}...`,
+      );
+
       // Test updating back to English
       console.log('\n📝 Testing language update back to English...');
-      const responseEn = await axios.post(`${BASE_URL}/auth/update-language`, {
-        language: 'en'
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${response.data.data.token}`
-        }
-      });
+      const responseEn = await axios.post(
+        `${BASE_URL}/auth/update-language`,
+        {
+          language: 'en',
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${response.data.data.token}`,
+          },
+        },
+      );
 
       if (responseEn.data.success) {
         console.log('✅ Language update to English successful');
@@ -79,8 +89,12 @@ async function testProductCreationWithDualLanguage() {
     console.log(`   Title (AR): ${resort.titleAr}`);
     console.log(`   Amenities (EN): ${resort.amenitiesEn?.join(', ')}`);
     console.log(`   Amenities (AR): ${resort.amenitiesAr?.join(', ')}`);
-    console.log(`   Safety Features (EN): ${resort.safetyFeaturesEn?.join(', ')}`);
-    console.log(`   Safety Features (AR): ${resort.safetyFeaturesAr?.join(', ')}`);
+    console.log(
+      `   Safety Features (EN): ${resort.safetyFeaturesEn?.join(', ')}`,
+    );
+    console.log(
+      `   Safety Features (AR): ${resort.safetyFeaturesAr?.join(', ')}`,
+    );
   } else {
     console.log('❌ Resort creation failed');
   }
@@ -93,8 +107,12 @@ async function testProductCreationWithDualLanguage() {
     console.log(`   ID: ${jetski._id}`);
     console.log(`   Title (EN): ${jetski.titleEn}`);
     console.log(`   Title (AR): ${jetski.titleAr}`);
-    console.log(`   Description (EN): ${jetski.descriptionEn?.substring(0, 50)}...`);
-    console.log(`   Description (AR): ${jetski.descriptionAr?.substring(0, 50)}...`);
+    console.log(
+      `   Description (EN): ${jetski.descriptionEn?.substring(0, 50)}...`,
+    );
+    console.log(
+      `   Description (AR): ${jetski.descriptionAr?.substring(0, 50)}...`,
+    );
   } else {
     console.log('❌ Jetski creation failed');
   }
@@ -131,66 +149,90 @@ async function testProductRetrievalInDifferentLanguages() {
     // Get products in English
     console.log('📝 Testing English product retrieval...');
     const englishResponse = await axios.get(`${BASE_URL}/products/public`, {
-      params: { lang: 'en' }
+      params: { lang: 'en' },
     });
-    
+
     if (englishResponse.data.success && englishResponse.data.data.length > 0) {
       const product = englishResponse.data.data[0];
       console.log('✅ English products retrieved');
-      console.log(`   Sample: ${product.title} - ${product.city}, ${product.country}`);
+      console.log(
+        `   Sample: ${product.title} - ${product.city}, ${product.country}`,
+      );
       console.log(`   Description: ${product.description.substring(0, 50)}...`);
-      console.log(`   Cancellation Policy: ${product.cancellationPolicy?.join(', ')}`);
+      console.log(
+        `   Cancellation Policy: ${product.cancellationPolicy?.join(', ')}`,
+      );
       console.log(`   Terms: ${product.termsAndConditions?.join(', ')}`);
-      
+
       // Test individual product retrieval in English
-      const individualEn = await axios.get(`${BASE_URL}/products/${product.type}/${product._id}`, {
-        params: { lang: 'en' }
-      });
-      
+      const individualEn = await axios.get(
+        `${BASE_URL}/products/${product.type}/${product._id}`,
+        {
+          params: { lang: 'en' },
+        },
+      );
+
       if (individualEn.data.success) {
-        console.log(`   Individual ${product.type} (EN): ${individualEn.data.data.title}`);
+        console.log(
+          `   Individual ${product.type} (EN): ${individualEn.data.data.title}`,
+        );
       }
     }
 
     // Get products in Arabic
     console.log('\n📝 Testing Arabic product retrieval...');
     const arabicResponse = await axios.get(`${BASE_URL}/products/public`, {
-      params: { lang: 'ar' }
+      params: { lang: 'ar' },
     });
-    
+
     if (arabicResponse.data.success && arabicResponse.data.data.length > 0) {
       const product = arabicResponse.data.data[0];
       console.log('✅ Arabic products retrieved');
-      console.log(`   Sample: ${product.title} - ${product.city}, ${product.country}`);
+      console.log(
+        `   Sample: ${product.title} - ${product.city}, ${product.country}`,
+      );
       console.log(`   Description: ${product.description.substring(0, 50)}...`);
-      console.log(`   Cancellation Policy: ${product.cancellationPolicy?.join(', ')}`);
+      console.log(
+        `   Cancellation Policy: ${product.cancellationPolicy?.join(', ')}`,
+      );
       console.log(`   Terms: ${product.termsAndConditions?.join(', ')}`);
-      
+
       // Test individual product retrieval in Arabic
-      const individualAr = await axios.get(`${BASE_URL}/products/${product.type}/${product._id}`, {
-        params: { lang: 'ar' }
-      });
-      
+      const individualAr = await axios.get(
+        `${BASE_URL}/products/${product.type}/${product._id}`,
+        {
+          params: { lang: 'ar' },
+        },
+      );
+
       if (individualAr.data.success) {
-        console.log(`   Individual ${product.type} (AR): ${individualAr.data.data.title}`);
+        console.log(
+          `   Individual ${product.type} (AR): ${individualAr.data.data.title}`,
+        );
       }
     }
 
     // Test authenticated products with language override
-    console.log('\n📝 Testing authenticated products with language override...');
+    console.log(
+      '\n📝 Testing authenticated products with language override...',
+    );
     const authResponse = await axios.get(`${BASE_URL}/products`, {
       headers: { Authorization: `Bearer ${PARTNER_1_TOKEN}` },
-      params: { lang: 'ar' }
+      params: { lang: 'ar' },
     });
-    
+
     if (authResponse.data.success && authResponse.data.data.length > 0) {
       const product = authResponse.data.data[0];
       console.log('✅ Authenticated products with Arabic override retrieved');
-      console.log(`   Sample: ${product.title} - ${product.city}, ${product.country}`);
+      console.log(
+        `   Sample: ${product.title} - ${product.city}, ${product.country}`,
+      );
     }
-
   } catch (error) {
-    console.error('❌ Product retrieval test failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Product retrieval test failed:',
+      error.response?.data || error.message,
+    );
   }
 }
 
@@ -201,9 +243,9 @@ async function testFallbackBehavior() {
     // Test with invalid language parameter
     console.log('📝 Testing with invalid language parameter...');
     const response = await axios.get(`${BASE_URL}/products/public`, {
-      params: { lang: 'invalid' }
+      params: { lang: 'invalid' },
     });
-    
+
     if (response.data.success) {
       console.log('✅ Fallback to default language successful');
       if (response.data.data.length > 0) {
@@ -215,7 +257,7 @@ async function testFallbackBehavior() {
     // Test with missing language parameter
     console.log('\n📝 Testing with missing language parameter...');
     const responseNoLang = await axios.get(`${BASE_URL}/products/public`);
-    
+
     if (responseNoLang.data.success) {
       console.log('✅ Default language (English) used successfully');
       if (responseNoLang.data.data.length > 0) {
@@ -223,7 +265,6 @@ async function testFallbackBehavior() {
         console.log(`   Sample product: ${product.title}`);
       }
     }
-
   } catch (error) {
     console.log('⚠️  Fallback test completed');
   }
@@ -234,17 +275,22 @@ async function testLanguageFieldValidation() {
 
   try {
     // Test that language-specific fields are not returned in response
-    console.log('📝 Testing that language-specific fields are cleaned from response...');
+    console.log(
+      '📝 Testing that language-specific fields are cleaned from response...',
+    );
     const response = await axios.get(`${BASE_URL}/products/public`, {
-      params: { lang: 'en' }
+      params: { lang: 'en' },
     });
-    
+
     if (response.data.success && response.data.data.length > 0) {
       const product = response.data.data[0];
-      const hasLanguageFields = product.titleEn || product.titleAr || product.cityEn || product.cityAr;
-      
+      const hasLanguageFields =
+        product.titleEn || product.titleAr || product.cityEn || product.cityAr;
+
       if (!hasLanguageFields) {
-        console.log('✅ Language-specific fields properly cleaned from response');
+        console.log(
+          '✅ Language-specific fields properly cleaned from response',
+        );
         console.log(`   Transformed title: ${product.title}`);
         console.log(`   Transformed city: ${product.city}`);
       } else {
@@ -253,9 +299,11 @@ async function testLanguageFieldValidation() {
         console.log(`   titleAr: ${product.titleAr}`);
       }
     }
-
   } catch (error) {
-    console.error('❌ Language field validation test failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Language field validation test failed:',
+      error.response?.data || error.message,
+    );
   }
 }
 
@@ -266,18 +314,20 @@ async function testAllProductTypesInBothLanguages() {
   const languages = ['en', 'ar'];
 
   for (const lang of languages) {
-    console.log(`📝 Testing ${lang.toUpperCase()} language for all product types...`);
-    
+    console.log(
+      `📝 Testing ${lang.toUpperCase()} language for all product types...`,
+    );
+
     for (const type of productTypes) {
       try {
         const response = await axios.get(`${BASE_URL}/products/public`, {
-          params: { lang, type }
+          params: { lang, type },
         });
-        
+
         if (response.data.success) {
-          const products = response.data.data.filter(p => p.type === type);
+          const products = response.data.data.filter((p) => p.type === type);
           console.log(`   ✅ ${type}: ${products.length} products found`);
-          
+
           if (products.length > 0) {
             const product = products[0];
             console.log(`      Sample: ${product.title} - ${product.city}`);
@@ -293,7 +343,7 @@ async function testAllProductTypesInBothLanguages() {
 
 async function runDualLanguageTests() {
   console.log('🚀 Starting Dual-Language Feature Tests\n');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
 
   await testLanguageUpdate();
   await testProductCreationWithDualLanguage();
@@ -302,7 +352,7 @@ async function runDualLanguageTests() {
   await testLanguageFieldValidation();
   await testAllProductTypesInBothLanguages();
 
-  console.log('\n' + '=' .repeat(50));
+  console.log('\n' + '='.repeat(50));
   console.log('🎉 All dual-language tests completed!');
 }
 
@@ -318,5 +368,5 @@ module.exports = {
   testFallbackBehavior,
   testLanguageFieldValidation,
   testAllProductTypesInBothLanguages,
-  runDualLanguageTests
-}; 
+  runDualLanguageTests,
+};

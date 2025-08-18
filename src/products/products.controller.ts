@@ -200,7 +200,11 @@ export class ProductsController {
   }
 
   @Get('jetski/:id')
-  async getJetskiById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
+  async getJetskiById(
+    @Param('id') id: string,
+    @Req() req,
+    @Query('lang') lang: string = 'en',
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
@@ -263,7 +267,11 @@ export class ProductsController {
   }
 
   @Get('kayak/:id')
-  async getKayakById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
+  async getKayakById(
+    @Param('id') id: string,
+    @Req() req,
+    @Query('lang') lang: string = 'en',
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
@@ -326,7 +334,11 @@ export class ProductsController {
   }
 
   @Get('yacht/:id')
-  async getYachtById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
+  async getYachtById(
+    @Param('id') id: string,
+    @Req() req,
+    @Query('lang') lang: string = 'en',
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
@@ -389,7 +401,11 @@ export class ProductsController {
   }
 
   @Get('speedboat/:id')
-  async getSpeedboatById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
+  async getSpeedboatById(
+    @Param('id') id: string,
+    @Req() req,
+    @Query('lang') lang: string = 'en',
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
@@ -452,7 +468,11 @@ export class ProductsController {
   }
 
   @Get('resort/:id')
-  async getResortById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
+  async getResortById(
+    @Param('id') id: string,
+    @Req() req,
+    @Query('lang') lang: string = 'en',
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;

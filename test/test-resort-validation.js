@@ -1,7 +1,12 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN } = require('./config');
+const {
+  createTestImage,
+  BASE_URL,
+  OWNER_ID,
+  PARTNER_1_TOKEN,
+} = require('./config');
 
 async function testResortValidation() {
   console.log('🧪 Testing resort validation with new price fields...\n');
@@ -11,7 +16,7 @@ async function testResortValidation() {
   const form1 = new FormData();
   const imagePath = createTestImage();
   form1.append('images', fs.createReadStream(imagePath));
-  
+
   const validData = {
     title: 'Test Resort with Prices',
     description: 'A test resort with proper pricing.',
@@ -21,8 +26,8 @@ async function testResortValidation() {
     amenities: ['pool', 'spa'],
     numberOfRooms: 50,
     capacity: 100,
-    dailyPrice: 200.00,
-    yearlyPrice: 50000.00,
+    dailyPrice: 200.0,
+    yearlyPrice: 50000.0,
     ownerId: OWNER_ID,
     lat: 24.8607,
     lng: 67.0011,
@@ -47,7 +52,9 @@ async function testResortValidation() {
         ...form1.getHeaders(),
       },
     });
-    console.log('✅ Test 1 PASSED: Resort created successfully with both prices');
+    console.log(
+      '✅ Test 1 PASSED: Resort created successfully with both prices',
+    );
     console.log('   Resort ID:', response1.data?.data?._id);
   } catch (error) {
     console.log('❌ Test 1 FAILED:', error.response?.data || error.message);
@@ -57,13 +64,13 @@ async function testResortValidation() {
   console.log('\nTest 2: Creating resort with only daily price...');
   const form2 = new FormData();
   form2.append('images', fs.createReadStream(imagePath));
-  
+
   const dailyOnlyData = {
     ...validData,
     title: 'Daily Only Resort',
     isAnnualResort: false,
     isDailyResort: true,
-    dailyPrice: 150.00,
+    dailyPrice: 150.0,
     yearlyPrice: undefined,
   };
 
@@ -84,7 +91,9 @@ async function testResortValidation() {
         ...form2.getHeaders(),
       },
     });
-    console.log('✅ Test 2 PASSED: Resort created successfully with only daily price');
+    console.log(
+      '✅ Test 2 PASSED: Resort created successfully with only daily price',
+    );
     console.log('   Resort ID:', response2.data?.data?._id);
   } catch (error) {
     console.log('❌ Test 2 FAILED:', error.response?.data || error.message);
@@ -94,14 +103,14 @@ async function testResortValidation() {
   console.log('\nTest 3: Creating resort with only yearly price...');
   const form3 = new FormData();
   form3.append('images', fs.createReadStream(imagePath));
-  
+
   const yearlyOnlyData = {
     ...validData,
     title: 'Yearly Only Resort',
     isAnnualResort: true,
     isDailyResort: false,
     dailyPrice: undefined,
-    yearlyPrice: 40000.00,
+    yearlyPrice: 40000.0,
   };
 
   for (const key in yearlyOnlyData) {
@@ -121,17 +130,21 @@ async function testResortValidation() {
         ...form3.getHeaders(),
       },
     });
-    console.log('✅ Test 3 PASSED: Resort created successfully with only yearly price');
+    console.log(
+      '✅ Test 3 PASSED: Resort created successfully with only yearly price',
+    );
     console.log('   Resort ID:', response3.data?.data?._id);
   } catch (error) {
     console.log('❌ Test 3 FAILED:', error.response?.data || error.message);
   }
 
   // Test 4: Create resort with daily flag but no daily price (should fail)
-  console.log('\nTest 4: Creating resort with daily flag but no daily price (should fail)...');
+  console.log(
+    '\nTest 4: Creating resort with daily flag but no daily price (should fail)...',
+  );
   const form4 = new FormData();
   form4.append('images', fs.createReadStream(imagePath));
-  
+
   const invalidDailyData = {
     ...validData,
     title: 'Invalid Daily Resort',
@@ -158,7 +171,9 @@ async function testResortValidation() {
         ...form4.getHeaders(),
       },
     });
-    console.log('❌ Test 4 FAILED: Resort was created when it should have failed');
+    console.log(
+      '❌ Test 4 FAILED: Resort was created when it should have failed',
+    );
   } catch (error) {
     console.log('✅ Test 4 PASSED: Resort creation failed as expected');
     console.log('   Error:', error.response?.data?.message || error.message);
@@ -176,4 +191,4 @@ if (require.main === module) {
   testResortValidation().catch(console.error);
 }
 
-module.exports = { testResortValidation }; 
+module.exports = { testResortValidation };

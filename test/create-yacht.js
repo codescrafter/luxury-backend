@@ -1,7 +1,13 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN, testData } = require('./config');
+const {
+  createTestImage,
+  BASE_URL,
+  OWNER_ID,
+  PARTNER_1_TOKEN,
+  testData,
+} = require('./config');
 
 function getYachtTestData() {
   return {
@@ -55,10 +61,15 @@ async function createYacht() {
     });
     return response.data?.data;
   } catch (error) {
-    console.error('❌ Failed to create yacht:', error.response?.data || error.message);
+    console.error(
+      '❌ Failed to create yacht:',
+      error.response?.data || error.message,
+    );
     return null;
   } finally {
-    try { fs.unlinkSync(imagePath); } catch {}
+    try {
+      fs.unlinkSync(imagePath);
+    } catch {}
   }
 }
 

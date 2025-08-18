@@ -1,7 +1,13 @@
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-const { createTestImage, BASE_URL, OWNER_ID, PARTNER_1_TOKEN, testData } = require('./config');
+const {
+  createTestImage,
+  BASE_URL,
+  OWNER_ID,
+  PARTNER_1_TOKEN,
+  testData,
+} = require('./config');
 
 function getResortTestData() {
   return {
@@ -13,8 +19,8 @@ function getResortTestData() {
     numberOfBathrooms: 120,
     totalAreaInSqFt: 50000,
     starRating: 4.8,
-    dailyPrice: 150.00,
-    yearlyPrice: 45000.00,
+    dailyPrice: 150.0,
+    yearlyPrice: 45000.0,
     checkInTime: '14:00',
     checkOutTime: '11:00',
     capacity: 240,
@@ -55,10 +61,15 @@ async function createResort() {
 
     return response.data?.data;
   } catch (error) {
-    console.error('❌ Failed to create resort:', error.response?.data || error.message);
+    console.error(
+      '❌ Failed to create resort:',
+      error.response?.data || error.message,
+    );
     return null;
   } finally {
-    try { fs.unlinkSync(imagePath); } catch {}
+    try {
+      fs.unlinkSync(imagePath);
+    } catch {}
   }
 }
 

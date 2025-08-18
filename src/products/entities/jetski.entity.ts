@@ -17,7 +17,7 @@ export class Jetski {
   @Prop({ required: true })
   descriptionAr: string;
 
-  @Prop({ required: false, default: "jetski" })
+  @Prop({ required: false, default: 'jetski' })
   type: string;
 
   @Prop({ required: false, default: true })
