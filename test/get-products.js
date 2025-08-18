@@ -213,7 +213,7 @@ async function testDualLanguage() {
           const sample = filteredProducts[0];
           console.log(`       Sample: ${sample.title} - ${sample.city}`);
         }
-      } catch (error) {
+      } catch {
         console.log(`     ${type}: Error`);
       }
     }
@@ -229,7 +229,7 @@ async function testDualLanguage() {
     if (invalidLangProducts.length > 0) {
       console.log(`   Sample: ${invalidLangProducts[0].title}`);
     }
-  } catch (error) {
+  } catch {
     console.log('❌ Fallback test failed');
   }
 

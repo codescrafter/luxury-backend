@@ -105,5 +105,11 @@ async function testPasswordReset() {
   }
 }
 
-// Run the test
-testPasswordReset();
+// Run tests if this file is executed directly
+if (require.main === module) {
+  testPasswordReset().catch(console.error);
+}
+
+module.exports = {
+  testPasswordReset,
+};

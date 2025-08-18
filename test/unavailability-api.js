@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { BASE_URL, OWNER_ID, PARTNER_1_TOKEN } = require('./config');
+const { BASE_URL, PARTNER_1_TOKEN } = require('./config');
 
 async function createUnavailability({
   productId,

@@ -1,13 +1,9 @@
 const axios = require('axios');
-const { createJetski } = require('./create-jetski');
 const { createYacht } = require('./create-yacht');
 const { approveProduct } = require('./approve-product');
 const { BASE_URL, USER_TOKEN, PARTNER_1_TOKEN, OWNER_ID } = require('./config');
 
 async function createBooking(product) {
-  const now = new Date();
-  const startTime = new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2 hours from now
-  const endTime = new Date(now.getTime() + 4 * 60 * 60 * 1000); // 4 hours from now
   const bookingDto = {
     productId: product._id,
     productType: 'yacht',

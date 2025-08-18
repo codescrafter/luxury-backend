@@ -1,10 +1,5 @@
 const axios = require('axios');
-const {
-  BASE_URL,
-  testData,
-  PARTNER_1_TOKEN,
-  ADMIN_TOKEN,
-} = require('./config');
+const { BASE_URL, PARTNER_1_TOKEN, ADMIN_TOKEN } = require('./config');
 const { createYacht } = require('./create-yacht');
 const { createResort } = require('./create-resort');
 const { createJetski } = require('./create-jetski');

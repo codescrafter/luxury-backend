@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { BASE_URL, testData, PARTNER_1_TOKEN, USER_TOKEN } = require('./config');
+const { BASE_URL, PARTNER_1_TOKEN, USER_TOKEN } = require('./config');
 const { createYacht } = require('./create-yacht');
 const { createResort } = require('./create-resort');
 const { createJetski } = require('./create-jetski');
@@ -265,7 +265,7 @@ async function testFallbackBehavior() {
         console.log(`   Sample product: ${product.title}`);
       }
     }
-  } catch (error) {
+  } catch {
     console.log('⚠️  Fallback test completed');
   }
 }
@@ -333,7 +333,7 @@ async function testAllProductTypesInBothLanguages() {
             console.log(`      Sample: ${product.title} - ${product.city}`);
           }
         }
-      } catch (error) {
+      } catch {
         console.log(`   ❌ ${type}: Failed to retrieve`);
       }
     }

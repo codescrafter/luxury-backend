@@ -29,4 +29,13 @@ module.exports = {
     'prefer-rest-params': 'error',
     'prefer-spread': 'error',
   },
+  overrides: [
+    {
+      files: ['test/**/*.js'],
+      rules: {
+        '@typescript-eslint/no-require-imports': 'off',
+        '@typescript-eslint/no-unused-vars': 'warn',
+      },
+    },
+  ],
 };
