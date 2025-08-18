@@ -5,14 +5,11 @@ import {
   IsMongoId,
   IsNotEmpty,
   IsNumber,
-  IsObject,
   IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
-import { LocationDto } from './location.dto';
 
 export class CreateSpeedboatDto {
   @IsString()

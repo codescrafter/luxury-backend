@@ -15,6 +15,11 @@ import {
   BookingStatus,
   PaymentStatus,
 } from './entities/booking.entity';
+
+// Define a type for product models that can be used with findById
+type ProductModel = Model<any> & {
+  findById(id: any): any;
+};
 import { CreateJetskiDto, UpdateJetskiDto } from './dto/jetski.dto';
 import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
@@ -27,9 +32,8 @@ import {
   transformProductForLanguage,
   transformProductsArrayForLanguage,
 } from '../helpers/dto-helpers';
-const mongoose = require('mongoose');
-// All booking and unavailability related methods and usages have been removed.
 
+// All booking and unavailability related methods and usages have been removed.
 @Injectable()
 export class ProductsService {
   constructor(
@@ -453,9 +457,8 @@ export class ProductsService {
         HttpStatus.CONFLICT,
       );
     }
-    // 3. Validate price (fetch product and compare expected price)
+
     let product: any;
-    let partnerId: Types.ObjectId;
     switch (dto.productType) {
       case 'jetski':
         product = await this.jetSkiModel.findById(dto.productId);
@@ -475,15 +478,18 @@ export class ProductsService {
       default:
         throw new HttpException('Invalid product type', HttpStatus.BAD_REQUEST);
     }
+
     if (!product) {
       throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
     }
-    partnerId = product.ownerId;
+    const finalPartnerId = product.ownerId;
+
     // Calculate expected price based on product type
     let expectedPrice = 0;
     const durationMs = end.getTime() - start.getTime();
     const hours = durationMs / (1000 * 60 * 60);
     const days = Math.ceil(hours / 24);
+
     if (dto.productType === 'resort') {
       if (days >= 365 && product.yearlyPrice) {
         expectedPrice = product.yearlyPrice;
@@ -525,7 +531,7 @@ export class ProductsService {
     const booking = await this.bookingModel.create({
       ...dto,
       consumerId,
-      partnerId,
+      partnerId: finalPartnerId,
       paymentStatus: PaymentStatus.PENDING,
       bookingStatus: BookingStatus.PENDING,
       startTime: start,
@@ -718,7 +724,7 @@ export class ProductsService {
     return booking;
   }
 
-  getModelBasedOnProductType(productType: string) {
+  getModelBasedOnProductType(productType: string): ProductModel {
     // speedboat, jetski, kayak, yacht, resort
     switch (productType) {
       case 'speedboat':
@@ -731,6 +737,8 @@ export class ProductsService {
         return this.yachtModel;
       case 'resort':
         return this.resortModel;
+      default:
+        throw new Error('Invalid product type');
     }
   }
   async getBookingsForConsumer(consumerId: string): Promise<any[]> {
@@ -743,7 +751,6 @@ export class ProductsService {
       bookings.map(async (booking) => {
         const model = this.getModelBasedOnProductType(booking.productType);
         if (model) {
-          // @ts-ignore
           const product = await model.findById(booking.productId).lean();
           return { ...booking, productId: product };
         }
@@ -764,7 +771,6 @@ export class ProductsService {
       bookings.map(async (booking) => {
         const model = this.getModelBasedOnProductType(booking.productType);
         if (model) {
-          // @ts-ignore
           const product = await model.findById(booking.productId).lean();
           return { ...booking, productId: product };
         }

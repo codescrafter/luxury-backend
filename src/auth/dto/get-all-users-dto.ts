@@ -1,6 +1,5 @@
 import { IsOptional } from 'class-validator';
 import { Role } from '../types';
-import { Transform } from 'class-transformer';
 
 export class GetAllUsersDto {
   @IsOptional()

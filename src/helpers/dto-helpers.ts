@@ -1,5 +1,4 @@
 import {
-  ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
@@ -12,7 +11,7 @@ export class IsEmailOrPhoneConstraint implements ValidatorConstraintInterface {
   validate(value: string) {
     return emailValidationRegex.test(value) || phoneValidationRegex.test(value);
   }
-  defaultMessage(args: ValidationArguments) {
+  defaultMessage() {
     return 'The value must be a valid email address or phone number.';
   }
 }
