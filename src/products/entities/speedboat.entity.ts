@@ -148,3 +148,14 @@ export class Speedboat {
 }
 
 export const SpeedboatSchema = SchemaFactory.createForClass(Speedboat);
+
+// Add performance indexes
+SpeedboatSchema.index({ status: 1, ownerId: 1 }); // For filtering by status and owner
+SpeedboatSchema.index({ status: 1, createdAt: -1 }); // For sorting by creation date
+SpeedboatSchema.index({ ownerId: 1, status: 1, type: 1 }); // For owner's products by type
+SpeedboatSchema.index({ cityEn: 1, status: 1 }); // For location-based queries
+SpeedboatSchema.index({ cityAr: 1, status: 1 }); // For Arabic location queries
+SpeedboatSchema.index({ pricePerHour: 1, status: 1 }); // For price-based filtering
+SpeedboatSchema.index({ pricePerDay: 1, status: 1 }); // For daily price filtering
+SpeedboatSchema.index({ capacity: 1, status: 1 }); // For capacity-based filtering
+SpeedboatSchema.index({ isFeatured: 1, status: 1 }); // For featured products

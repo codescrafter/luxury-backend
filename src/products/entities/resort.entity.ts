@@ -148,3 +148,15 @@ export class Resort {
 }
 
 export const ResortSchema = SchemaFactory.createForClass(Resort);
+
+// Add performance indexes
+ResortSchema.index({ status: 1, ownerId: 1 }); // For filtering by status and owner
+ResortSchema.index({ status: 1, createdAt: -1 }); // For sorting by creation date
+ResortSchema.index({ ownerId: 1, status: 1, type: 1 }); // For owner's products by type
+ResortSchema.index({ cityEn: 1, status: 1 }); // For location-based queries
+ResortSchema.index({ cityAr: 1, status: 1 }); // For Arabic location queries
+ResortSchema.index({ dailyPrice: 1, status: 1 }); // For price-based filtering
+ResortSchema.index({ yearlyPrice: 1, status: 1 }); // For yearly price filtering
+ResortSchema.index({ numberOfRooms: 1, status: 1 }); // For capacity-based filtering
+ResortSchema.index({ isFeatured: 1, status: 1 }); // For featured products
+ResortSchema.index({ starRating: 1, status: 1 }); // For rating-based filtering

@@ -157,3 +157,14 @@ export class Yacht {
 }
 
 export const YachtSchema = SchemaFactory.createForClass(Yacht);
+
+// Add performance indexes
+YachtSchema.index({ status: 1, ownerId: 1 }); // For filtering by status and owner
+YachtSchema.index({ status: 1, createdAt: -1 }); // For sorting by creation date
+YachtSchema.index({ ownerId: 1, status: 1, type: 1 }); // For owner's products by type
+YachtSchema.index({ cityEn: 1, status: 1 }); // For location-based queries
+YachtSchema.index({ cityAr: 1, status: 1 }); // For Arabic location queries
+YachtSchema.index({ pricePerHour: 1, status: 1 }); // For price-based filtering
+YachtSchema.index({ pricePerDay: 1, status: 1 }); // For daily price filtering
+YachtSchema.index({ capacity: 1, status: 1 }); // For capacity-based filtering
+YachtSchema.index({ isFeatured: 1, status: 1 }); // For featured products

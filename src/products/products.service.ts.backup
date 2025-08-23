@@ -20,7 +20,6 @@ import {
 type ProductModel = Model<any> & {
   findById(id: any): any;
 };
-
 import { CreateJetskiDto, UpdateJetskiDto } from './dto/jetski.dto';
 import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
@@ -35,6 +34,7 @@ import {
   transformProductsArrayForDualLanguage,
 } from '../helpers/dto-helpers';
 
+// All booking and unavailability related methods and usages have been removed.
 @Injectable()
 export class ProductsService {
   constructor(
@@ -292,8 +292,7 @@ export class ProductsService {
         this.resortModel.countDocuments(filter),
       ]);
 
-    const totalCount =
-      jetskiCount + kayakCount + yachtCount + speedboatCount + resortCount;
+    const totalCount = jetskiCount + kayakCount + yachtCount + speedboatCount + resortCount;
 
     // Get paginated data
     const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
@@ -312,10 +311,13 @@ export class ProductsService {
       ...resorts,
     ];
 
-    const transformedProducts = transformProductsArrayForDualLanguage(
-      allProducts,
-      displayLang,
-    );
+    const transformedProducts = transformProductsArrayForDualLanguage(allProducts, displayLang);
+
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    
+    // Log performance metrics
+    console.log(`Pagination query completed in ${duration}ms for ${transformedProducts.length} products (page ${page}, limit ${limit})`);
 
     return {
       data: transformedProducts,
@@ -328,6 +330,12 @@ export class ProductsService {
         hasPrev: page > 1,
       },
     };
+    } catch (error) {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      console.error(`Pagination query failed after ${duration}ms:`, error);
+      throw error;
+    }
   }
 
   async getProductsByOwnerAndStatus(
@@ -449,13 +457,22 @@ export class ProductsService {
 
     const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
       populateOwner
-        ? this.jetSkiModel.find(filter, projection).populate('ownerId').lean()
+        ? this.jetSkiModel
+            .find(filter, projection)
+            .populate('ownerId')
+            .lean()
         : this.jetSkiModel.find(filter, projection).lean(),
       populateOwner
-        ? this.kayakModel.find(filter, projection).populate('ownerId').lean()
+        ? this.kayakModel
+            .find(filter, projection)
+            .populate('ownerId')
+            .lean()
         : this.kayakModel.find(filter, projection).lean(),
       populateOwner
-        ? this.yachtModel.find(filter, projection).populate('ownerId').lean()
+        ? this.yachtModel
+            .find(filter, projection)
+            .populate('ownerId')
+            .lean()
         : this.yachtModel.find(filter, projection).lean(),
       populateOwner
         ? this.speedboatModel
@@ -464,7 +481,10 @@ export class ProductsService {
             .lean()
         : this.speedboatModel.find(filter, projection).lean(),
       populateOwner
-        ? this.resortModel.find(filter, projection).populate('ownerId').lean()
+        ? this.resortModel
+            .find(filter, projection)
+            .populate('ownerId')
+            .lean()
         : this.resortModel.find(filter, projection).lean(),
     ]);
 
@@ -926,7 +946,6 @@ export class ProductsService {
         throw new Error('Invalid product type');
     }
   }
-
   async getBookingsForConsumer(consumerId: string): Promise<any[]> {
     const bookings = await this.bookingModel
       .find({ consumerId: new Types.ObjectId(consumerId) })
@@ -1027,189 +1046,151 @@ export class ProductsService {
     limit: number = 20,
   ) {
     const startTime = Date.now();
-
+    
     try {
       const filter: any = {
         status: { $in: statuses },
       };
 
-      if (ownerId) {
-        filter.ownerId = new Types.ObjectId(ownerId);
-      }
+    if (ownerId) {
+      filter.ownerId = new Types.ObjectId(ownerId);
+    }
 
-      // If ownerId is not provided, it's an admin request: populate owner details
-      const populateOwner = !ownerId;
+    // If ownerId is not provided, it's an admin request: populate owner details
+    const populateOwner = !ownerId;
 
-      // Optimized projection - only fetch needed fields
-      const projection = {
-        // Essential fields
-        _id: 1,
-        type: 1,
-        status: 1,
-        ownerId: 1,
-        createdAt: 1,
-        updatedAt: 1,
+    // Optimized projection - only fetch needed fields
+    const projection = {
+      // Essential fields
+      _id: 1,
+      type: 1,
+      status: 1,
+      ownerId: 1,
+      createdAt: 1,
+      updatedAt: 1,
 
-        // Language fields (both languages)
-        titleEn: 1,
-        titleAr: 1,
-        descriptionEn: 1,
-        descriptionAr: 1,
-        cancellationPolicyEn: 1,
-        cancellationPolicyAr: 1,
-        termsAndConditionsEn: 1,
-        termsAndConditionsAr: 1,
-        cityEn: 1,
-        cityAr: 1,
-        regionEn: 1,
-        regionAr: 1,
-        countryEn: 1,
-        countryAr: 1,
-        addressEn: 1,
-        addressAr: 1,
-        tagsEn: 1,
-        tagsAr: 1,
+      // Language fields (both languages)
+      titleEn: 1,
+      titleAr: 1,
+      descriptionEn: 1,
+      descriptionAr: 1,
+      cancellationPolicyEn: 1,
+      cancellationPolicyAr: 1,
+      termsAndConditionsEn: 1,
+      termsAndConditionsAr: 1,
+      cityEn: 1,
+      cityAr: 1,
+      regionEn: 1,
+      regionAr: 1,
+      countryEn: 1,
+      countryAr: 1,
+      addressEn: 1,
+      addressAr: 1,
+      tagsEn: 1,
+      tagsAr: 1,
 
-        // Product-specific fields
-        pricePerHour: 1,
-        pricePerDay: 1,
-        capacity: 1,
-        maxSpeed: 1,
-        brand: 1,
-        modelYear: 1,
+      // Product-specific fields
+      pricePerHour: 1,
+      pricePerDay: 1,
+      capacity: 1,
+      maxSpeed: 1,
+      brand: 1,
+      modelYear: 1,
 
-        // Resort-specific fields
-        amenitiesEn: 1,
-        amenitiesAr: 1,
-        safetyFeaturesEn: 1,
-        safetyFeaturesAr: 1,
-        dailyPrice: 1,
-        yearlyPrice: 1,
-        numberOfRooms: 1,
-        starRating: 1,
+      // Resort-specific fields
+      amenitiesEn: 1,
+      amenitiesAr: 1,
+      safetyFeaturesEn: 1,
+      safetyFeaturesAr: 1,
+      dailyPrice: 1,
+      yearlyPrice: 1,
+      numberOfRooms: 1,
+      starRating: 1,
 
-        // Images and videos
-        images: 1,
-        videos: 1,
-      };
+      // Images and videos
+      images: 1,
+      videos: 1,
+    };
 
-      // Calculate skip for pagination
-      const skip = (page - 1) * limit;
+    // Calculate skip for pagination
+    const skip = (page - 1) * limit;
 
-      // Get total count for pagination
-      const [jetskiCount, kayakCount, yachtCount, speedboatCount, resortCount] =
-        await Promise.all([
-          this.jetSkiModel.countDocuments(filter),
-          this.kayakModel.countDocuments(filter),
-          this.yachtModel.countDocuments(filter),
-          this.speedboatModel.countDocuments(filter),
-          this.resortModel.countDocuments(filter),
-        ]);
-
-      const totalCount =
-        jetskiCount + kayakCount + yachtCount + speedboatCount + resortCount;
-
-      // Get paginated data
-      const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
-        populateOwner
-          ? this.jetSkiModel
-              .find(filter, projection)
-              .populate('ownerId')
-              .skip(skip)
-              .limit(limit)
-              .lean()
-          : this.jetSkiModel
-              .find(filter, projection)
-              .skip(skip)
-              .limit(limit)
-              .lean(),
-        populateOwner
-          ? this.kayakModel
-              .find(filter, projection)
-              .populate('ownerId')
-              .skip(skip)
-              .limit(limit)
-              .lean()
-          : this.kayakModel
-              .find(filter, projection)
-              .skip(skip)
-              .limit(limit)
-              .lean(),
-        populateOwner
-          ? this.yachtModel
-              .find(filter, projection)
-              .populate('ownerId')
-              .skip(skip)
-              .limit(limit)
-              .lean()
-          : this.yachtModel
-              .find(filter, projection)
-              .skip(skip)
-              .limit(limit)
-              .lean(),
-        populateOwner
-          ? this.speedboatModel
-              .find(filter, projection)
-              .populate('ownerId')
-              .skip(skip)
-              .limit(limit)
-              .lean()
-          : this.speedboatModel
-              .find(filter, projection)
-              .skip(skip)
-              .limit(limit)
-              .lean(),
-        populateOwner
-          ? this.resortModel
-              .find(filter, projection)
-              .populate('ownerId')
-              .skip(skip)
-              .limit(limit)
-              .lean()
-          : this.resortModel
-              .find(filter, projection)
-              .skip(skip)
-              .limit(limit)
-              .lean(),
+    // Get total count for pagination
+    const [jetskiCount, kayakCount, yachtCount, speedboatCount, resortCount] =
+      await Promise.all([
+        this.jetSkiModel.countDocuments(filter),
+        this.kayakModel.countDocuments(filter),
+        this.yachtModel.countDocuments(filter),
+        this.speedboatModel.countDocuments(filter),
+        this.resortModel.countDocuments(filter),
       ]);
 
-      const allProducts = [
-        ...jetskis,
-        ...kayaks,
-        ...yachts,
-        ...speedboats,
-        ...resorts,
-      ];
+    const totalCount = jetskiCount + kayakCount + yachtCount + speedboatCount + resortCount;
 
-      const transformedProducts = transformProductsArrayForDualLanguage(
-        allProducts,
-        displayLang,
-      );
+    // Get paginated data
+    const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+      populateOwner
+        ? this.jetSkiModel
+            .find(filter, projection)
+            .populate('ownerId')
+            .skip(skip)
+            .limit(limit)
+            .lean()
+        : this.jetSkiModel.find(filter, projection).skip(skip).limit(limit).lean(),
+      populateOwner
+        ? this.kayakModel
+            .find(filter, projection)
+            .populate('ownerId')
+            .skip(skip)
+            .limit(limit)
+            .lean()
+        : this.kayakModel.find(filter, projection).skip(skip).limit(limit).lean(),
+      populateOwner
+        ? this.yachtModel
+            .find(filter, projection)
+            .populate('ownerId')
+            .skip(skip)
+            .limit(limit)
+            .lean()
+        : this.yachtModel.find(filter, projection).skip(skip).limit(limit).lean(),
+      populateOwner
+        ? this.speedboatModel
+            .find(filter, projection)
+            .populate('ownerId')
+            .skip(skip)
+            .limit(limit)
+            .lean()
+        : this.speedboatModel.find(filter, projection).skip(skip).limit(limit).lean(),
+      populateOwner
+        ? this.resortModel
+            .find(filter, projection)
+            .populate('ownerId')
+            .skip(skip)
+            .limit(limit)
+            .lean()
+        : this.resortModel.find(filter, projection).skip(skip).limit(limit).lean(),
+    ]);
 
-      const endTime = Date.now();
-      const duration = endTime - startTime;
+    const allProducts = [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
 
-      // Log performance metrics
-      console.log(
-        `Pagination query completed in ${duration}ms for ${transformedProducts.length} products (page ${page}, limit ${limit})`,
-      );
+    const transformedProducts = transformProductsArrayForDualLanguage(allProducts, displayLang);
 
-      return {
-        data: transformedProducts,
-        pagination: {
-          page,
-          limit,
-          total: totalCount,
-          totalPages: Math.ceil(totalCount / limit),
-          hasNext: page < Math.ceil(totalCount / limit),
-          hasPrev: page > 1,
-        },
-      };
-    } catch (error) {
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-      console.error(`Pagination query failed after ${duration}ms:`, error);
-      throw error;
-    }
+    return {
+      data: transformedProducts,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNext: page < Math.ceil(totalCount / limit),
+        hasPrev: page > 1,
+      },
+    };
   }
 }

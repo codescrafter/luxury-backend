@@ -50,12 +50,22 @@ export class ProductsController {
 
   @Get() // This is for users and it will show only approved products
   @UseGuards(AuthGuard())
-  async getProducts(@Req() req, @Query('lang') lang?: string) {
+  async getProducts(
+    @Req() req,
+    @Query('lang') lang?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
-      const queryLang = lang || userLang;
-      const result = await this.productsService.getProducts(queryLang);
-      return { success: true, data: result };
+      const displayLang = lang || userLang;
+      const result =
+        await this.productsService.getProductsWithDualLanguageAndPagination(
+          displayLang,
+          page,
+          limit,
+        );
+      return { success: true, ...result };
     } catch (error) {
       this.catchResponse('get products', error);
     }
@@ -64,7 +74,8 @@ export class ProductsController {
   @Get('public') // Public endpoint for getting approved products
   async getPublicProducts(@Query('lang') lang: string = 'en') {
     try {
-      const result = await this.productsService.getProducts(lang);
+      const result =
+        await this.productsService.getProductsWithDualLanguage(lang);
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get public products', error);
@@ -73,11 +84,18 @@ export class ProductsController {
 
   /**
    * Get all pending products (admin: all, partner: own)
+   * Returns both languages. Use lang parameter to set default display language.
+   * Supports pagination for better performance.
    */
   @Get('pending')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.ADMIN, Role.PARTNER)
-  async getPendingProducts(@Req() req) {
+  async getPendingProducts(
+    @Req() req,
+    @Query('lang') lang?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
     try {
       const isAdmin = req.user.role.includes(Role.ADMIN);
       const isPartner = req.user.role.includes(Role.PARTNER);
@@ -85,15 +103,22 @@ export class ProductsController {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
       const ownerId = isPartner && !isAdmin ? req.user._id : undefined;
-      const userLang = req.user?.lang || 'en';
-      const queryLang = req.query?.lang || userLang;
-      const result = await this.productsService.getProductsByOwnerAndStatus(
-        ['pending', 'revision'],
-        ownerId,
-        queryLang,
-      );
 
-      return { success: true, data: result };
+      // Only use lang parameter if explicitly provided
+      // If not provided, return both languages without display fields
+      const displayLang = lang || undefined;
+
+      // Use paginated dual-language method for better performance
+      const result =
+        await this.productsService.getProductsByOwnerAndStatusWithPagination(
+          ['pending', 'revision'],
+          ownerId,
+          displayLang,
+          page,
+          limit,
+        );
+
+      return { success: true, ...result };
     } catch (error) {
       this.catchResponse('get pending products', error);
     }
@@ -101,10 +126,16 @@ export class ProductsController {
 
   /**
    * Get all approved products (admin: all, partner: own)
+   * Supports dual-language response with lang parameter and pagination
    */
   @Get('approved')
   @UseGuards(AuthGuard())
-  async getApprovedProducts(@Req() req) {
+  async getApprovedProducts(
+    @Req() req,
+    @Query('lang') lang?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
     try {
       const isAdmin = req.user.role.includes(Role.ADMIN);
       const isPartner = req.user.role.includes(Role.PARTNER);
@@ -113,13 +144,16 @@ export class ProductsController {
       }
       const ownerId = isPartner ? req.user._id : undefined;
       const userLang = req.user?.lang || 'en';
-      const queryLang = req.query?.lang || userLang;
-      const result = await this.productsService.getProductsByOwnerAndStatus(
-        ['approved'],
-        ownerId,
-        queryLang,
-      );
-      return { success: true, data: result };
+      const displayLang = lang || userLang;
+      const result =
+        await this.productsService.getProductsByOwnerAndStatusWithPagination(
+          ['approved'],
+          ownerId,
+          displayLang,
+          page,
+          limit,
+        );
+      return { success: true, ...result };
     } catch (error) {
       this.catchResponse('get approved products', error);
     }
@@ -127,10 +161,16 @@ export class ProductsController {
 
   /**
    * Get all rejected products (admin: all, partner: own)
+   * Supports dual-language response with lang parameter and pagination
    */
   @Get('rejected')
   @UseGuards(AuthGuard())
-  async getRejectedProducts(@Req() req) {
+  async getRejectedProducts(
+    @Req() req,
+    @Query('lang') lang?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
     try {
       const isAdmin = req.user.role.includes(Role.ADMIN);
       const isPartner = req.user.role.includes(Role.PARTNER);
@@ -138,11 +178,17 @@ export class ProductsController {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
       const ownerId = isPartner ? req.user._id : undefined;
-      const result = await this.productsService.getProductsByOwnerAndStatus(
-        ['rejected'],
-        ownerId,
-      );
-      return { success: true, data: result };
+      const userLang = req.user?.lang || 'en';
+      const displayLang = lang || userLang;
+      const result =
+        await this.productsService.getProductsByOwnerAndStatusWithPagination(
+          ['rejected'],
+          ownerId,
+          displayLang,
+          page,
+          limit,
+        );
+      return { success: true, ...result };
     } catch (error) {
       this.catchResponse('get rejected products', error);
     }
@@ -208,7 +254,11 @@ export class ProductsController {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
-      const result = await this.productsService.getJetSkiById(id, queryLang);
+      const result = await this.productsService.getProductsByOwnerAndStatus(
+        ['approved'],
+        undefined,
+        queryLang,
+      );
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get jetski', error);
