@@ -30,9 +30,9 @@ import { CreateUnavailabilityDto } from './dto/unavailability.dto';
 import { CreateBookingDto } from './dto/booking.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import {
-  transformProductForLanguage,
   transformProductsArrayForLanguage,
   transformProductsArrayForDualLanguage,
+  transformProductForDualLanguage,
 } from '../helpers/dto-helpers';
 
 @Injectable()
@@ -92,9 +92,12 @@ export class ProductsService {
     );
   }
 
-  async getJetSkiById(id: string, lang: string = 'en') {
+  async getJetSkiById(id: string, lang?: string) {
     const jetski = await this.jetSkiModel.findById(id).lean();
-    return transformProductForLanguage(jetski, lang);
+    if (!jetski) {
+      throw new HttpException('Jetski not found', HttpStatus.NOT_FOUND);
+    }
+    return transformProductForDualLanguage(jetski, lang);
   }
 
   async createKayakHandler(
@@ -125,9 +128,12 @@ export class ProductsService {
     );
   }
 
-  async getKayakById(id: string, lang: string = 'en') {
+  async getKayakById(id: string, lang?: string) {
     const kayak = await this.kayakModel.findById(id).lean();
-    return transformProductForLanguage(kayak, lang);
+    if (!kayak) {
+      throw new HttpException('Kayak not found', HttpStatus.NOT_FOUND);
+    }
+    return transformProductForDualLanguage(kayak, lang);
   }
 
   async createYachtHandler(
@@ -158,9 +164,12 @@ export class ProductsService {
     );
   }
 
-  async getYachtById(id: string, lang: string = 'en') {
+  async getYachtById(id: string, lang?: string) {
     const yacht = await this.yachtModel.findById(id).lean();
-    return transformProductForLanguage(yacht, lang);
+    if (!yacht) {
+      throw new HttpException('Yacht not found', HttpStatus.NOT_FOUND);
+    }
+    return transformProductForDualLanguage(yacht, lang);
   }
 
   async createSpeedboatHandler(
@@ -191,9 +200,12 @@ export class ProductsService {
     );
   }
 
-  async getSpeedboatById(id: string, lang: string = 'en') {
+  async getSpeedboatById(id: string, lang?: string) {
     const speedboat = await this.speedboatModel.findById(id).lean();
-    return transformProductForLanguage(speedboat, lang);
+    if (!speedboat) {
+      throw new HttpException('Speedboat not found', HttpStatus.NOT_FOUND);
+    }
+    return transformProductForDualLanguage(speedboat, lang);
   }
 
   async createResortHandler(
@@ -224,9 +236,12 @@ export class ProductsService {
     );
   }
 
-  async getResortById(id: string, lang: string = 'en') {
+  async getResortById(id: string, lang?: string) {
     const resort = await this.resortModel.findById(id).lean();
-    return transformProductForLanguage(resort, lang);
+    if (!resort) {
+      throw new HttpException('Resort not found', HttpStatus.NOT_FOUND);
+    }
+    return transformProductForDualLanguage(resort, lang);
   }
 
   /**

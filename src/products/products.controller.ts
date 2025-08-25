@@ -249,16 +249,12 @@ export class ProductsController {
   async getJetskiById(
     @Param('id') id: string,
     @Req() req,
-    @Query('lang') lang: string = 'en',
+    @Query('lang') lang?: string,
   ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
-      const result = await this.productsService.getProductsByOwnerAndStatus(
-        ['approved'],
-        undefined,
-        queryLang,
-      );
+      const result = await this.productsService.getJetSkiById(id, queryLang);
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get jetski', error);
@@ -320,7 +316,7 @@ export class ProductsController {
   async getKayakById(
     @Param('id') id: string,
     @Req() req,
-    @Query('lang') lang: string = 'en',
+    @Query('lang') lang?: string,
   ) {
     try {
       const userLang = req.user?.lang || 'en';
@@ -387,7 +383,7 @@ export class ProductsController {
   async getYachtById(
     @Param('id') id: string,
     @Req() req,
-    @Query('lang') lang: string = 'en',
+    @Query('lang') lang?: string,
   ) {
     try {
       const userLang = req.user?.lang || 'en';
@@ -454,7 +450,7 @@ export class ProductsController {
   async getSpeedboatById(
     @Param('id') id: string,
     @Req() req,
-    @Query('lang') lang: string = 'en',
+    @Query('lang') lang?: string,
   ) {
     try {
       const userLang = req.user?.lang || 'en';
@@ -521,7 +517,7 @@ export class ProductsController {
   async getResortById(
     @Param('id') id: string,
     @Req() req,
-    @Query('lang') lang: string = 'en',
+    @Query('lang') lang?: string,
   ) {
     try {
       const userLang = req.user?.lang || 'en';
