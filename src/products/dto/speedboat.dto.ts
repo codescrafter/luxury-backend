@@ -206,7 +206,37 @@ export class CreateSpeedboatDto {
   resubmissionCount?: number;
 }
 
-export class UpdateSpeedboatDto extends PartialType(CreateSpeedboatDto) {}
+export class UpdateSpeedboatDto extends PartialType(CreateSpeedboatDto) {
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  videos?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  replaceImages?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  replaceVideos?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deleteImageUrls?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deleteVideoUrls?: string[];
+}
 
 // import React, { useEffect, useState } from 'react';
 // import axios from 'axios';

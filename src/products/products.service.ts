@@ -64,6 +64,93 @@ export class ProductsService {
     );
   }
 
+  /**
+   * Update product media with proper cleanup of old files
+   * This method handles both images and videos with Cloudinary cleanup
+   */
+  private async updateProductMedia(
+    productId: string,
+    model: any,
+    files: any,
+    updateData: any,
+  ) {
+    const currentProduct = await model.findById(productId);
+    if (!currentProduct) {
+      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+    }
+
+    const oldImages = currentProduct.images || [];
+    const oldVideos = currentProduct.videos || [];
+    let newImages = oldImages;
+    let newVideos = oldVideos;
+
+    // Handle new image uploads
+    if (files?.images && files.images.length > 0) {
+      const uploadedImages = await this.uploadMedia(
+        files.images,
+        'product-images',
+      );
+
+      // If replaceImages flag is true, replace all images
+      if (updateData.replaceImages) {
+        // Delete old images from Cloudinary
+        if (oldImages.length > 0) {
+          await this.cloudinaryService.deleteMultipleMedia(oldImages, 'image');
+        }
+        newImages = uploadedImages;
+      } else {
+        // Append new images to existing ones
+        newImages = [...oldImages, ...uploadedImages];
+      }
+    }
+
+    // Handle new video uploads
+    if (files?.videos && files.videos.length > 0) {
+      const uploadedVideos = await this.uploadMedia(
+        files.videos,
+        'product-videos',
+      );
+
+      // If replaceVideos flag is true, replace all videos
+      if (updateData.replaceVideos) {
+        // Delete old videos from Cloudinary
+        if (oldVideos.length > 0) {
+          await this.cloudinaryService.deleteMultipleMedia(oldVideos, 'video');
+        }
+        newVideos = uploadedVideos;
+      } else {
+        // Append new videos to existing ones
+        newVideos = [...oldVideos, ...uploadedVideos];
+      }
+    }
+
+    // Handle specific image deletions
+    if (updateData.deleteImageUrls && updateData.deleteImageUrls.length > 0) {
+      const imagesToDelete = updateData.deleteImageUrls;
+      const remainingImages = newImages.filter(
+        (img) => !imagesToDelete.includes(img),
+      );
+
+      // Delete specified images from Cloudinary
+      await this.cloudinaryService.deleteMultipleMedia(imagesToDelete, 'image');
+      newImages = remainingImages;
+    }
+
+    // Handle specific video deletions
+    if (updateData.deleteVideoUrls && updateData.deleteVideoUrls.length > 0) {
+      const videosToDelete = updateData.deleteVideoUrls;
+      const remainingVideos = newVideos.filter(
+        (video) => !videosToDelete.includes(video),
+      );
+
+      // Delete specified videos from Cloudinary
+      await this.cloudinaryService.deleteMultipleMedia(videosToDelete, 'video');
+      newVideos = remainingVideos;
+    }
+
+    return { newImages, newVideos };
+  }
+
   async createJetSkiHandler(
     dto: CreateJetskiDto,
     files: any,
@@ -83,11 +170,30 @@ export class ProductsService {
   async updateJetSkiHandler(
     id: string,
     dto: UpdateJetskiDto,
+    files: any,
     user: UserDocument,
   ) {
+    // Handle media updates if files are provided
+    if (files?.images || files?.videos) {
+      const { newImages, newVideos } = await this.updateProductMedia(
+        id,
+        this.jetSkiModel,
+        files,
+        dto,
+      );
+
+      // Update with new media URLs and reset status to pending
+      return this.jetSkiModel.findOneAndUpdate(
+        { _id: id, ownerId: user._id },
+        { ...dto, images: newImages, videos: newVideos, status: 'pending' },
+        { new: true },
+      );
+    }
+
+    // Regular update without media changes - reset status to pending
     return this.jetSkiModel.findOneAndUpdate(
       { _id: id, ownerId: user._id },
-      dto,
+      { ...dto, status: 'pending' },
       { new: true },
     );
   }
@@ -119,11 +225,30 @@ export class ProductsService {
   async updateKayakHandler(
     id: string,
     dto: UpdateKayakDto,
+    files: any,
     user: UserDocument,
   ) {
+    // Handle media updates if files are provided
+    if (files?.images || files?.videos) {
+      const { newImages, newVideos } = await this.updateProductMedia(
+        id,
+        this.kayakModel,
+        files,
+        dto,
+      );
+
+      // Update with new media URLs and reset status to pending
+      return this.kayakModel.findOneAndUpdate(
+        { _id: id, ownerId: user._id },
+        { ...dto, images: newImages, videos: newVideos, status: 'pending' },
+        { new: true },
+      );
+    }
+
+    // Regular update without media changes - reset status to pending
     return this.kayakModel.findOneAndUpdate(
       { _id: id, ownerId: user._id },
-      dto,
+      { ...dto, status: 'pending' },
       { new: true },
     );
   }
@@ -155,11 +280,30 @@ export class ProductsService {
   async updateYachtHandler(
     id: string,
     dto: UpdateYachtDto,
+    files: any,
     user: UserDocument,
   ) {
+    // Handle media updates if files are provided
+    if (files?.images || files?.videos) {
+      const { newImages, newVideos } = await this.updateProductMedia(
+        id,
+        this.yachtModel,
+        files,
+        dto,
+      );
+
+      // Update with new media URLs and reset status to pending
+      return this.yachtModel.findOneAndUpdate(
+        { _id: id, ownerId: user._id },
+        { ...dto, images: newImages, videos: newVideos, status: 'pending' },
+        { new: true },
+      );
+    }
+
+    // Regular update without media changes - reset status to pending
     return this.yachtModel.findOneAndUpdate(
       { _id: id, ownerId: user._id },
-      dto,
+      { ...dto, status: 'pending' },
       { new: true },
     );
   }
@@ -191,11 +335,30 @@ export class ProductsService {
   async updateSpeedboatHandler(
     id: string,
     dto: UpdateSpeedboatDto,
+    files: any,
     user: UserDocument,
   ) {
+    // Handle media updates if files are provided
+    if (files?.images || files?.videos) {
+      const { newImages, newVideos } = await this.updateProductMedia(
+        id,
+        this.speedboatModel,
+        files,
+        dto,
+      );
+
+      // Update with new media URLs and reset status to pending
+      return this.speedboatModel.findOneAndUpdate(
+        { _id: id, ownerId: user._id },
+        { ...dto, images: newImages, videos: newVideos, status: 'pending' },
+        { new: true },
+      );
+    }
+
+    // Regular update without media changes - reset status to pending
     return this.speedboatModel.findOneAndUpdate(
       { _id: id, ownerId: user._id },
-      dto,
+      { ...dto, status: 'pending' },
       { new: true },
     );
   }
@@ -227,11 +390,30 @@ export class ProductsService {
   async updateResortHandler(
     id: string,
     dto: UpdateResortDto,
+    files: any,
     user: UserDocument,
   ) {
+    // Handle media updates if files are provided
+    if (files?.images || files?.videos) {
+      const { newImages, newVideos } = await this.updateProductMedia(
+        id,
+        this.resortModel,
+        files,
+        dto,
+      );
+
+      // Update with new media URLs and reset status to pending
+      return this.resortModel.findOneAndUpdate(
+        { _id: id, ownerId: user._id },
+        { ...dto, images: newImages, videos: newVideos, status: 'pending' },
+        { new: true },
+      );
+    }
+
+    // Regular update without media changes - reset status to pending
     return this.resortModel.findOneAndUpdate(
       { _id: id, ownerId: user._id },
-      dto,
+      { ...dto, status: 'pending' },
       { new: true },
     );
   }

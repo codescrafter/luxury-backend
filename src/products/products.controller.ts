@@ -228,8 +228,19 @@ export class ProductsController {
   @Put('jetski/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+      ],
+      multerMiddleware,
+    ),
+  )
   async updateJetski(
     @Param('id') id: string,
+    @UploadedFiles()
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: UpdateJetskiDto,
     @Req() req,
   ) {
@@ -237,6 +248,7 @@ export class ProductsController {
       const result = await this.productsService.updateJetSkiHandler(
         id,
         dto,
+        files,
         req.user,
       );
       return { success: true, data: result };
@@ -295,8 +307,19 @@ export class ProductsController {
   @Put('kayak/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+      ],
+      multerMiddleware,
+    ),
+  )
   async updateKayak(
     @Param('id') id: string,
+    @UploadedFiles()
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: UpdateKayakDto,
     @Req() req,
   ) {
@@ -304,6 +327,7 @@ export class ProductsController {
       const result = await this.productsService.updateKayakHandler(
         id,
         dto,
+        files,
         req.user,
       );
       return { success: true, data: result };
@@ -362,8 +386,19 @@ export class ProductsController {
   @Put('yacht/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+      ],
+      multerMiddleware,
+    ),
+  )
   async updateYacht(
     @Param('id') id: string,
+    @UploadedFiles()
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: UpdateYachtDto,
     @Req() req,
   ) {
@@ -371,6 +406,7 @@ export class ProductsController {
       const result = await this.productsService.updateYachtHandler(
         id,
         dto,
+        files,
         req.user,
       );
       return { success: true, data: result };
@@ -429,8 +465,19 @@ export class ProductsController {
   @Put('speedboat/:id')
   @Roles(Role.PARTNER)
   @UseGuards(AuthGuard())
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+      ],
+      multerMiddleware,
+    ),
+  )
   async updateSpeedboat(
     @Param('id') id: string,
+    @UploadedFiles()
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: UpdateSpeedboatDto,
     @Req() req,
   ) {
@@ -438,6 +485,7 @@ export class ProductsController {
       const result = await this.productsService.updateSpeedboatHandler(
         id,
         dto,
+        files,
         req.user,
       );
       return { success: true, data: result };
@@ -496,8 +544,19 @@ export class ProductsController {
   @Put('resort/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+      ],
+      multerMiddleware,
+    ),
+  )
   async updateResort(
     @Param('id') id: string,
+    @UploadedFiles()
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: UpdateResortDto,
     @Req() req,
   ) {
@@ -505,6 +564,7 @@ export class ProductsController {
       const result = await this.productsService.updateResortHandler(
         id,
         dto,
+        files,
         req.user,
       );
       return { success: true, data: result };

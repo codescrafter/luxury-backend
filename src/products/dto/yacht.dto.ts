@@ -223,4 +223,34 @@ export class CreateYachtDto {
   resubmissionCount?: number;
 }
 
-export class UpdateYachtDto extends PartialType(CreateYachtDto) {}
+export class UpdateYachtDto extends PartialType(CreateYachtDto) {
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  videos?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  replaceImages?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  replaceVideos?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deleteImageUrls?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deleteVideoUrls?: string[];
+}
