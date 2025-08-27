@@ -38,6 +38,7 @@ export class ProductsController {
   private catchResponse(action: string, error: any) {
     const status =
       error?.status || error?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+    console.error(`❌ Error in ${action}:`, error);
     throw new HttpException(
       {
         success: false,
@@ -409,6 +410,7 @@ export class ProductsController {
         files,
         req.user,
       );
+
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('update yacht', error);

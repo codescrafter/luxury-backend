@@ -173,6 +173,17 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
+    // Validate that the frontend ownerId matches the JWT token user._id
+    if (dto.ownerId && dto.ownerId !== user._id.toString()) {
+      throw new HttpException(
+        'OwnerId mismatch - you can only update your own products',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Use the ownerId from the frontend (or fallback to JWT token)
+    const ownerId = dto.ownerId || user._id.toString();
+
     // Handle media updates if files are provided
     if (files?.images || files?.videos) {
       const { newImages, newVideos } = await this.updateProductMedia(
@@ -184,7 +195,7 @@ export class ProductsService {
 
       // Update with new media URLs and reset status to pending
       return this.jetSkiModel.findOneAndUpdate(
-        { _id: id, ownerId: user._id },
+        { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
         { ...dto, images: newImages, videos: newVideos, status: 'pending' },
         { new: true },
       );
@@ -192,7 +203,7 @@ export class ProductsService {
 
     // Regular update without media changes - reset status to pending
     return this.jetSkiModel.findOneAndUpdate(
-      { _id: id, ownerId: user._id },
+      { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
       { ...dto, status: 'pending' },
       { new: true },
     );
@@ -228,6 +239,17 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
+    // Validate that the frontend ownerId matches the JWT token user._id
+    if (dto.ownerId && dto.ownerId !== user._id.toString()) {
+      throw new HttpException(
+        'OwnerId mismatch - you can only update your own products',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Use the ownerId from the frontend (or fallback to JWT token)
+    const ownerId = dto.ownerId || user._id.toString();
+
     // Handle media updates if files are provided
     if (files?.images || files?.videos) {
       const { newImages, newVideos } = await this.updateProductMedia(
@@ -239,7 +261,7 @@ export class ProductsService {
 
       // Update with new media URLs and reset status to pending
       return this.kayakModel.findOneAndUpdate(
-        { _id: id, ownerId: user._id },
+        { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
         { ...dto, images: newImages, videos: newVideos, status: 'pending' },
         { new: true },
       );
@@ -247,7 +269,7 @@ export class ProductsService {
 
     // Regular update without media changes - reset status to pending
     return this.kayakModel.findOneAndUpdate(
-      { _id: id, ownerId: user._id },
+      { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
       { ...dto, status: 'pending' },
       { new: true },
     );
@@ -283,6 +305,17 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
+    // Validate that the frontend ownerId matches the JWT token user._id
+    if (dto.ownerId && dto.ownerId !== user._id.toString()) {
+      throw new HttpException(
+        'OwnerId mismatch - you can only update your own products',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Use the ownerId from the frontend (or fallback to JWT token)
+    const ownerId = dto.ownerId || user._id.toString();
+
     // Handle media updates if files are provided
     if (files?.images || files?.videos) {
       const { newImages, newVideos } = await this.updateProductMedia(
@@ -294,7 +327,7 @@ export class ProductsService {
 
       // Update with new media URLs and reset status to pending
       return this.yachtModel.findOneAndUpdate(
-        { _id: id, ownerId: user._id },
+        { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
         { ...dto, images: newImages, videos: newVideos, status: 'pending' },
         { new: true },
       );
@@ -302,7 +335,7 @@ export class ProductsService {
 
     // Regular update without media changes - reset status to pending
     return this.yachtModel.findOneAndUpdate(
-      { _id: id, ownerId: user._id },
+      { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
       { ...dto, status: 'pending' },
       { new: true },
     );
@@ -338,6 +371,17 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
+    // Validate that the frontend ownerId matches the JWT token user._id
+    if (dto.ownerId && dto.ownerId !== user._id.toString()) {
+      throw new HttpException(
+        'OwnerId mismatch - you can only update your own products',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Use the ownerId from the frontend (or fallback to JWT token)
+    const ownerId = dto.ownerId || user._id.toString();
+
     // Handle media updates if files are provided
     if (files?.images || files?.videos) {
       const { newImages, newVideos } = await this.updateProductMedia(
@@ -349,7 +393,7 @@ export class ProductsService {
 
       // Update with new media URLs and reset status to pending
       return this.speedboatModel.findOneAndUpdate(
-        { _id: id, ownerId: user._id },
+        { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
         { ...dto, images: newImages, videos: newVideos, status: 'pending' },
         { new: true },
       );
@@ -357,7 +401,7 @@ export class ProductsService {
 
     // Regular update without media changes - reset status to pending
     return this.speedboatModel.findOneAndUpdate(
-      { _id: id, ownerId: user._id },
+      { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
       { ...dto, status: 'pending' },
       { new: true },
     );
@@ -393,6 +437,17 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
+    // Validate that the frontend ownerId matches the JWT token user._id
+    if (dto.ownerId && dto.ownerId !== user._id.toString()) {
+      throw new HttpException(
+        'OwnerId mismatch - you can only update your own products',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Use the ownerId from the frontend (or fallback to JWT token)
+    const ownerId = dto.ownerId || user._id.toString();
+
     // Handle media updates if files are provided
     if (files?.images || files?.videos) {
       const { newImages, newVideos } = await this.updateProductMedia(
@@ -404,7 +459,7 @@ export class ProductsService {
 
       // Update with new media URLs and reset status to pending
       return this.resortModel.findOneAndUpdate(
-        { _id: id, ownerId: user._id },
+        { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
         { ...dto, images: newImages, videos: newVideos, status: 'pending' },
         { new: true },
       );
@@ -412,7 +467,7 @@ export class ProductsService {
 
     // Regular update without media changes - reset status to pending
     return this.resortModel.findOneAndUpdate(
-      { _id: id, ownerId: user._id },
+      { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
       { ...dto, status: 'pending' },
       { new: true },
     );
