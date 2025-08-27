@@ -50,7 +50,7 @@ export class ProductsController {
   }
 
   @Get() // This is for users and it will show only approved products
-  @UseGuards(AuthGuard())
+  // @UseGuards(AuthGuard())
   async getProducts(
     @Req() req,
     @Query('lang') lang?: string,
