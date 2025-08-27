@@ -52,16 +52,56 @@ export class ProductsService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  private async uploadMedia(files: any[] | undefined, folder: string) {
+  private async uploadImages(files: any[] | undefined, folder: string) {
     if (!files) return [];
-    return Promise.all(
-      files.map((file) =>
-        (folder.includes('image')
-          ? this.cloudinaryService.uploadImage(file, folder)
-          : this.cloudinaryService.uploadVideo(file, folder)
-        ).then((res) => res.secure_url),
-      ),
-    );
+    try {
+      return await Promise.all(
+        files.map((file) =>
+          this.cloudinaryService
+            .uploadImage(file, folder)
+            .then((res) => res.secure_url)
+            .catch((error) => {
+              console.error('Image upload error:', error);
+              throw new HttpException(
+                `Failed to upload image: ${error.message}`,
+                HttpStatus.BAD_REQUEST,
+              );
+            }),
+        ),
+      );
+    } catch (error) {
+      console.error('Image upload batch error:', error);
+      throw new HttpException(
+        `Failed to upload images: ${error.message}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  private async uploadVideos(files: any[] | undefined, folder: string) {
+    if (!files) return [];
+    try {
+      return await Promise.all(
+        files.map((file) =>
+          this.cloudinaryService
+            .uploadVideo(file, folder)
+            .then((res) => res.secure_url)
+            .catch((error) => {
+              console.error('Video upload error:', error);
+              throw new HttpException(
+                `Failed to upload video: ${error.message}`,
+                HttpStatus.BAD_REQUEST,
+              );
+            }),
+        ),
+      );
+    } catch (error) {
+      console.error('Video upload batch error:', error);
+      throw new HttpException(
+        `Failed to upload videos: ${error.message}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   /**
@@ -86,7 +126,7 @@ export class ProductsService {
 
     // Handle new image uploads
     if (files?.images && files.images.length > 0) {
-      const uploadedImages = await this.uploadMedia(
+      const uploadedImages = await this.uploadImages(
         files.images,
         'product-images',
       );
@@ -106,7 +146,7 @@ export class ProductsService {
 
     // Handle new video uploads
     if (files?.videos && files.videos.length > 0) {
-      const uploadedVideos = await this.uploadMedia(
+      const uploadedVideos = await this.uploadVideos(
         files.videos,
         'product-videos',
       );
@@ -156,8 +196,8 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
-    const images = await this.uploadMedia(files.images, 'product-images');
-    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    const images = await this.uploadImages(files.images, 'product-images');
+    const videos = await this.uploadVideos(files.videos, 'product-videos');
     return await new this.jetSkiModel({
       ...dto,
       images,
@@ -222,8 +262,8 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
-    const images = await this.uploadMedia(files.images, 'product-images');
-    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    const images = await this.uploadImages(files.images, 'product-images');
+    const videos = await this.uploadVideos(files.videos, 'product-videos');
     return await new this.kayakModel({
       ...dto,
       images,
@@ -288,8 +328,8 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
-    const images = await this.uploadMedia(files.images, 'product-images');
-    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    const images = await this.uploadImages(files.images, 'product-images');
+    const videos = await this.uploadVideos(files.videos, 'product-videos');
     return await new this.yachtModel({
       ...dto,
       images,
@@ -354,8 +394,8 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
-    const images = await this.uploadMedia(files.images, 'product-images');
-    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    const images = await this.uploadImages(files.images, 'product-images');
+    const videos = await this.uploadVideos(files.videos, 'product-videos');
     return await new this.speedboatModel({
       ...dto,
       images,
@@ -420,8 +460,8 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
-    const images = await this.uploadMedia(files.images, 'product-images');
-    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    const images = await this.uploadImages(files.images, 'product-images');
+    const videos = await this.uploadVideos(files.videos, 'product-videos');
     return await new this.resortModel({
       ...dto,
       images,
