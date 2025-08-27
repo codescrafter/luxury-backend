@@ -811,6 +811,30 @@ export class ProductsController {
   }
 
   /**
+   * Get related products for "You may like" section
+   * Returns similar products based on type, price, capacity, brand, location
+   */
+  @Get(':type/:productId/related')
+  async getRelatedProducts(
+    @Param('type') type: string,
+    @Param('productId') productId: string,
+    @Query('limit') limit: number = 10,
+    @Query('lang') lang?: string,
+  ) {
+    try {
+      const result = await this.productsService.getRelatedProducts(
+        type,
+        productId,
+        limit,
+        lang,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('get related products', error);
+    }
+  }
+
+  /**
    * Get unavailability for a product (partner only, must be owner)
    */
   @Get(':type/:productId/unavailability')

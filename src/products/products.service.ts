@@ -1277,6 +1277,162 @@ export class ProductsService {
   }
 
   /**
+   * Get related products based on current product
+   * Finds similar products based on type, price, capacity, brand, location, and tags
+   */
+  async getRelatedProducts(
+    productType: string,
+    productId: string,
+    limit: number = 10,
+    lang?: string,
+  ) {
+    try {
+      // Get the current product details
+      let model: any;
+
+      switch (productType) {
+        case 'jetski':
+          model = this.jetSkiModel;
+          break;
+        case 'kayak':
+          model = this.kayakModel;
+          break;
+        case 'yacht':
+          model = this.yachtModel;
+          break;
+        case 'speedboat':
+          model = this.speedboatModel;
+          break;
+        case 'resort':
+          model = this.resortModel;
+          break;
+        default:
+          throw new HttpException(
+            'Invalid product type',
+            HttpStatus.BAD_REQUEST,
+          );
+      }
+
+      const currentProduct = await model.findById(productId).lean();
+      if (!currentProduct) {
+        throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Build similarity criteria
+      const similarityCriteria: any = {
+        status: 'approved',
+        _id: { $ne: new Types.ObjectId(productId) }, // Exclude current product
+      };
+
+      // Price range similarity (within 20% of current product price)
+      let priceField = 'pricePerHour';
+      if (productType === 'resort') {
+        priceField = 'dailyPrice';
+      }
+
+      if (currentProduct[priceField]) {
+        const currentPrice = currentProduct[priceField];
+        const priceRange = currentPrice * 0.2; // 20% range
+        similarityCriteria[priceField] = {
+          $gte: currentPrice - priceRange,
+          $lte: currentPrice + priceRange,
+        };
+      }
+
+      // Capacity similarity (within 2 people difference)
+      if (currentProduct.capacity) {
+        const currentCapacity = currentProduct.capacity;
+        similarityCriteria.capacity = {
+          $gte: Math.max(1, currentCapacity - 2),
+          $lte: currentCapacity + 2,
+        };
+      }
+
+      // Brand similarity (if available)
+      if (currentProduct.brand && productType !== 'resort') {
+        similarityCriteria.brand = currentProduct.brand;
+      }
+
+      // Location similarity (city/region)
+      if (currentProduct.cityEn) {
+        similarityCriteria.cityEn = currentProduct.cityEn;
+      }
+
+      // Get related products from the same type
+      let relatedProducts = await model
+        .find(similarityCriteria)
+        .limit(limit)
+        .lean();
+
+      // If we don't have enough products with strict criteria, relax the constraints
+      if (relatedProducts.length < limit) {
+        const relaxedCriteria = {
+          status: 'approved',
+          _id: { $ne: new Types.ObjectId(productId) },
+        };
+
+        // Only use price range if we have it
+        if (currentProduct[priceField]) {
+          const currentPrice = currentProduct[priceField];
+          const priceRange = currentPrice * 0.5; // Relax to 50% range
+          relaxedCriteria[priceField] = {
+            $gte: currentPrice - priceRange,
+            $lte: currentPrice + priceRange,
+          };
+        }
+
+        const additionalProducts = await model
+          .find(relaxedCriteria)
+          .limit(limit - relatedProducts.length)
+          .lean();
+
+        // Combine and remove duplicates
+        const allProducts = [...relatedProducts, ...additionalProducts];
+        const seenIds = new Set();
+        relatedProducts = allProducts.filter((product) => {
+          if (seenIds.has(product._id.toString())) {
+            return false;
+          }
+          seenIds.add(product._id.toString());
+          return true;
+        });
+      }
+
+      // If still not enough, get any approved products of the same type
+      if (relatedProducts.length < limit) {
+        const fallbackCriteria = {
+          status: 'approved',
+          _id: { $ne: new Types.ObjectId(productId) },
+        };
+
+        const fallbackProducts = await model
+          .find(fallbackCriteria)
+          .limit(limit - relatedProducts.length)
+          .lean();
+
+        const allProducts = [...relatedProducts, ...fallbackProducts];
+        const seenIds = new Set();
+        relatedProducts = allProducts.filter((product) => {
+          if (seenIds.has(product._id.toString())) {
+            return false;
+          }
+          seenIds.add(product._id.toString());
+          return true;
+        });
+      }
+
+      // Transform for dual language support
+      return transformProductsArrayForDualLanguage(relatedProducts, lang);
+    } catch (error) {
+      console.error('Error getting related products:', error);
+      throw new HttpException(
+        'Failed to get related products',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Get unavailability for a product by productId and type, only if user is owner
    */
   async getUnavailabilityForProduct(type: string, productId: string) {
