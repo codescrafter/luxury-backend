@@ -4,7 +4,12 @@ import * as multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 
 // Allowed image types and file size
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 // Multer middleware configuration
