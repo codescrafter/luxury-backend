@@ -150,7 +150,7 @@ export class CreateJetskiDto {
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lat: number;
-  
+
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lng: number;
@@ -209,5 +209,34 @@ export class CreateJetskiDto {
   resubmissionCount?: number;
 }
 
-export class UpdateJetskiDto extends PartialType(CreateJetskiDto) {}
+export class UpdateJetskiDto extends PartialType(CreateJetskiDto) {
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
 
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  videos?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  replaceImages?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  replaceVideos?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deleteImageUrls?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deleteVideoUrls?: string[];
+}

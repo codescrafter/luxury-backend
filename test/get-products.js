@@ -10,7 +10,6 @@ async function getProducts(filters = {}) {
       params: filters,
     });
     return res.data?.data || [];
-
   } catch (error) {
     console.error(
       '❌ Failed to fetch products:',
@@ -26,7 +25,6 @@ async function getPublicProducts(lang = 'en') {
       params: { lang },
     });
     return res.data?.data || [];
-
   } catch (error) {
     console.error(
       '❌ Failed to fetch public products:',
@@ -50,7 +48,6 @@ async function getProductById(type, id, lang = 'en', useAuth = false) {
 
     const res = await axios.get(`${BASE_URL}/products/${type}/${id}`, config);
     return res.data?.data || null;
-
   } catch (error) {
     console.error(
       `❌ Failed to fetch ${type} by id:`,
@@ -69,7 +66,10 @@ async function getRejectedProducts() {
     });
     return res.data?.data || [];
   } catch (error) {
-    console.error('❌ Failed to fetch rejected products:', error.response?.data || error.message);
+    console.error(
+      '❌ Failed to fetch rejected products:',
+      error.response?.data || error.message,
+    );
     return [];
   }
 }
@@ -83,7 +83,10 @@ async function getApprovedProducts() {
     });
     return res.data?.data || [];
   } catch (error) {
-    console.error('❌ Failed to fetch approved products:', error.response?.data || error.message);
+    console.error(
+      '❌ Failed to fetch approved products:',
+      error.response?.data || error.message,
+    );
     return [];
   }
 }
@@ -98,9 +101,15 @@ async function testDualLanguage() {
   console.log(`✅ Found ${englishProducts.length} products in English`);
   if (englishProducts.length > 0) {
     const firstProduct = englishProducts[0];
-    console.log(`   Sample product: ${firstProduct.title} - ${firstProduct.city}, ${firstProduct.country}`);
-    console.log(`   Description: ${firstProduct.description?.substring(0, 50)}...`);
-    console.log(`   Cancellation Policy: ${firstProduct.cancellationPolicy?.join(', ')}`);
+    console.log(
+      `   Sample product: ${firstProduct.title} - ${firstProduct.city}, ${firstProduct.country}`,
+    );
+    console.log(
+      `   Description: ${firstProduct.description?.substring(0, 50)}...`,
+    );
+    console.log(
+      `   Cancellation Policy: ${firstProduct.cancellationPolicy?.join(', ')}`,
+    );
     console.log(`   Terms: ${firstProduct.termsAndConditions?.join(', ')}`);
   }
 
@@ -110,9 +119,15 @@ async function testDualLanguage() {
   console.log(`✅ Found ${arabicProducts.length} products in Arabic`);
   if (arabicProducts.length > 0) {
     const firstProduct = arabicProducts[0];
-    console.log(`   Sample product: ${firstProduct.title} - ${firstProduct.city}, ${firstProduct.country}`);
-    console.log(`   Description: ${firstProduct.description?.substring(0, 50)}...`);
-    console.log(`   Cancellation Policy: ${firstProduct.cancellationPolicy?.join(', ')}`);
+    console.log(
+      `   Sample product: ${firstProduct.title} - ${firstProduct.city}, ${firstProduct.country}`,
+    );
+    console.log(
+      `   Description: ${firstProduct.description?.substring(0, 50)}...`,
+    );
+    console.log(
+      `   Cancellation Policy: ${firstProduct.cancellationPolicy?.join(', ')}`,
+    );
     console.log(`   Terms: ${firstProduct.termsAndConditions?.join(', ')}`);
   }
 
@@ -122,28 +137,46 @@ async function testDualLanguage() {
   console.log(`✅ Found ${authProducts.length} products with Arabic override`);
   if (authProducts.length > 0) {
     const firstProduct = authProducts[0];
-    console.log(`   Sample product: ${firstProduct.title} - ${firstProduct.city}, ${firstProduct.country}`);
+    console.log(
+      `   Sample product: ${firstProduct.title} - ${firstProduct.city}, ${firstProduct.country}`,
+    );
   }
 
   // Test individual product retrieval
   if (englishProducts.length > 0) {
     const productId = englishProducts[0]._id;
     const productType = englishProducts[0].type || 'yacht';
-    
+
     console.log(`\n📝 Testing individual ${productType} retrieval...`);
-    
+
     // Test public access in Arabic
-    const publicProduct = await getProductById(productType, productId, 'ar', false);
+    const publicProduct = await getProductById(
+      productType,
+      productId,
+      'ar',
+      false,
+    );
     if (publicProduct) {
       console.log(`✅ Public ${productType} in Arabic: ${publicProduct.title}`);
-      console.log(`   City: ${publicProduct.city}, Country: ${publicProduct.country}`);
+      console.log(
+        `   City: ${publicProduct.city}, Country: ${publicProduct.country}`,
+      );
     }
 
     // Test authenticated access in English
-    const authProduct = await getProductById(productType, productId, 'en', true);
+    const authProduct = await getProductById(
+      productType,
+      productId,
+      'en',
+      true,
+    );
     if (authProduct) {
-      console.log(`✅ Authenticated ${productType} in English: ${authProduct.title}`);
-      console.log(`   City: ${authProduct.city}, Country: ${authProduct.country}`);
+      console.log(
+        `✅ Authenticated ${productType} in English: ${authProduct.title}`,
+      );
+      console.log(
+        `   City: ${authProduct.city}, Country: ${authProduct.country}`,
+      );
     }
   }
 
@@ -151,8 +184,9 @@ async function testDualLanguage() {
   console.log('\n📝 Testing language field validation...');
   if (englishProducts.length > 0) {
     const product = englishProducts[0];
-    const hasLanguageFields = product.titleEn || product.titleAr || product.cityEn || product.cityAr;
-    
+    const hasLanguageFields =
+      product.titleEn || product.titleAr || product.cityEn || product.cityAr;
+
     if (!hasLanguageFields) {
       console.log('✅ Language-specific fields properly cleaned from response');
     } else {
@@ -172,14 +206,14 @@ async function testDualLanguage() {
     for (const type of productTypes) {
       try {
         const typeProducts = await getPublicProducts(lang);
-        const filteredProducts = typeProducts.filter(p => p.type === type);
+        const filteredProducts = typeProducts.filter((p) => p.type === type);
         console.log(`     ${type}: ${filteredProducts.length} products`);
-        
+
         if (filteredProducts.length > 0) {
           const sample = filteredProducts[0];
           console.log(`       Sample: ${sample.title} - ${sample.city}`);
         }
-      } catch (error) {
+      } catch {
         console.log(`     ${type}: Error`);
       }
     }
@@ -189,11 +223,13 @@ async function testDualLanguage() {
   console.log('\n📝 Testing fallback behavior...');
   try {
     const invalidLangProducts = await getPublicProducts('invalid');
-    console.log(`✅ Fallback successful: ${invalidLangProducts.length} products found`);
+    console.log(
+      `✅ Fallback successful: ${invalidLangProducts.length} products found`,
+    );
     if (invalidLangProducts.length > 0) {
       console.log(`   Sample: ${invalidLangProducts[0].title}`);
     }
-  } catch (error) {
+  } catch {
     console.log('❌ Fallback test failed');
   }
 
@@ -209,20 +245,27 @@ async function testProductTypeRetrieval() {
 
   for (const type of productTypes) {
     console.log(`📝 Testing ${type} retrieval...`);
-    
+
     for (const lang of languages) {
       try {
         const products = await getPublicProducts(lang);
-        const typeProducts = products.filter(p => p.type === type);
-        
-        console.log(`   ${lang.toUpperCase()}: ${typeProducts.length} products`);
-        
+        const typeProducts = products.filter((p) => p.type === type);
+
+        console.log(
+          `   ${lang.toUpperCase()}: ${typeProducts.length} products`,
+        );
+
         if (typeProducts.length > 0) {
           const product = typeProducts[0];
           console.log(`     Sample: ${product.title} - ${product.city}`);
-          
+
           // Test individual product retrieval
-          const individual = await getProductById(type, product._id, lang, false);
+          const individual = await getProductById(
+            type,
+            product._id,
+            lang,
+            false,
+          );
           if (individual) {
             console.log(`     Individual: ${individual.title}`);
           }
@@ -242,48 +285,57 @@ async function testLanguageSwitching() {
   try {
     // Get products with default language (should be English)
     const defaultProducts = await getProducts();
-    console.log(`✅ Default language products: ${defaultProducts.length} found`);
-    
+    console.log(
+      `✅ Default language products: ${defaultProducts.length} found`,
+    );
+
     if (defaultProducts.length > 0) {
       console.log(`   Sample: ${defaultProducts[0].title}`);
     }
 
     // Get products with explicit English
     const englishProducts = await getProducts({ lang: 'en' });
-    console.log(`✅ Explicit English products: ${englishProducts.length} found`);
-    
+    console.log(
+      `✅ Explicit English products: ${englishProducts.length} found`,
+    );
+
     if (englishProducts.length > 0) {
-      console.log(`   Sample: ${englishProducts.length > 0 ? englishProducts[0].title : 'None'}`);
+      console.log(
+        `   Sample: ${englishProducts.length > 0 ? englishProducts[0].title : 'None'}`,
+      );
     }
 
     // Get products with Arabic override
     const arabicProducts = await getProducts({ lang: 'ar' });
     console.log(`✅ Arabic override products: ${arabicProducts.length} found`);
-    
+
     if (arabicProducts.length > 0) {
       console.log(`   Sample: ${arabicProducts[0].title}`);
     }
 
     // Compare results
-    if (defaultProducts.length === englishProducts.length && 
-        defaultProducts.length === arabicProducts.length) {
+    if (
+      defaultProducts.length === englishProducts.length &&
+      defaultProducts.length === arabicProducts.length
+    ) {
       console.log('✅ All language variants return same number of products');
     } else {
-      console.log('⚠️  Different number of products returned for different languages');
+      console.log(
+        '⚠️  Different number of products returned for different languages',
+      );
     }
-
   } catch (error) {
     console.error('❌ Language switching test failed:', error.message);
   }
 }
 
-module.exports = { 
-  getProducts, 
-  getPublicProducts, 
+module.exports = {
+  getProducts,
+  getPublicProducts,
   getProductById,
-  getRejectedProducts, 
+  getRejectedProducts,
   getApprovedProducts,
   testDualLanguage,
   testProductTypeRetrieval,
-  testLanguageSwitching
+  testLanguageSwitching,
 };

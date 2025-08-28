@@ -1,18 +1,14 @@
 const axios = require('axios');
-const { createJetski } = require('./create-jetski');
 const { createYacht } = require('./create-yacht');
 const { approveProduct } = require('./approve-product');
 const { BASE_URL, USER_TOKEN, PARTNER_1_TOKEN, OWNER_ID } = require('./config');
 
 async function createBooking(product) {
-  const now = new Date();
-  const startTime = new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2 hours from now
-  const endTime = new Date(now.getTime() + 4 * 60 * 60 * 1000); // 4 hours from now
   const bookingDto = {
     productId: product._id,
     productType: 'yacht',
-    startTime: "2025-07-22T19:00",
-    endTime: "2025-07-22T20:00",
+    startTime: '2025-07-22T19:00',
+    endTime: '2025-07-22T20:00',
     totalPrice: 100,
     currency: 'USD',
     paymentMethod: 'cash',
@@ -24,7 +20,7 @@ async function createBooking(product) {
     const res = await axios.post(`${BASE_URL}/products/booking`, bookingDto, {
       headers: { Authorization: `Bearer ${USER_TOKEN}` },
     });
-    console.log(res.data)
+    console.log(res.data);
     return res.data.data;
   } catch (error) {
     console.error(
@@ -56,7 +52,7 @@ async function rejectBooking(bookingId) {
   try {
     const res = await axios.post(
       `${BASE_URL}/products/booking/${bookingId}/reject`,
-      { cancellationReason:"Test" },
+      { cancellationReason: 'Test' },
       { headers: { Authorization: `Bearer ${PARTNER_1_TOKEN}` } },
     );
     return res.data.data;
@@ -105,9 +101,12 @@ async function completeBooking(bookingId) {
 
 async function getBookingsForConsumer(consumerId) {
   try {
-    const res = await axios.get(`${BASE_URL}/products/booking/consumer/${consumerId}`, {
-      headers: { Authorization: `Bearer ${USER_TOKEN}` },
-    });
+    const res = await axios.get(
+      `${BASE_URL}/products/booking/consumer/${consumerId}`,
+      {
+        headers: { Authorization: `Bearer ${USER_TOKEN}` },
+      },
+    );
     return res.data?.data || [];
   } catch (error) {
     console.error(
@@ -120,9 +119,12 @@ async function getBookingsForConsumer(consumerId) {
 
 async function getBookingsForPartner(partnerId) {
   try {
-    const res = await axios.get(`${BASE_URL}/products/booking/partner/${partnerId}`, {
-      headers: { Authorization: `Bearer ${PARTNER_1_TOKEN}` },
-    });
+    const res = await axios.get(
+      `${BASE_URL}/products/booking/partner/${partnerId}`,
+      {
+        headers: { Authorization: `Bearer ${PARTNER_1_TOKEN}` },
+      },
+    );
     return res.data?.data || [];
   } catch (error) {
     console.error(
@@ -194,23 +196,30 @@ async function testBookingDualLanguage() {
     // Test booking retrieval in Arabic
     console.log('\n📝 Testing booking retrieval in Arabic...');
     try {
-      const res = await axios.get(`${BASE_URL}/products/booking/${booking._id}`, {
-        headers: { Authorization: `Bearer ${USER_TOKEN}` },
-        params: { lang: 'ar' }
-      });
-      
+      const res = await axios.get(
+        `${BASE_URL}/products/booking/${booking._id}`,
+        {
+          headers: { Authorization: `Bearer ${USER_TOKEN}` },
+          params: { lang: 'ar' },
+        },
+      );
+
       if (res.data.success) {
         const bookingAr = res.data.data;
         console.log('✅ Booking retrieved in Arabic');
         console.log(`   Product Title: ${bookingAr.product?.title || 'N/A'}`);
         console.log(`   Product City: ${bookingAr.product?.city || 'N/A'}`);
-        console.log(`   Product Country: ${bookingAr.product?.country || 'N/A'}`);
-        
+        console.log(
+          `   Product Country: ${bookingAr.product?.country || 'N/A'}`,
+        );
+
         // Compare English and Arabic product information
         if (bookingEn && bookingAr) {
-          const titleDifferent = bookingEn.product?.title !== bookingAr.product?.title;
-          const cityDifferent = bookingEn.product?.city !== bookingAr.product?.city;
-          
+          const titleDifferent =
+            bookingEn.product?.title !== bookingAr.product?.title;
+          const cityDifferent =
+            bookingEn.product?.city !== bookingAr.product?.city;
+
           console.log(`   Title different (EN vs AR): ${titleDifferent}`);
           console.log(`   City different (EN vs AR): ${cityDifferent}`);
         }
@@ -224,72 +233,104 @@ async function testBookingDualLanguage() {
     // Test consumer bookings in both languages
     console.log('\n📝 Testing consumer bookings in both languages...');
     const consumerBookingsEn = await getBookingsForConsumer(OWNER_ID);
-    console.log(`✅ Consumer bookings in English: ${consumerBookingsEn.length} found`);
-    
+    console.log(
+      `✅ Consumer bookings in English: ${consumerBookingsEn.length} found`,
+    );
+
     try {
-      const res = await axios.get(`${BASE_URL}/products/booking/consumer/${OWNER_ID}`, {
-        headers: { Authorization: `Bearer ${USER_TOKEN}` },
-        params: { lang: 'ar' }
-      });
-      
+      const res = await axios.get(
+        `${BASE_URL}/products/booking/consumer/${OWNER_ID}`,
+        {
+          headers: { Authorization: `Bearer ${USER_TOKEN}` },
+          params: { lang: 'ar' },
+        },
+      );
+
       if (res.data.success) {
         const consumerBookingsAr = res.data.data;
-        console.log(`✅ Consumer bookings in Arabic: ${consumerBookingsAr.length} found`);
-        
+        console.log(
+          `✅ Consumer bookings in Arabic: ${consumerBookingsAr.length} found`,
+        );
+
         if (consumerBookingsEn.length > 0 && consumerBookingsAr.length > 0) {
           const enBooking = consumerBookingsEn[0];
           const arBooking = consumerBookingsAr[0];
-          
-          console.log(`   English product: ${enBooking.product?.title} - ${enBooking.product?.city}`);
-          console.log(`   Arabic product: ${arBooking.product?.title} - ${arBooking.product?.city}`);
+
+          console.log(
+            `   English product: ${enBooking.product?.title} - ${enBooking.product?.city}`,
+          );
+          console.log(
+            `   Arabic product: ${arBooking.product?.title} - ${arBooking.product?.city}`,
+          );
         }
       }
     } catch (error) {
-      console.log('❌ Failed to retrieve consumer bookings in Arabic:', error.message);
+      console.log(
+        '❌ Failed to retrieve consumer bookings in Arabic:',
+        error.message,
+      );
     }
 
     // Test partner bookings in both languages
     console.log('\n📝 Testing partner bookings in both languages...');
     const partnerBookingsEn = await getBookingsForPartner(OWNER_ID);
-    console.log(`✅ Partner bookings in English: ${partnerBookingsEn.length} found`);
-    
+    console.log(
+      `✅ Partner bookings in English: ${partnerBookingsEn.length} found`,
+    );
+
     try {
-      const res = await axios.get(`${BASE_URL}/products/booking/partner/${OWNER_ID}`, {
-        headers: { Authorization: `Bearer ${PARTNER_1_TOKEN}` },
-        params: { lang: 'ar' }
-      });
-      
+      const res = await axios.get(
+        `${BASE_URL}/products/booking/partner/${OWNER_ID}`,
+        {
+          headers: { Authorization: `Bearer ${PARTNER_1_TOKEN}` },
+          params: { lang: 'ar' },
+        },
+      );
+
       if (res.data.success) {
         const partnerBookingsAr = res.data.data;
-        console.log(`✅ Partner bookings in Arabic: ${partnerBookingsAr.length} found`);
-        
+        console.log(
+          `✅ Partner bookings in Arabic: ${partnerBookingsAr.length} found`,
+        );
+
         if (partnerBookingsEn.length > 0 && partnerBookingsAr.length > 0) {
           const enBooking = partnerBookingsEn[0];
           const arBooking = partnerBookingsAr[0];
-          
-          console.log(`   English product: ${enBooking.product?.title} - ${enBooking.product?.city}`);
-          console.log(`   Arabic product: ${arBooking.product?.title} - ${arBooking.product?.city}`);
+
+          console.log(
+            `   English product: ${enBooking.product?.title} - ${enBooking.product?.city}`,
+          );
+          console.log(
+            `   Arabic product: ${arBooking.product?.title} - ${arBooking.product?.city}`,
+          );
         }
       }
     } catch (error) {
-      console.log('❌ Failed to retrieve partner bookings in Arabic:', error.message);
+      console.log(
+        '❌ Failed to retrieve partner bookings in Arabic:',
+        error.message,
+      );
     }
 
     // Test language field validation for bookings
     console.log('\n📝 Testing language field validation for bookings...');
     if (bookingEn && bookingEn.product) {
-      const hasLanguageFields = bookingEn.product.titleEn || bookingEn.product.titleAr || 
-                               bookingEn.product.cityEn || bookingEn.product.cityAr;
-      
+      const hasLanguageFields =
+        bookingEn.product.titleEn ||
+        bookingEn.product.titleAr ||
+        bookingEn.product.cityEn ||
+        bookingEn.product.cityAr;
+
       if (!hasLanguageFields) {
-        console.log('✅ Language-specific fields properly cleaned from booking response');
+        console.log(
+          '✅ Language-specific fields properly cleaned from booking response',
+        );
       } else {
         console.log('❌ Language-specific fields found in booking response');
         console.log(`   titleEn: ${bookingEn.product.titleEn}`);
         console.log(`   titleAr: ${bookingEn.product.titleAr}`);
       }
     }
-
   } catch (error) {
     console.error('❌ Booking dual-language test failed:', error.message);
   }
@@ -323,14 +364,18 @@ async function main() {
 
   // Test booking operations
   console.log('\n📝 Testing booking operations...');
-  
+
   // Approve booking
   const approvedBooking = await approveBooking(booking._id);
-  console.log(approvedBooking ? '✅ Booking approved' : '❌ Failed to approve booking');
+  console.log(
+    approvedBooking ? '✅ Booking approved' : '❌ Failed to approve booking',
+  );
 
   // Get booking by ID
   const retrievedBooking = await getBookingById(booking._id);
-  console.log(retrievedBooking ? '✅ Booking retrieved' : '❌ Failed to retrieve booking');
+  console.log(
+    retrievedBooking ? '✅ Booking retrieved' : '❌ Failed to retrieve booking',
+  );
 
   // Get consumer bookings
   const consumerBookings = await getBookingsForConsumer(OWNER_ID);
@@ -360,5 +405,5 @@ module.exports = {
   getBookingsForConsumer,
   getBookingsForPartner,
   getBookingById,
-  testBookingDualLanguage
+  testBookingDualLanguage,
 };

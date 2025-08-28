@@ -30,6 +30,12 @@ export class UserVerification {
   @Prop({ default: false })
   isPartnerApplicationApproved: boolean;
 
+  @Prop()
+  passwordResetCode: string;
+
+  @Prop()
+  passwordResetCodeSentAt: Date;
+
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
   userId: Types.ObjectId;
 }

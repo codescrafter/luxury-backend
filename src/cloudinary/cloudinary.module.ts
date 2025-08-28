@@ -4,7 +4,7 @@ import { CloudinaryService } from './cloudinary.service';
 import { v2 as cloudinary } from 'cloudinary';
 
 @Module({
-  imports: [ConfigModule], 
+  imports: [ConfigModule],
   providers: [
     {
       provide: 'CLOUDINARY',

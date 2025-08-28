@@ -24,6 +24,7 @@ import { EditUserDto } from './dto/edit-user-dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { multerMiddleware } from 'src/common/multer.middleware';
 import { ResendSignupCodeDto } from './dto/resend-signup-code-dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Controller('auth')
@@ -89,6 +90,22 @@ export class AuthController {
       return {
         success: false,
         message: 'Failed to resend code',
+        error: error.message,
+      };
+    }
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto,
+  ): Promise<any> {
+    try {
+      const result = await this.authService.resetPassword(resetPasswordDto);
+      return { success: true, data: result };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to process password reset request',
         error: error.message,
       };
     }
@@ -269,7 +286,10 @@ export class AuthController {
 
   @Post('update-language')
   @UseGuards(AuthGuard())
-  async updateLanguage(@Req() req, @Body() body: { language: string }): Promise<any> {
+  async updateLanguage(
+    @Req() req,
+    @Body() body: { language: string },
+  ): Promise<any> {
     try {
       const result = await this.authService.updateLanguageAndGetNewToken(
         req.user._id,

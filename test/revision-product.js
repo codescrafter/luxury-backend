@@ -6,15 +6,22 @@ const { BASE_URL, ADMIN_TOKEN } = require('./config');
  */
 async function markProductForRevision(type, id) {
   try {
-    const res = await axios.put(`${BASE_URL}/products/${type}/${id}/revision`, null, {
-      headers: {
-        Authorization: `Bearer ${ADMIN_TOKEN}`,
+    const res = await axios.put(
+      `${BASE_URL}/products/${type}/${id}/revision`,
+      null,
+      {
+        headers: {
+          Authorization: `Bearer ${ADMIN_TOKEN}`,
+        },
       },
-    });
+    );
     console.log(`🔄 Marked ${type} for revision: ${id}`);
     return res.data?.data;
   } catch (error) {
-    console.error(`❌ Failed to mark ${type} for revision:`, error.response?.data || error.message);
+    console.error(
+      `❌ Failed to mark ${type} for revision:`,
+      error.response?.data || error.message,
+    );
     return null;
   }
 }

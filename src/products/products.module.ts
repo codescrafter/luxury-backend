@@ -8,7 +8,10 @@ import { Kayak, KayakSchema } from './entities/kayak.entity';
 import { Yacht, YachtSchema } from './entities/yacht.entity';
 import { Speedboat, SpeedboatSchema } from './entities/speedboat.entity';
 import { Resort, ResortSchema } from './entities/resort.entity';
-import { Unavailability, UnavailabilitySchema } from './entities/unavailability.entity';
+import {
+  Unavailability,
+  UnavailabilitySchema,
+} from './entities/unavailability.entity';
 import { Booking, BookingSchema } from './entities/booking.entity';
 
 import { User, UserSchema } from 'src/auth/schemas/user-schema';

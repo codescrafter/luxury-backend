@@ -5,14 +5,11 @@ import {
   IsMongoId,
   IsNotEmpty,
   IsNumber,
-  IsObject,
   IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
-import { LocationDto } from './location.dto';
 
 export class CreateKayakDto {
   @IsString()
@@ -60,22 +57,30 @@ export class CreateKayakDto {
   ageRequirement: number;
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   cancellationPolicyEn: string[];
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   cancellationPolicyAr: string[];
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   termsAndConditionsEn: string[];
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   termsAndConditionsAr: string[];
 
@@ -92,7 +97,7 @@ export class CreateKayakDto {
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lat: number;
-  
+
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lng: number;
@@ -123,13 +128,17 @@ export class CreateKayakDto {
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   tagsEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   tagsAr?: string[];
 
@@ -139,7 +148,7 @@ export class CreateKayakDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   modelYear?: number;
 
   @IsOptional()
@@ -153,7 +162,7 @@ export class CreateKayakDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   minimumHours?: number;
 
   @IsOptional()
@@ -162,17 +171,17 @@ export class CreateKayakDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   averageRating?: number;
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   reviewCount?: number;
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   totalBookings?: number;
 
   @IsOptional()
@@ -186,103 +195,38 @@ export class CreateKayakDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   resubmissionCount?: number;
 }
 
-export class UpdateKayakDto extends PartialType(CreateKayakDto) {}
+export class UpdateKayakDto extends PartialType(CreateKayakDto) {
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
 
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  videos?: string[];
 
-// import React, { useEffect, useState } from 'react';
-// import axios from 'axios';
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  replaceImages?: boolean;
 
-// const CreateKayakForm = () => {
-//   const [form, setForm] = useState<any>({});
-//   const [images, setImages] = useState<File[]>([]);
-//   const [videos, setVideos] = useState<File[]>([]);
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  replaceVideos?: boolean;
 
-//   // Prefill dummy data
-//   useEffect(() => {
-//     setForm({
-//       title: 'Ocean Explorer Kayak',
-//       description: 'Sturdy and safe kayak for all sea adventures.',
-//       pricePerHour: '25',
-//       pricePerDay: '150',
-//       securityDeposit: '50',
-//       fuelIncluded: false,
-//       insuranceIncluded: true,
-//       licenseRequired: false,
-//       ageRequirement: '16',
-//       cancellationPolicy: '24hr notice,Partial refund',
-//       termsAndConditions: 'Wear vest,No rough waters',
-//       kayakType: 'Sea',
-//       capacity: '1',
-//       ownerId: '60f8a4d45a1c2c001c8d4a1f',
-//       lat: '24.8615',
-//       lng: '67.0099',
-//       city: 'Karachi',
-//       region: 'Sindh',
-//       country: 'Pakistan',
-//       address: 'Sandspit Beach, Karachi',
-//       tags: 'eco-friendly,single,seaworthy',
-//       brand: 'Ocean Kayak',
-//       modelYear: '2021',
-//       color: 'Yellow',
-//       lifeJacketsIncluded: true,
-//       minimumHours: '1',
-//       maintenanceNotes: 'Inspected monthly',
-//       averageRating: '4.7',
-//       reviewCount: '12',
-//       totalBookings: '30',
-//       isFeatured: true,
-//       resortId: '60f8b9d45a1c2c001c8d4a2f',
-//       status: 'approved',
-//       resubmissionCount: '0',
-//     });
-//   }, []);
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deleteImageUrls?: string[];
 
-//   const handleSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
-
-//     const formData = new FormData();
-
-//     Object.entries(form).forEach(([key, value]) => {
-//       if (value !== '') formData.append(key, value as string);
-//     });
-
-//     // Arrays as comma-separated strings
-//     formData.set('cancellationPolicy', form.cancellationPolicy);
-//     formData.set('termsAndConditions', form.termsAndConditions);
-//     if (form.tags) formData.set('tags', form.tags);
-
-//     // Append files
-//     images.forEach((img) => formData.append('images', img));
-//     videos.forEach((vid) => formData.append('videos', vid));
-
-//     try {
-//       const res = await axios.post('http://localhost:8080/products/kayak', formData, {
-//         headers: {
-//           'Content-Type': 'multipart/form-data',
-//           Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NjQ5OGUzMzAyNTc1ZTMzMjAzNzMxMiIsImlhdCI6MTc1MTQzNTY4OSwiZXhwIjoxNzUyMDQwNDg5fQ.8uo-zJuS8oQ7QgUPHkFkYqTzu7gLnqpDKa2hyG0i4rQ',
-//         },
-//       });
-
-//       console.log(res.data);
-//       alert('Kayak created successfully!');
-//     } catch (err) {
-//       console.error(err);
-//       alert('Failed to create kayak.');
-//     }
-//   };
-
-//   return (
-//     <form onSubmit={handleSubmit} encType="multipart/form-data">
-//       <input type="file" multiple accept="image/*" onChange={(e) => setImages(Array.from(e.target.files || []))} style={{ backgroundColor: 'green' }} />
-//       <input type="file" multiple accept="video/*" onChange={(e) => setVideos(Array.from(e.target.files || []))} style={{ backgroundColor: 'red' }} />
-//       <button type="submit">Submit Kayak with Dummy Data</button>
-//     </form>
-//   );
-// };
-
-// export default CreateKayakForm;
-
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deleteVideoUrls?: string[];
+}

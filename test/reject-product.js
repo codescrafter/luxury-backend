@@ -6,15 +6,22 @@ const { BASE_URL, ADMIN_TOKEN } = require('./config');
  */
 async function rejectProduct(type, id) {
   try {
-    const res = await axios.put(`${BASE_URL}/products/${type}/${id}/reject`, null, {
-      headers: {
-        Authorization: `Bearer ${ADMIN_TOKEN}`,
+    const res = await axios.put(
+      `${BASE_URL}/products/${type}/${id}/reject`,
+      null,
+      {
+        headers: {
+          Authorization: `Bearer ${ADMIN_TOKEN}`,
+        },
       },
-    });
+    );
     console.log(`✅ Rejected ${type}: ${id}`);
     return res.data?.data;
   } catch (error) {
-    console.error(`❌ Failed to reject ${type}:`, error.response?.data || error.message);
+    console.error(
+      `❌ Failed to reject ${type}:`,
+      error.response?.data || error.message,
+    );
     return null;
   }
 }

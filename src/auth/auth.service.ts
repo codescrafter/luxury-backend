@@ -28,6 +28,7 @@ import {
   ResendSignupCodeDto,
 } from './dto/resend-signup-code-dto';
 import { EditUserDto } from './dto/edit-user-dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import * as bcrypt from 'bcryptjs';
 import { Resend } from 'resend';
@@ -268,6 +269,133 @@ export class AuthService {
     }
   }
 
+  async resetPassword(
+    resetPasswordDto: ResetPasswordDto,
+  ): Promise<TSendVerificationCodeReturn | { message: string; token: string }> {
+    const { emailOrPhone, verificationCode, password } = resetPasswordDto;
+
+    // Find user by email or phone
+    const user = await this.userModel.findOne({
+      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user signed up with password method
+    if (user.signInMethod !== ESignInMethods.PASSWORD) {
+      throw new UnauthorizedException(
+        `This account was created using ${user.signInMethod} sign-in. Password reset is not available for this account.`,
+      );
+    }
+
+    const userVerification = await this.userVerification.findOne({
+      userId: user._id,
+    });
+
+    if (!userVerification) {
+      throw new NotFoundException('User verification not found');
+    }
+
+    // Check if user is allowed on platform
+    this.isUserAllowedOnPlatform(userVerification);
+
+    // If no verification code provided, send reset code
+    if (!verificationCode || !password) {
+      // Check if resend is allowed
+      this.isResendCodeAllowed(userVerification);
+
+      const passwordResetCode = this.generateRandomCode();
+
+      // Send verification code based on whether it's email or phone
+      if (emailOrPhone.includes('@')) {
+        // Send email verification
+        if (process.env.mode !== 'dev') {
+          await this.sendVerificationEmail(emailOrPhone, passwordResetCode);
+        }
+
+        await this.userVerification.findOneAndUpdate(
+          { userId: user._id },
+          {
+            passwordResetCode: passwordResetCode,
+            passwordResetCodeSentAt: new Date().getTime(),
+          },
+        );
+
+        return {
+          message: 'Password reset code sent to email.',
+          emailCodeSentAt: new Date().getTime(),
+        };
+      } else {
+        // Send SMS verification
+        await this.sendPhoneSms({
+          phone: emailOrPhone,
+          message: `Your Baia password reset code is: ${passwordResetCode}`,
+        });
+
+        await this.userVerification.findOneAndUpdate(
+          { userId: user._id },
+          {
+            passwordResetCode: passwordResetCode,
+            passwordResetCodeSentAt: new Date().getTime(),
+          },
+        );
+
+        return {
+          message: 'Password reset code sent to phone.',
+          phoneCodeSentAt: new Date().getTime(),
+        };
+      }
+    }
+
+    // If verification code and password provided, reset password
+    if (!verificationCode || !password) {
+      throw new BadRequestException(
+        'Verification code and password are required',
+      );
+    }
+
+    // Verify the password reset code
+    if (userVerification.passwordResetCode !== verificationCode) {
+      throw new UnauthorizedException('Invalid password reset code');
+    }
+
+    // Check if code has expired
+    const expirationTime =
+      (userVerification?.passwordResetCodeSentAt?.getTime() || 0) +
+      this.CODE_EXPIRATION * 60 * 1000;
+    if (expirationTime < new Date().getTime()) {
+      throw new BadRequestException('Password reset code expired');
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update user password
+    await this.userModel.findOneAndUpdate(
+      { _id: user._id },
+      { password: hashedPassword },
+    );
+
+    // Clear the password reset code
+    await this.userVerification.findOneAndUpdate(
+      { userId: user._id },
+      {
+        passwordResetCode: null,
+        passwordResetCodeSentAt: null,
+      },
+    );
+
+    // Generate new JWT token
+    const token = this.jwtService.sign({
+      id: user._id,
+      lang: user.language || 'en',
+    });
+
+    return { message: 'Password reset successfully', token: token };
+  }
+
   async sendSignupRequest(
     sendSignUpRequestDto: SendSignUpRequestDto,
   ): Promise<TSendVerificationCodeReturn> {
@@ -303,7 +431,7 @@ export class AuthService {
     if (process.env.mode !== 'dev') {
       await this.sendVerificationEmail(email, emailVerificationCode);
     }
-    
+
     const user = await this.userModel.findOneAndUpdate(
       { email: email, phone: phone },
       {

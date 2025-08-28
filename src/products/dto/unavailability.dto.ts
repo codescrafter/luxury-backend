@@ -1,4 +1,10 @@
-import { IsMongoId, IsOptional, IsString, IsEnum, IsDateString } from 'class-validator';
+import {
+  IsMongoId,
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsDateString,
+} from 'class-validator';
 
 export enum UnavailabilityType {
   PARTNER_BLOCKED = 'partner_blocked',
@@ -24,4 +30,4 @@ export class CreateUnavailabilityDto {
 
   @IsDateString()
   endTime: string;
-} 
+}

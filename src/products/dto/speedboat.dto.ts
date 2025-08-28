@@ -5,14 +5,11 @@ import {
   IsMongoId,
   IsNotEmpty,
   IsNumber,
-  IsObject,
   IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
-import { LocationDto } from './location.dto';
 
 export class CreateSpeedboatDto {
   @IsString()
@@ -60,22 +57,30 @@ export class CreateSpeedboatDto {
   ageRequirement: number;
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   cancellationPolicyEn: string[];
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   cancellationPolicyAr: string[];
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   termsAndConditionsEn: string[];
 
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   termsAndConditionsAr: string[];
 
@@ -99,7 +104,7 @@ export class CreateSpeedboatDto {
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lat: number;
-  
+
   @IsNumber()
   @Transform(({ value }) => parseFloat(value))
   lng: number;
@@ -130,13 +135,17 @@ export class CreateSpeedboatDto {
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   tagsEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) => typeof value === 'string' ? value.split(',') : value)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
   @IsString({ each: true })
   tagsAr?: string[];
 
@@ -146,7 +155,7 @@ export class CreateSpeedboatDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   modelYear?: number;
 
   @IsOptional()
@@ -160,7 +169,7 @@ export class CreateSpeedboatDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   minimumHours?: number;
 
   @IsOptional()
@@ -169,17 +178,17 @@ export class CreateSpeedboatDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseFloat(value) : undefined)
+  @Transform(({ value }) => (value ? parseFloat(value) : undefined))
   averageRating?: number;
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   reviewCount?: number;
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   totalBookings?: number;
 
   @IsOptional()
@@ -193,13 +202,41 @@ export class CreateSpeedboatDto {
 
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   resubmissionCount?: number;
 }
 
-export class UpdateSpeedboatDto extends PartialType(CreateSpeedboatDto) {}
+export class UpdateSpeedboatDto extends PartialType(CreateSpeedboatDto) {
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
 
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  videos?: string[];
 
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  replaceImages?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  replaceVideos?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deleteImageUrls?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  deleteVideoUrls?: string[];
+}
 
 // import React, { useEffect, useState } from 'react';
 // import axios from 'axios';

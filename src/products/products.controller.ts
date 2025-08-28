@@ -38,6 +38,7 @@ export class ProductsController {
   private catchResponse(action: string, error: any) {
     const status =
       error?.status || error?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
+    console.error(`❌ Error in ${action}:`, error);
     throw new HttpException(
       {
         success: false,
@@ -48,14 +49,72 @@ export class ProductsController {
     );
   }
 
-  @Get() // This is for users and it will show only approved products
-  @UseGuards(AuthGuard())
-  async getProducts(@Req() req, @Query('lang') lang?: string) {
+  @Get() // This is for users and it will show only approved products with filtering
+  // @UseGuards(AuthGuard())
+  async getProducts(
+    @Req() req,
+    @Query('lang') lang?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    // Filter parameters
+    @Query('types') types?: string, // Comma-separated: jetski,kayak,yacht,speedboat,resort
+    @Query('minPrice') minPrice?: number,
+    @Query('maxPrice') maxPrice?: number,
+    @Query('minCapacity') minCapacity?: number,
+    @Query('maxCapacity') maxCapacity?: number,
+    @Query('brands') brands?: string, // Comma-separated: Yamaha,Sea Ray
+    @Query('cities') cities?: string, // Comma-separated: Dubai,Abu Dhabi
+    @Query('yachtTypes') yachtTypes?: string, // Comma-separated: motor,sailing,catamaran
+    @Query('resortTypes') resortTypes?: string, // Comma-separated: daily,annual,event
+    @Query('starRating') starRating?: number,
+    @Query('amenities') amenities?: string, // Comma-separated: WiFi,Parking,Pool
+    @Query('tags') tags?: string, // Comma-separated: luxury,family,romantic
+    @Query('search') search?: string, // Search in title and description
+    @Query('pricingType') pricingType?: string, // perHour, perDay, daily, yearly
+    @Query('isDailyResort') isDailyResort?: boolean, // true/false for resorts
+    @Query('isAnnualResort') isAnnualResort?: boolean, // true/false for resorts
+    @Query('canHostEvent') canHostEvent?: boolean, // true/false for resorts
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
-      const queryLang = lang || userLang;
-      const result = await this.productsService.getProducts(queryLang);
-      return { success: true, data: result };
+      const displayLang = lang || userLang;
+
+      // Parse comma-separated string parameters into arrays
+      const parseArrayParam = (param?: string) =>
+        param ? param.split(',').map((item) => item.trim()) : undefined;
+
+      // Build filters object
+      const filters = {
+        types: parseArrayParam(types),
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        minCapacity: minCapacity ? Number(minCapacity) : undefined,
+        maxCapacity: maxCapacity ? Number(maxCapacity) : undefined,
+        brands: parseArrayParam(brands),
+        cities: parseArrayParam(cities),
+        yachtTypes: parseArrayParam(yachtTypes),
+        resortTypes: parseArrayParam(resortTypes),
+        starRating: starRating ? Number(starRating) : undefined,
+        amenities: parseArrayParam(amenities),
+        tags: parseArrayParam(tags),
+        search: search?.trim() || undefined,
+        pricingType: pricingType?.trim() || undefined,
+        isDailyResort:
+          isDailyResort !== undefined ? Boolean(isDailyResort) : undefined,
+        isAnnualResort:
+          isAnnualResort !== undefined ? Boolean(isAnnualResort) : undefined,
+        canHostEvent:
+          canHostEvent !== undefined ? Boolean(canHostEvent) : undefined,
+      };
+
+      const result =
+        await this.productsService.getProductsWithDualLanguageAndFiltering(
+          displayLang,
+          page,
+          limit,
+          filters,
+        );
+      return { success: true, ...result };
     } catch (error) {
       this.catchResponse('get products', error);
     }
@@ -64,7 +123,8 @@ export class ProductsController {
   @Get('public') // Public endpoint for getting approved products
   async getPublicProducts(@Query('lang') lang: string = 'en') {
     try {
-      const result = await this.productsService.getProducts(lang);
+      const result =
+        await this.productsService.getProductsWithDualLanguage(lang);
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get public products', error);
@@ -73,11 +133,18 @@ export class ProductsController {
 
   /**
    * Get all pending products (admin: all, partner: own)
+   * Returns both languages. Use lang parameter to set default display language.
+   * Supports pagination for better performance.
    */
   @Get('pending')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.ADMIN, Role.PARTNER)
-  async getPendingProducts(@Req() req) {
+  async getPendingProducts(
+    @Req() req,
+    @Query('lang') lang?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
     try {
       const isAdmin = req.user.role.includes(Role.ADMIN);
       const isPartner = req.user.role.includes(Role.PARTNER);
@@ -85,15 +152,22 @@ export class ProductsController {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
       const ownerId = isPartner && !isAdmin ? req.user._id : undefined;
-      const userLang = req.user?.lang || 'en';
-      const queryLang = req.query?.lang || userLang;
-      const result = await this.productsService.getProductsByOwnerAndStatus(
-        ['pending', 'revision'],
-        ownerId,
-        queryLang,
-      );
 
-      return { success: true, data: result };
+      // Only use lang parameter if explicitly provided
+      // If not provided, return both languages without display fields
+      const displayLang = lang || undefined;
+
+      // Use paginated dual-language method for better performance
+      const result =
+        await this.productsService.getProductsByOwnerAndStatusWithPagination(
+          ['pending', 'revision'],
+          ownerId,
+          displayLang,
+          page,
+          limit,
+        );
+
+      return { success: true, ...result };
     } catch (error) {
       this.catchResponse('get pending products', error);
     }
@@ -101,10 +175,16 @@ export class ProductsController {
 
   /**
    * Get all approved products (admin: all, partner: own)
+   * Supports dual-language response with lang parameter and pagination
    */
   @Get('approved')
   @UseGuards(AuthGuard())
-  async getApprovedProducts(@Req() req) {
+  async getApprovedProducts(
+    @Req() req,
+    @Query('lang') lang?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
     try {
       const isAdmin = req.user.role.includes(Role.ADMIN);
       const isPartner = req.user.role.includes(Role.PARTNER);
@@ -113,13 +193,16 @@ export class ProductsController {
       }
       const ownerId = isPartner ? req.user._id : undefined;
       const userLang = req.user?.lang || 'en';
-      const queryLang = req.query?.lang || userLang;
-      const result = await this.productsService.getProductsByOwnerAndStatus(
-        ['approved'],
-        ownerId,
-        queryLang,
-      );
-      return { success: true, data: result };
+      const displayLang = lang || userLang;
+      const result =
+        await this.productsService.getProductsByOwnerAndStatusWithPagination(
+          ['approved'],
+          ownerId,
+          displayLang,
+          page,
+          limit,
+        );
+      return { success: true, ...result };
     } catch (error) {
       this.catchResponse('get approved products', error);
     }
@@ -127,10 +210,16 @@ export class ProductsController {
 
   /**
    * Get all rejected products (admin: all, partner: own)
+   * Supports dual-language response with lang parameter and pagination
    */
   @Get('rejected')
   @UseGuards(AuthGuard())
-  async getRejectedProducts(@Req() req) {
+  async getRejectedProducts(
+    @Req() req,
+    @Query('lang') lang?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
     try {
       const isAdmin = req.user.role.includes(Role.ADMIN);
       const isPartner = req.user.role.includes(Role.PARTNER);
@@ -138,11 +227,17 @@ export class ProductsController {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
       const ownerId = isPartner ? req.user._id : undefined;
-      const result = await this.productsService.getProductsByOwnerAndStatus(
-        ['rejected'],
-        ownerId,
-      );
-      return { success: true, data: result };
+      const userLang = req.user?.lang || 'en';
+      const displayLang = lang || userLang;
+      const result =
+        await this.productsService.getProductsByOwnerAndStatusWithPagination(
+          ['rejected'],
+          ownerId,
+          displayLang,
+          page,
+          limit,
+        );
+      return { success: true, ...result };
     } catch (error) {
       this.catchResponse('get rejected products', error);
     }
@@ -182,8 +277,19 @@ export class ProductsController {
   @Put('jetski/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+      ],
+      multerMiddleware,
+    ),
+  )
   async updateJetski(
     @Param('id') id: string,
+    @UploadedFiles()
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: UpdateJetskiDto,
     @Req() req,
   ) {
@@ -191,6 +297,7 @@ export class ProductsController {
       const result = await this.productsService.updateJetSkiHandler(
         id,
         dto,
+        files,
         req.user,
       );
       return { success: true, data: result };
@@ -200,7 +307,11 @@ export class ProductsController {
   }
 
   @Get('jetski/:id')
-  async getJetskiById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
+  async getJetskiById(
+    @Param('id') id: string,
+    @Req() req,
+    @Query('lang') lang?: string,
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
@@ -245,8 +356,19 @@ export class ProductsController {
   @Put('kayak/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+      ],
+      multerMiddleware,
+    ),
+  )
   async updateKayak(
     @Param('id') id: string,
+    @UploadedFiles()
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: UpdateKayakDto,
     @Req() req,
   ) {
@@ -254,6 +376,7 @@ export class ProductsController {
       const result = await this.productsService.updateKayakHandler(
         id,
         dto,
+        files,
         req.user,
       );
       return { success: true, data: result };
@@ -263,7 +386,11 @@ export class ProductsController {
   }
 
   @Get('kayak/:id')
-  async getKayakById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
+  async getKayakById(
+    @Param('id') id: string,
+    @Req() req,
+    @Query('lang') lang?: string,
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
@@ -308,8 +435,19 @@ export class ProductsController {
   @Put('yacht/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+      ],
+      multerMiddleware,
+    ),
+  )
   async updateYacht(
     @Param('id') id: string,
+    @UploadedFiles()
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: UpdateYachtDto,
     @Req() req,
   ) {
@@ -317,8 +455,10 @@ export class ProductsController {
       const result = await this.productsService.updateYachtHandler(
         id,
         dto,
+        files,
         req.user,
       );
+
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('update yacht', error);
@@ -326,7 +466,11 @@ export class ProductsController {
   }
 
   @Get('yacht/:id')
-  async getYachtById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
+  async getYachtById(
+    @Param('id') id: string,
+    @Req() req,
+    @Query('lang') lang?: string,
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
@@ -371,8 +515,19 @@ export class ProductsController {
   @Put('speedboat/:id')
   @Roles(Role.PARTNER)
   @UseGuards(AuthGuard())
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+      ],
+      multerMiddleware,
+    ),
+  )
   async updateSpeedboat(
     @Param('id') id: string,
+    @UploadedFiles()
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: UpdateSpeedboatDto,
     @Req() req,
   ) {
@@ -380,6 +535,7 @@ export class ProductsController {
       const result = await this.productsService.updateSpeedboatHandler(
         id,
         dto,
+        files,
         req.user,
       );
       return { success: true, data: result };
@@ -389,7 +545,11 @@ export class ProductsController {
   }
 
   @Get('speedboat/:id')
-  async getSpeedboatById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
+  async getSpeedboatById(
+    @Param('id') id: string,
+    @Req() req,
+    @Query('lang') lang?: string,
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
@@ -434,8 +594,19 @@ export class ProductsController {
   @Put('resort/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+      ],
+      multerMiddleware,
+    ),
+  )
   async updateResort(
     @Param('id') id: string,
+    @UploadedFiles()
+    files: { images?: any[]; videos?: any[] },
     @Body() dto: UpdateResortDto,
     @Req() req,
   ) {
@@ -443,6 +614,7 @@ export class ProductsController {
       const result = await this.productsService.updateResortHandler(
         id,
         dto,
+        files,
         req.user,
       );
       return { success: true, data: result };
@@ -452,7 +624,11 @@ export class ProductsController {
   }
 
   @Get('resort/:id')
-  async getResortById(@Param('id') id: string, @Req() req, @Query('lang') lang: string = 'en') {
+  async getResortById(
+    @Param('id') id: string,
+    @Req() req,
+    @Query('lang') lang?: string,
+  ) {
     try {
       const userLang = req.user?.lang || 'en';
       const queryLang = lang || userLang;
@@ -679,6 +855,30 @@ export class ProductsController {
       return { success: true, data: booking };
     } catch (error) {
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get related products for "You may like" section
+   * Returns similar products based on type, price, capacity, brand, location
+   */
+  @Get(':type/:productId/related')
+  async getRelatedProducts(
+    @Param('type') type: string,
+    @Param('productId') productId: string,
+    @Query('limit') limit: number = 10,
+    @Query('lang') lang?: string,
+  ) {
+    try {
+      const result = await this.productsService.getRelatedProducts(
+        type,
+        productId,
+        limit,
+        lang,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('get related products', error);
     }
   }
 

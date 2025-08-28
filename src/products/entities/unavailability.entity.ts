@@ -24,4 +24,4 @@ export class Unavailability extends Document {
 
 const UnavailabilitySchema = SchemaFactory.createForClass(Unavailability);
 
-export { UnavailabilitySchema }; 
+export { UnavailabilitySchema };

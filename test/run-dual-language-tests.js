@@ -1,5 +1,9 @@
 const { runDualLanguageTests } = require('./test-dual-language');
-const { testDualLanguage, testProductTypeRetrieval, testLanguageSwitching } = require('./get-products');
+const {
+  testDualLanguage,
+  testProductTypeRetrieval,
+  testLanguageSwitching,
+} = require('./get-products');
 const { testBookingDualLanguage } = require('./booking-api');
 const { runMigrationTests } = require('./test-dual-language-migration');
 
@@ -12,20 +16,20 @@ async function runAllDualLanguageTests() {
     passed: 0,
     failed: 0,
     skipped: 0,
-    tests: []
+    tests: [],
   };
 
   function logTestResult(testName, passed, details = '') {
     const status = passed ? '✅' : '❌';
     const result = { name: testName, passed, details };
     testResults.tests.push(result);
-    
+
     if (passed) {
       testResults.passed++;
     } else {
       testResults.failed++;
     }
-    
+
     console.log(`${status} ${testName}${details ? ` - ${details}` : ''}`);
   }
 
@@ -70,7 +74,11 @@ async function runAllDualLanguageTests() {
       await testLanguageSwitching();
       logTestResult('Language switching with authentication', true);
     } catch (error) {
-      logTestResult('Language switching with authentication', false, error.message);
+      logTestResult(
+        'Language switching with authentication',
+        false,
+        error.message,
+      );
     }
     console.log('');
 
@@ -81,7 +89,11 @@ async function runAllDualLanguageTests() {
       await testBookingDualLanguage();
       logTestResult('Booking dual-language functionality', true);
     } catch (error) {
-      logTestResult('Booking dual-language functionality', false, error.message);
+      logTestResult(
+        'Booking dual-language functionality',
+        false,
+        error.message,
+      );
     }
     console.log('');
 
@@ -95,7 +107,6 @@ async function runAllDualLanguageTests() {
       logTestResult('Migration validation', false, error.message);
     }
     console.log('');
-
   } catch (error) {
     console.error('❌ Test suite failed:', error.message);
     testResults.failed++;
@@ -107,14 +118,18 @@ async function runAllDualLanguageTests() {
   console.log(`✅ Passed: ${testResults.passed}`);
   console.log(`❌ Failed: ${testResults.failed}`);
   console.log(`⏭️  Skipped: ${testResults.skipped}`);
-  console.log(`📈 Success Rate: ${((testResults.passed / (testResults.passed + testResults.failed)) * 100).toFixed(1)}%`);
+  console.log(
+    `📈 Success Rate: ${((testResults.passed / (testResults.passed + testResults.failed)) * 100).toFixed(1)}%`,
+  );
   console.log('');
 
   if (testResults.failed > 0) {
     console.log('❌ Failed Tests:');
-    testResults.tests.filter(t => !t.passed).forEach(test => {
-      console.log(`   - ${test.name}: ${test.details}`);
-    });
+    testResults.tests
+      .filter((t) => !t.passed)
+      .forEach((test) => {
+        console.log(`   - ${test.name}: ${test.details}`);
+      });
     console.log('');
   }
 
@@ -128,9 +143,13 @@ async function runAllDualLanguageTests() {
   console.log('');
   console.log('💡 Next Steps:');
   console.log('   - Check the DUAL_LANGUAGE_FEATURE.md file for documentation');
-  console.log('   - Run the migration script if needed: node migrate-to-dual-language.js');
+  console.log(
+    '   - Run the migration script if needed: node migrate-to-dual-language.js',
+  );
   console.log('   - Test the frontend integration with the dual-language API');
-  console.log('   - Verify that all product types support dual-language fields');
+  console.log(
+    '   - Verify that all product types support dual-language fields',
+  );
 
   return testResults;
 }
@@ -141,5 +160,5 @@ if (require.main === module) {
 }
 
 module.exports = {
-  runAllDualLanguageTests
-}; 
+  runAllDualLanguageTests,
+};

@@ -13,10 +13,14 @@ async function testPendingProductVisibility(type, id) {
   const pending = await getPendingProducts();
   const found = (pending[type + 's'] || []).some((p) => p._id === id);
   if (found) {
-    console.error(`❌ Rejected ${type} ${id} is present in pending products (should not be)`);
+    console.error(
+      `❌ Rejected ${type} ${id} is present in pending products (should not be)`,
+    );
   } else {
-    console.log(`✅ Rejected ${type} ${id} is NOT present in pending products (correct)`);
+    console.log(
+      `✅ Rejected ${type} ${id} is NOT present in pending products (correct)`,
+    );
   }
 }
 
-module.exports = { testPendingProductVisibility }; 
+module.exports = { testPendingProductVisibility };

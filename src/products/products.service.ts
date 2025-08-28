@@ -15,6 +15,12 @@ import {
   BookingStatus,
   PaymentStatus,
 } from './entities/booking.entity';
+
+// Define a type for product models that can be used with findById
+type ProductModel = Model<any> & {
+  findById(id: any): any;
+};
+
 import { CreateJetskiDto, UpdateJetskiDto } from './dto/jetski.dto';
 import { CreateKayakDto, UpdateKayakDto } from './dto/kayak.dto';
 import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
@@ -23,9 +29,11 @@ import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
 import { CreateUnavailabilityDto } from './dto/unavailability.dto';
 import { CreateBookingDto } from './dto/booking.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { transformProductForLanguage, transformProductsArrayForLanguage } from '../helpers/dto-helpers';
-const mongoose = require('mongoose');
-// All booking and unavailability related methods and usages have been removed.
+import {
+  transformProductsArrayForLanguage,
+  transformProductsArrayForDualLanguage,
+  transformProductForDualLanguage,
+} from '../helpers/dto-helpers';
 
 @Injectable()
 export class ProductsService {
@@ -44,16 +52,143 @@ export class ProductsService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  private async uploadMedia(files: any[] | undefined, folder: string) {
+  private async uploadImages(files: any[] | undefined, folder: string) {
     if (!files) return [];
-    return Promise.all(
-      files.map((file) =>
-        (folder.includes('image')
-          ? this.cloudinaryService.uploadImage(file, folder)
-          : this.cloudinaryService.uploadVideo(file, folder)
-        ).then((res) => res.secure_url),
-      ),
-    );
+    try {
+      return await Promise.all(
+        files.map((file) =>
+          this.cloudinaryService
+            .uploadImage(file, folder)
+            .then((res) => res.secure_url)
+            .catch((error) => {
+              console.error('Image upload error:', error);
+              throw new HttpException(
+                `Failed to upload image: ${error.message}`,
+                HttpStatus.BAD_REQUEST,
+              );
+            }),
+        ),
+      );
+    } catch (error) {
+      console.error('Image upload batch error:', error);
+      throw new HttpException(
+        `Failed to upload images: ${error.message}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  private async uploadVideos(files: any[] | undefined, folder: string) {
+    if (!files) return [];
+    try {
+      return await Promise.all(
+        files.map((file) =>
+          this.cloudinaryService
+            .uploadVideo(file, folder)
+            .then((res) => res.secure_url)
+            .catch((error) => {
+              console.error('Video upload error:', error);
+              throw new HttpException(
+                `Failed to upload video: ${error.message}`,
+                HttpStatus.BAD_REQUEST,
+              );
+            }),
+        ),
+      );
+    } catch (error) {
+      console.error('Video upload batch error:', error);
+      throw new HttpException(
+        `Failed to upload videos: ${error.message}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  /**
+   * Update product media with proper cleanup of old files
+   * This method handles both images and videos with Cloudinary cleanup
+   */
+  private async updateProductMedia(
+    productId: string,
+    model: any,
+    files: any,
+    updateData: any,
+  ) {
+    const currentProduct = await model.findById(productId);
+    if (!currentProduct) {
+      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+    }
+
+    const oldImages = currentProduct.images || [];
+    const oldVideos = currentProduct.videos || [];
+    let newImages = oldImages;
+    let newVideos = oldVideos;
+
+    // Handle new image uploads
+    if (files?.images && files.images.length > 0) {
+      const uploadedImages = await this.uploadImages(
+        files.images,
+        'product-images',
+      );
+
+      // If replaceImages flag is true, replace all images
+      if (updateData.replaceImages) {
+        // Delete old images from Cloudinary
+        if (oldImages.length > 0) {
+          await this.cloudinaryService.deleteMultipleMedia(oldImages, 'image');
+        }
+        newImages = uploadedImages;
+      } else {
+        // Append new images to existing ones
+        newImages = [...oldImages, ...uploadedImages];
+      }
+    }
+
+    // Handle new video uploads
+    if (files?.videos && files.videos.length > 0) {
+      const uploadedVideos = await this.uploadVideos(
+        files.videos,
+        'product-videos',
+      );
+
+      // If replaceVideos flag is true, replace all videos
+      if (updateData.replaceVideos) {
+        // Delete old videos from Cloudinary
+        if (oldVideos.length > 0) {
+          await this.cloudinaryService.deleteMultipleMedia(oldVideos, 'video');
+        }
+        newVideos = uploadedVideos;
+      } else {
+        // Append new videos to existing ones
+        newVideos = [...oldVideos, ...uploadedVideos];
+      }
+    }
+
+    // Handle specific image deletions
+    if (updateData.deleteImageUrls && updateData.deleteImageUrls.length > 0) {
+      const imagesToDelete = updateData.deleteImageUrls;
+      const remainingImages = newImages.filter(
+        (img) => !imagesToDelete.includes(img),
+      );
+
+      // Delete specified images from Cloudinary
+      await this.cloudinaryService.deleteMultipleMedia(imagesToDelete, 'image');
+      newImages = remainingImages;
+    }
+
+    // Handle specific video deletions
+    if (updateData.deleteVideoUrls && updateData.deleteVideoUrls.length > 0) {
+      const videosToDelete = updateData.deleteVideoUrls;
+      const remainingVideos = newVideos.filter(
+        (video) => !videosToDelete.includes(video),
+      );
+
+      // Delete specified videos from Cloudinary
+      await this.cloudinaryService.deleteMultipleMedia(videosToDelete, 'video');
+      newVideos = remainingVideos;
+    }
+
+    return { newImages, newVideos };
   }
 
   async createJetSkiHandler(
@@ -61,8 +196,8 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
-    const images = await this.uploadMedia(files.images, 'product-images');
-    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    const images = await this.uploadImages(files.images, 'product-images');
+    const videos = await this.uploadVideos(files.videos, 'product-videos');
     return await new this.jetSkiModel({
       ...dto,
       images,
@@ -75,18 +210,51 @@ export class ProductsService {
   async updateJetSkiHandler(
     id: string,
     dto: UpdateJetskiDto,
+    files: any,
     user: UserDocument,
   ) {
+    // Validate that the frontend ownerId matches the JWT token user._id
+    if (dto.ownerId && dto.ownerId !== user._id.toString()) {
+      throw new HttpException(
+        'OwnerId mismatch - you can only update your own products',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Use the ownerId from the frontend (or fallback to JWT token)
+    const ownerId = dto.ownerId || user._id.toString();
+
+    // Handle media updates if files are provided
+    if (files?.images || files?.videos) {
+      const { newImages, newVideos } = await this.updateProductMedia(
+        id,
+        this.jetSkiModel,
+        files,
+        dto,
+      );
+
+      // Update with new media URLs and reset status to pending
+      return this.jetSkiModel.findOneAndUpdate(
+        { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
+        { ...dto, images: newImages, videos: newVideos, status: 'pending' },
+        { new: true },
+      );
+    }
+
+    // Regular update without media changes - reset status to pending
     return this.jetSkiModel.findOneAndUpdate(
-      { _id: id, ownerId: user._id },
-      dto,
+      { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
+      { ...dto, status: 'pending' },
       { new: true },
     );
   }
 
-  async getJetSkiById(id: string, lang: string = 'en') {
+  async getJetSkiById(id: string, lang?: string) {
     const jetski = await this.jetSkiModel.findById(id).lean();
-    return transformProductForLanguage(jetski, lang);
+    if (!jetski) {
+      throw new HttpException('Jetski not found', HttpStatus.NOT_FOUND);
+    }
+    return transformProductForDualLanguage(jetski, lang);
   }
 
   async createKayakHandler(
@@ -94,8 +262,8 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
-    const images = await this.uploadMedia(files.images, 'product-images');
-    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    const images = await this.uploadImages(files.images, 'product-images');
+    const videos = await this.uploadVideos(files.videos, 'product-videos');
     return await new this.kayakModel({
       ...dto,
       images,
@@ -108,18 +276,51 @@ export class ProductsService {
   async updateKayakHandler(
     id: string,
     dto: UpdateKayakDto,
+    files: any,
     user: UserDocument,
   ) {
+    // Validate that the frontend ownerId matches the JWT token user._id
+    if (dto.ownerId && dto.ownerId !== user._id.toString()) {
+      throw new HttpException(
+        'OwnerId mismatch - you can only update your own products',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Use the ownerId from the frontend (or fallback to JWT token)
+    const ownerId = dto.ownerId || user._id.toString();
+
+    // Handle media updates if files are provided
+    if (files?.images || files?.videos) {
+      const { newImages, newVideos } = await this.updateProductMedia(
+        id,
+        this.kayakModel,
+        files,
+        dto,
+      );
+
+      // Update with new media URLs and reset status to pending
+      return this.kayakModel.findOneAndUpdate(
+        { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
+        { ...dto, images: newImages, videos: newVideos, status: 'pending' },
+        { new: true },
+      );
+    }
+
+    // Regular update without media changes - reset status to pending
     return this.kayakModel.findOneAndUpdate(
-      { _id: id, ownerId: user._id },
-      dto,
+      { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
+      { ...dto, status: 'pending' },
       { new: true },
     );
   }
 
-  async getKayakById(id: string, lang: string = 'en') {
+  async getKayakById(id: string, lang?: string) {
     const kayak = await this.kayakModel.findById(id).lean();
-    return transformProductForLanguage(kayak, lang);
+    if (!kayak) {
+      throw new HttpException('Kayak not found', HttpStatus.NOT_FOUND);
+    }
+    return transformProductForDualLanguage(kayak, lang);
   }
 
   async createYachtHandler(
@@ -127,8 +328,8 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
-    const images = await this.uploadMedia(files.images, 'product-images');
-    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    const images = await this.uploadImages(files.images, 'product-images');
+    const videos = await this.uploadVideos(files.videos, 'product-videos');
     return await new this.yachtModel({
       ...dto,
       images,
@@ -141,18 +342,51 @@ export class ProductsService {
   async updateYachtHandler(
     id: string,
     dto: UpdateYachtDto,
+    files: any,
     user: UserDocument,
   ) {
+    // Validate that the frontend ownerId matches the JWT token user._id
+    if (dto.ownerId && dto.ownerId !== user._id.toString()) {
+      throw new HttpException(
+        'OwnerId mismatch - you can only update your own products',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Use the ownerId from the frontend (or fallback to JWT token)
+    const ownerId = dto.ownerId || user._id.toString();
+
+    // Handle media updates if files are provided
+    if (files?.images || files?.videos) {
+      const { newImages, newVideos } = await this.updateProductMedia(
+        id,
+        this.yachtModel,
+        files,
+        dto,
+      );
+
+      // Update with new media URLs and reset status to pending
+      return this.yachtModel.findOneAndUpdate(
+        { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
+        { ...dto, images: newImages, videos: newVideos, status: 'pending' },
+        { new: true },
+      );
+    }
+
+    // Regular update without media changes - reset status to pending
     return this.yachtModel.findOneAndUpdate(
-      { _id: id, ownerId: user._id },
-      dto,
+      { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
+      { ...dto, status: 'pending' },
       { new: true },
     );
   }
 
-  async getYachtById(id: string, lang: string = 'en') {
+  async getYachtById(id: string, lang?: string) {
     const yacht = await this.yachtModel.findById(id).lean();
-    return transformProductForLanguage(yacht, lang);
+    if (!yacht) {
+      throw new HttpException('Yacht not found', HttpStatus.NOT_FOUND);
+    }
+    return transformProductForDualLanguage(yacht, lang);
   }
 
   async createSpeedboatHandler(
@@ -160,8 +394,8 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
-    const images = await this.uploadMedia(files.images, 'product-images');
-    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    const images = await this.uploadImages(files.images, 'product-images');
+    const videos = await this.uploadVideos(files.videos, 'product-videos');
     return await new this.speedboatModel({
       ...dto,
       images,
@@ -174,18 +408,51 @@ export class ProductsService {
   async updateSpeedboatHandler(
     id: string,
     dto: UpdateSpeedboatDto,
+    files: any,
     user: UserDocument,
   ) {
+    // Validate that the frontend ownerId matches the JWT token user._id
+    if (dto.ownerId && dto.ownerId !== user._id.toString()) {
+      throw new HttpException(
+        'OwnerId mismatch - you can only update your own products',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Use the ownerId from the frontend (or fallback to JWT token)
+    const ownerId = dto.ownerId || user._id.toString();
+
+    // Handle media updates if files are provided
+    if (files?.images || files?.videos) {
+      const { newImages, newVideos } = await this.updateProductMedia(
+        id,
+        this.speedboatModel,
+        files,
+        dto,
+      );
+
+      // Update with new media URLs and reset status to pending
+      return this.speedboatModel.findOneAndUpdate(
+        { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
+        { ...dto, images: newImages, videos: newVideos, status: 'pending' },
+        { new: true },
+      );
+    }
+
+    // Regular update without media changes - reset status to pending
     return this.speedboatModel.findOneAndUpdate(
-      { _id: id, ownerId: user._id },
-      dto,
+      { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
+      { ...dto, status: 'pending' },
       { new: true },
     );
   }
 
-  async getSpeedboatById(id: string, lang: string = 'en') {
+  async getSpeedboatById(id: string, lang?: string) {
     const speedboat = await this.speedboatModel.findById(id).lean();
-    return transformProductForLanguage(speedboat, lang);
+    if (!speedboat) {
+      throw new HttpException('Speedboat not found', HttpStatus.NOT_FOUND);
+    }
+    return transformProductForDualLanguage(speedboat, lang);
   }
 
   async createResortHandler(
@@ -193,8 +460,8 @@ export class ProductsService {
     files: any,
     user: UserDocument,
   ) {
-    const images = await this.uploadMedia(files.images, 'product-images');
-    const videos = await this.uploadMedia(files.videos, 'product-videos');
+    const images = await this.uploadImages(files.images, 'product-images');
+    const videos = await this.uploadVideos(files.videos, 'product-videos');
     return await new this.resortModel({
       ...dto,
       images,
@@ -207,18 +474,51 @@ export class ProductsService {
   async updateResortHandler(
     id: string,
     dto: UpdateResortDto,
+    files: any,
     user: UserDocument,
   ) {
+    // Validate that the frontend ownerId matches the JWT token user._id
+    if (dto.ownerId && dto.ownerId !== user._id.toString()) {
+      throw new HttpException(
+        'OwnerId mismatch - you can only update your own products',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Use the ownerId from the frontend (or fallback to JWT token)
+    const ownerId = dto.ownerId || user._id.toString();
+
+    // Handle media updates if files are provided
+    if (files?.images || files?.videos) {
+      const { newImages, newVideos } = await this.updateProductMedia(
+        id,
+        this.resortModel,
+        files,
+        dto,
+      );
+
+      // Update with new media URLs and reset status to pending
+      return this.resortModel.findOneAndUpdate(
+        { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
+        { ...dto, images: newImages, videos: newVideos, status: 'pending' },
+        { new: true },
+      );
+    }
+
+    // Regular update without media changes - reset status to pending
     return this.resortModel.findOneAndUpdate(
-      { _id: id, ownerId: user._id },
-      dto,
+      { _id: new Types.ObjectId(id), ownerId: new Types.ObjectId(ownerId) },
+      { ...dto, status: 'pending' },
       { new: true },
     );
   }
 
-  async getResortById(id: string, lang: string = 'en') {
+  async getResortById(id: string, lang?: string) {
     const resort = await this.resortModel.findById(id).lean();
-    return transformProductForLanguage(resort, lang);
+    if (!resort) {
+      throw new HttpException('Resort not found', HttpStatus.NOT_FOUND);
+    }
+    return transformProductForDualLanguage(resort, lang);
   }
 
   /**
@@ -232,11 +532,343 @@ export class ProductsService {
       this.speedboatModel.find({ status: 'approved' }).lean(),
       this.resortModel.find({ status: 'approved' }).lean(),
     ]);
-    const allProducts = [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
+    const allProducts = [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
     return transformProductsArrayForLanguage(allProducts, lang);
   }
 
-  async getProductsByOwnerAndStatus(statuses: string[], ownerId?: string, lang: string = 'en') {
+  /**
+   * Get all approved products from all models with dual-language support and filtering
+   */
+  async getProductsWithDualLanguageAndFiltering(
+    displayLang: string = 'en',
+    page: number = 1,
+    limit: number = 20,
+    filters: {
+      types?: string[];
+      minPrice?: number;
+      maxPrice?: number;
+      minCapacity?: number;
+      maxCapacity?: number;
+      brands?: string[];
+      cities?: string[];
+      yachtTypes?: string[];
+      resortTypes?: string[];
+      starRating?: number;
+      amenities?: string[];
+      tags?: string[];
+      search?: string;
+      pricingType?: string; // 'perHour', 'perDay', 'daily', 'yearly'
+      isDailyResort?: boolean;
+      isAnnualResort?: boolean;
+      canHostEvent?: boolean;
+    } = {},
+  ) {
+    const baseFilter = { status: 'approved' };
+    const skip = (page - 1) * limit;
+
+    // Build filter criteria for each product type
+    const buildFilter = (type: string) => {
+      const filter: any = { ...baseFilter };
+
+      // Product type filter
+      if (filters.types && filters.types.length > 0) {
+        if (!filters.types.includes(type)) {
+          return null; // Skip this product type
+        }
+      }
+
+      // Price filters with pricing type support
+      if (filters.minPrice || filters.maxPrice) {
+        let priceField = 'pricePerHour';
+
+        // Determine price field based on product type and pricing type filter
+        if (type === 'resort') {
+          if (filters.pricingType === 'yearly') {
+            priceField = 'yearlyPrice';
+          } else {
+            priceField = 'dailyPrice'; // Default for resorts
+          }
+        } else {
+          // For non-resort products (jetski, kayak, yacht, speedboat)
+          if (filters.pricingType === 'perDay') {
+            priceField = 'pricePerDay';
+          } else {
+            priceField = 'pricePerHour'; // Default for non-resort products
+          }
+        }
+
+        // Only apply price filter if the specified price field exists
+        if (filters.minPrice || filters.maxPrice) {
+          filter[priceField] = {};
+          if (filters.minPrice) filter[priceField].$gte = filters.minPrice;
+          if (filters.maxPrice) filter[priceField].$lte = filters.maxPrice;
+        }
+      }
+
+      // Capacity filters
+      if (filters.minCapacity || filters.maxCapacity) {
+        filter.capacity = {};
+        if (filters.minCapacity) filter.capacity.$gte = filters.minCapacity;
+        if (filters.maxCapacity) filter.capacity.$lte = filters.maxCapacity;
+      }
+
+      // Brand filters (for non-resort products)
+      if (filters.brands && filters.brands.length > 0 && type !== 'resort') {
+        filter.brand = { $in: filters.brands };
+      }
+
+      // City filters
+      if (filters.cities && filters.cities.length > 0) {
+        filter.cityEn = { $in: filters.cities };
+      }
+
+      // Yacht type filters
+      if (
+        filters.yachtTypes &&
+        filters.yachtTypes.length > 0 &&
+        type === 'yacht'
+      ) {
+        filter.yachtType = { $in: filters.yachtTypes };
+      }
+
+      // Resort type filters
+      if (
+        filters.resortTypes &&
+        filters.resortTypes.length > 0 &&
+        type === 'resort'
+      ) {
+        const resortFilters = [];
+        if (filters.resortTypes.includes('daily'))
+          resortFilters.push({ isDailyResort: true });
+        if (filters.resortTypes.includes('annual'))
+          resortFilters.push({ isAnnualResort: true });
+        if (filters.resortTypes.includes('event'))
+          resortFilters.push({ canHostEvent: true });
+        if (resortFilters.length > 0) {
+          filter.$or = resortFilters;
+        }
+      }
+
+      // Dedicated resort boolean filters (for more granular control)
+      if (type === 'resort') {
+        if (filters.isDailyResort !== undefined) {
+          filter.isDailyResort = filters.isDailyResort;
+        }
+        if (filters.isAnnualResort !== undefined) {
+          filter.isAnnualResort = filters.isAnnualResort;
+        }
+        if (filters.canHostEvent !== undefined) {
+          filter.canHostEvent = filters.canHostEvent;
+        }
+      }
+
+      // Star rating filter (for resorts)
+      if (filters.starRating && type === 'resort') {
+        filter.starRating = { $gte: filters.starRating };
+      }
+
+      // Amenities filter (for resorts)
+      if (
+        filters.amenities &&
+        filters.amenities.length > 0 &&
+        type === 'resort'
+      ) {
+        filter.amenitiesEn = { $in: filters.amenities };
+      }
+
+      // Tags filter
+      if (filters.tags && filters.tags.length > 0) {
+        filter.tagsEn = { $in: filters.tags };
+      }
+
+      // Search filter (title and description)
+      if (filters.search) {
+        const searchRegex = new RegExp(filters.search, 'i');
+        filter.$or = [
+          { titleEn: searchRegex },
+          { titleAr: searchRegex },
+          { descriptionEn: searchRegex },
+          { descriptionAr: searchRegex },
+        ];
+      }
+
+      return filter;
+    };
+
+    // Build filters for each product type
+    const jetskiFilter = buildFilter('jetski');
+    const kayakFilter = buildFilter('kayak');
+    const yachtFilter = buildFilter('yacht');
+    const speedboatFilter = buildFilter('speedboat');
+    const resortFilter = buildFilter('resort');
+
+    // Get total count with filters
+    const [jetskiCount, kayakCount, yachtCount, speedboatCount, resortCount] =
+      await Promise.all([
+        jetskiFilter
+          ? this.jetSkiModel.countDocuments(jetskiFilter)
+          : Promise.resolve(0),
+        kayakFilter
+          ? this.kayakModel.countDocuments(kayakFilter)
+          : Promise.resolve(0),
+        yachtFilter
+          ? this.yachtModel.countDocuments(yachtFilter)
+          : Promise.resolve(0),
+        speedboatFilter
+          ? this.speedboatModel.countDocuments(speedboatFilter)
+          : Promise.resolve(0),
+        resortFilter
+          ? this.resortModel.countDocuments(resortFilter)
+          : Promise.resolve(0),
+      ]);
+
+    const totalCount =
+      jetskiCount + kayakCount + yachtCount + speedboatCount + resortCount;
+
+    // Get paginated data with filters
+    const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+      jetskiFilter
+        ? this.jetSkiModel.find(jetskiFilter).skip(skip).limit(limit).lean()
+        : Promise.resolve([]),
+      kayakFilter
+        ? this.kayakModel.find(kayakFilter).skip(skip).limit(limit).lean()
+        : Promise.resolve([]),
+      yachtFilter
+        ? this.yachtModel.find(yachtFilter).skip(skip).limit(limit).lean()
+        : Promise.resolve([]),
+      speedboatFilter
+        ? this.speedboatModel
+            .find(speedboatFilter)
+            .skip(skip)
+            .limit(limit)
+            .lean()
+        : Promise.resolve([]),
+      resortFilter
+        ? this.resortModel.find(resortFilter).skip(skip).limit(limit).lean()
+        : Promise.resolve([]),
+    ]);
+
+    const allProducts = [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
+
+    const transformedProducts = transformProductsArrayForDualLanguage(
+      allProducts,
+      displayLang,
+    );
+
+    return {
+      data: transformedProducts,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNext: page < Math.ceil(totalCount / limit),
+        hasPrev: page > 1,
+      },
+      filters: {
+        applied: filters,
+        totalResults: totalCount,
+      },
+    };
+  }
+
+  /**
+   * Get all approved products from all models with dual-language support
+   */
+  async getProductsWithDualLanguage(displayLang: string = 'en') {
+    const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+      this.jetSkiModel.find({ status: 'approved' }).lean(),
+      this.kayakModel.find({ status: 'approved' }).lean(),
+      this.yachtModel.find({ status: 'approved' }).lean(),
+      this.speedboatModel.find({ status: 'approved' }).lean(),
+      this.resortModel.find({ status: 'approved' }).lean(),
+    ]);
+    const allProducts = [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
+    return transformProductsArrayForDualLanguage(allProducts, displayLang);
+  }
+
+  /**
+   * Get all approved products with pagination and dual-language support
+   */
+  async getProductsWithDualLanguageAndPagination(
+    displayLang: string = 'en',
+    page: number = 1,
+    limit: number = 20,
+  ) {
+    const filter = { status: 'approved' };
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const [jetskiCount, kayakCount, yachtCount, speedboatCount, resortCount] =
+      await Promise.all([
+        this.jetSkiModel.countDocuments(filter),
+        this.kayakModel.countDocuments(filter),
+        this.yachtModel.countDocuments(filter),
+        this.speedboatModel.countDocuments(filter),
+        this.resortModel.countDocuments(filter),
+      ]);
+
+    const totalCount =
+      jetskiCount + kayakCount + yachtCount + speedboatCount + resortCount;
+
+    // Get paginated data
+    const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+      this.jetSkiModel.find(filter).skip(skip).limit(limit).lean(),
+      this.kayakModel.find(filter).skip(skip).limit(limit).lean(),
+      this.yachtModel.find(filter).skip(skip).limit(limit).lean(),
+      this.speedboatModel.find(filter).skip(skip).limit(limit).lean(),
+      this.resortModel.find(filter).skip(skip).limit(limit).lean(),
+    ]);
+
+    const allProducts = [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
+
+    const transformedProducts = transformProductsArrayForDualLanguage(
+      allProducts,
+      displayLang,
+    );
+
+    return {
+      data: transformedProducts,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNext: page < Math.ceil(totalCount / limit),
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  async getProductsByOwnerAndStatus(
+    statuses: string[],
+    ownerId?: string,
+    lang: string = 'en',
+  ) {
     const filter: any = {
       status: { $in: statuses },
     };
@@ -266,8 +898,118 @@ export class ProductsService {
         : this.resortModel.find(filter).lean(),
     ]);
 
-    const allProducts = [...jetskis, ...kayaks, ...yachts, ...speedboats, ...resorts];
+    const allProducts = [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
     return transformProductsArrayForLanguage(allProducts, lang);
+  }
+
+  /**
+   * Get products by owner and status with dual-language support
+   * This method returns both languages in the response with a displayLang field
+   */
+  async getProductsByOwnerAndStatusWithDualLanguage(
+    statuses: string[],
+    ownerId?: string,
+    displayLang?: string,
+  ) {
+    const filter: any = {
+      status: { $in: statuses },
+    };
+
+    if (ownerId) {
+      filter.ownerId = new Types.ObjectId(ownerId);
+    }
+
+    // If ownerId is not provided, it's an admin request: populate owner details
+    const populateOwner = !ownerId;
+
+    // Optimized projection - only fetch needed fields
+    const projection = {
+      // Essential fields
+      _id: 1,
+      type: 1,
+      status: 1,
+      ownerId: 1,
+      createdAt: 1,
+      updatedAt: 1,
+
+      // Language fields (both languages)
+      titleEn: 1,
+      titleAr: 1,
+      descriptionEn: 1,
+      descriptionAr: 1,
+      cancellationPolicyEn: 1,
+      cancellationPolicyAr: 1,
+      termsAndConditionsEn: 1,
+      termsAndConditionsAr: 1,
+      cityEn: 1,
+      cityAr: 1,
+      regionEn: 1,
+      regionAr: 1,
+      countryEn: 1,
+      countryAr: 1,
+      addressEn: 1,
+      addressAr: 1,
+      tagsEn: 1,
+      tagsAr: 1,
+
+      // Product-specific fields
+      pricePerHour: 1,
+      pricePerDay: 1,
+      capacity: 1,
+      maxSpeed: 1,
+      brand: 1,
+      modelYear: 1,
+
+      // Resort-specific fields
+      amenitiesEn: 1,
+      amenitiesAr: 1,
+      safetyFeaturesEn: 1,
+      safetyFeaturesAr: 1,
+      dailyPrice: 1,
+      yearlyPrice: 1,
+      numberOfRooms: 1,
+      starRating: 1,
+
+      // Images and videos
+      images: 1,
+      videos: 1,
+    };
+
+    const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+      populateOwner
+        ? this.jetSkiModel.find(filter, projection).populate('ownerId').lean()
+        : this.jetSkiModel.find(filter, projection).lean(),
+      populateOwner
+        ? this.kayakModel.find(filter, projection).populate('ownerId').lean()
+        : this.kayakModel.find(filter, projection).lean(),
+      populateOwner
+        ? this.yachtModel.find(filter, projection).populate('ownerId').lean()
+        : this.yachtModel.find(filter, projection).lean(),
+      populateOwner
+        ? this.speedboatModel
+            .find(filter, projection)
+            .populate('ownerId')
+            .lean()
+        : this.speedboatModel.find(filter, projection).lean(),
+      populateOwner
+        ? this.resortModel.find(filter, projection).populate('ownerId').lean()
+        : this.resortModel.find(filter, projection).lean(),
+    ]);
+
+    const allProducts = [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
+    return transformProductsArrayForDualLanguage(allProducts, displayLang);
   }
 
   async approveOrRejectProduct(
@@ -434,9 +1176,8 @@ export class ProductsService {
         HttpStatus.CONFLICT,
       );
     }
-    // 3. Validate price (fetch product and compare expected price)
+
     let product: any;
-    let partnerId: Types.ObjectId;
     switch (dto.productType) {
       case 'jetski':
         product = await this.jetSkiModel.findById(dto.productId);
@@ -456,15 +1197,18 @@ export class ProductsService {
       default:
         throw new HttpException('Invalid product type', HttpStatus.BAD_REQUEST);
     }
+
     if (!product) {
       throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
     }
-    partnerId = product.ownerId;
+    const finalPartnerId = product.ownerId;
+
     // Calculate expected price based on product type
     let expectedPrice = 0;
     const durationMs = end.getTime() - start.getTime();
     const hours = durationMs / (1000 * 60 * 60);
     const days = Math.ceil(hours / 24);
+
     if (dto.productType === 'resort') {
       if (days >= 365 && product.yearlyPrice) {
         expectedPrice = product.yearlyPrice;
@@ -506,7 +1250,7 @@ export class ProductsService {
     const booking = await this.bookingModel.create({
       ...dto,
       consumerId,
-      partnerId,
+      partnerId: finalPartnerId,
       paymentStatus: PaymentStatus.PENDING,
       bookingStatus: BookingStatus.PENDING,
       startTime: start,
@@ -699,7 +1443,7 @@ export class ProductsService {
     return booking;
   }
 
-  getModelBasedOnProductType(productType: string) {
+  getModelBasedOnProductType(productType: string): ProductModel {
     // speedboat, jetski, kayak, yacht, resort
     switch (productType) {
       case 'speedboat':
@@ -712,8 +1456,11 @@ export class ProductsService {
         return this.yachtModel;
       case 'resort':
         return this.resortModel;
+      default:
+        throw new Error('Invalid product type');
     }
   }
+
   async getBookingsForConsumer(consumerId: string): Promise<any[]> {
     const bookings = await this.bookingModel
       .find({ consumerId: new Types.ObjectId(consumerId) })
@@ -724,7 +1471,6 @@ export class ProductsService {
       bookings.map(async (booking) => {
         const model = this.getModelBasedOnProductType(booking.productType);
         if (model) {
-          // @ts-ignore
           const product = await model.findById(booking.productId).lean();
           return { ...booking, productId: product };
         }
@@ -745,7 +1491,6 @@ export class ProductsService {
       bookings.map(async (booking) => {
         const model = this.getModelBasedOnProductType(booking.productType);
         if (model) {
-          // @ts-ignore
           const product = await model.findById(booking.productId).lean();
           return { ...booking, productId: product };
         }
@@ -771,6 +1516,162 @@ export class ProductsService {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
     return booking;
+  }
+
+  /**
+   * Get related products based on current product
+   * Finds similar products based on type, price, capacity, brand, location, and tags
+   */
+  async getRelatedProducts(
+    productType: string,
+    productId: string,
+    limit: number = 10,
+    lang?: string,
+  ) {
+    try {
+      // Get the current product details
+      let model: any;
+
+      switch (productType) {
+        case 'jetski':
+          model = this.jetSkiModel;
+          break;
+        case 'kayak':
+          model = this.kayakModel;
+          break;
+        case 'yacht':
+          model = this.yachtModel;
+          break;
+        case 'speedboat':
+          model = this.speedboatModel;
+          break;
+        case 'resort':
+          model = this.resortModel;
+          break;
+        default:
+          throw new HttpException(
+            'Invalid product type',
+            HttpStatus.BAD_REQUEST,
+          );
+      }
+
+      const currentProduct = await model.findById(productId).lean();
+      if (!currentProduct) {
+        throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Build similarity criteria
+      const similarityCriteria: any = {
+        status: 'approved',
+        _id: { $ne: new Types.ObjectId(productId) }, // Exclude current product
+      };
+
+      // Price range similarity (within 20% of current product price)
+      let priceField = 'pricePerHour';
+      if (productType === 'resort') {
+        priceField = 'dailyPrice';
+      }
+
+      if (currentProduct[priceField]) {
+        const currentPrice = currentProduct[priceField];
+        const priceRange = currentPrice * 0.2; // 20% range
+        similarityCriteria[priceField] = {
+          $gte: currentPrice - priceRange,
+          $lte: currentPrice + priceRange,
+        };
+      }
+
+      // Capacity similarity (within 2 people difference)
+      if (currentProduct.capacity) {
+        const currentCapacity = currentProduct.capacity;
+        similarityCriteria.capacity = {
+          $gte: Math.max(1, currentCapacity - 2),
+          $lte: currentCapacity + 2,
+        };
+      }
+
+      // Brand similarity (if available)
+      if (currentProduct.brand && productType !== 'resort') {
+        similarityCriteria.brand = currentProduct.brand;
+      }
+
+      // Location similarity (city/region)
+      if (currentProduct.cityEn) {
+        similarityCriteria.cityEn = currentProduct.cityEn;
+      }
+
+      // Get related products from the same type
+      let relatedProducts = await model
+        .find(similarityCriteria)
+        .limit(limit)
+        .lean();
+
+      // If we don't have enough products with strict criteria, relax the constraints
+      if (relatedProducts.length < limit) {
+        const relaxedCriteria = {
+          status: 'approved',
+          _id: { $ne: new Types.ObjectId(productId) },
+        };
+
+        // Only use price range if we have it
+        if (currentProduct[priceField]) {
+          const currentPrice = currentProduct[priceField];
+          const priceRange = currentPrice * 0.5; // Relax to 50% range
+          relaxedCriteria[priceField] = {
+            $gte: currentPrice - priceRange,
+            $lte: currentPrice + priceRange,
+          };
+        }
+
+        const additionalProducts = await model
+          .find(relaxedCriteria)
+          .limit(limit - relatedProducts.length)
+          .lean();
+
+        // Combine and remove duplicates
+        const allProducts = [...relatedProducts, ...additionalProducts];
+        const seenIds = new Set();
+        relatedProducts = allProducts.filter((product) => {
+          if (seenIds.has(product._id.toString())) {
+            return false;
+          }
+          seenIds.add(product._id.toString());
+          return true;
+        });
+      }
+
+      // If still not enough, get any approved products of the same type
+      if (relatedProducts.length < limit) {
+        const fallbackCriteria = {
+          status: 'approved',
+          _id: { $ne: new Types.ObjectId(productId) },
+        };
+
+        const fallbackProducts = await model
+          .find(fallbackCriteria)
+          .limit(limit - relatedProducts.length)
+          .lean();
+
+        const allProducts = [...relatedProducts, ...fallbackProducts];
+        const seenIds = new Set();
+        relatedProducts = allProducts.filter((product) => {
+          if (seenIds.has(product._id.toString())) {
+            return false;
+          }
+          seenIds.add(product._id.toString());
+          return true;
+        });
+      }
+
+      // Transform for dual language support
+      return transformProductsArrayForDualLanguage(relatedProducts, lang);
+    } catch (error) {
+      console.error('Error getting related products:', error);
+      throw new HttpException(
+        'Failed to get related products',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   /**
@@ -802,5 +1703,203 @@ export class ProductsService {
     }
 
     return this.unavailabilityModel.find({ productId, productType: type });
+  }
+
+  /**
+   * Get products by owner and status with pagination and dual-language support
+   * This method provides pagination for better performance
+   */
+  async getProductsByOwnerAndStatusWithPagination(
+    statuses: string[],
+    ownerId?: string,
+    displayLang?: string,
+    page: number = 1,
+    limit: number = 20,
+  ) {
+    const startTime = Date.now();
+
+    try {
+      const filter: any = {
+        status: { $in: statuses },
+      };
+
+      if (ownerId) {
+        filter.ownerId = new Types.ObjectId(ownerId);
+      }
+
+      // If ownerId is not provided, it's an admin request: populate owner details
+      const populateOwner = !ownerId;
+
+      // Optimized projection - only fetch needed fields
+      const projection = {
+        // Essential fields
+        _id: 1,
+        type: 1,
+        status: 1,
+        ownerId: 1,
+        createdAt: 1,
+        updatedAt: 1,
+
+        // Language fields (both languages)
+        titleEn: 1,
+        titleAr: 1,
+        descriptionEn: 1,
+        descriptionAr: 1,
+        cancellationPolicyEn: 1,
+        cancellationPolicyAr: 1,
+        termsAndConditionsEn: 1,
+        termsAndConditionsAr: 1,
+        cityEn: 1,
+        cityAr: 1,
+        regionEn: 1,
+        regionAr: 1,
+        countryEn: 1,
+        countryAr: 1,
+        addressEn: 1,
+        addressAr: 1,
+        tagsEn: 1,
+        tagsAr: 1,
+
+        // Product-specific fields
+        pricePerHour: 1,
+        pricePerDay: 1,
+        capacity: 1,
+        maxSpeed: 1,
+        brand: 1,
+        modelYear: 1,
+
+        // Resort-specific fields
+        amenitiesEn: 1,
+        amenitiesAr: 1,
+        safetyFeaturesEn: 1,
+        safetyFeaturesAr: 1,
+        dailyPrice: 1,
+        yearlyPrice: 1,
+        numberOfRooms: 1,
+        starRating: 1,
+
+        // Images and videos
+        images: 1,
+        videos: 1,
+      };
+
+      // Calculate skip for pagination
+      const skip = (page - 1) * limit;
+
+      // Get total count for pagination
+      const [jetskiCount, kayakCount, yachtCount, speedboatCount, resortCount] =
+        await Promise.all([
+          this.jetSkiModel.countDocuments(filter),
+          this.kayakModel.countDocuments(filter),
+          this.yachtModel.countDocuments(filter),
+          this.speedboatModel.countDocuments(filter),
+          this.resortModel.countDocuments(filter),
+        ]);
+
+      const totalCount =
+        jetskiCount + kayakCount + yachtCount + speedboatCount + resortCount;
+
+      // Get paginated data
+      const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+        populateOwner
+          ? this.jetSkiModel
+              .find(filter, projection)
+              .populate('ownerId')
+              .skip(skip)
+              .limit(limit)
+              .lean()
+          : this.jetSkiModel
+              .find(filter, projection)
+              .skip(skip)
+              .limit(limit)
+              .lean(),
+        populateOwner
+          ? this.kayakModel
+              .find(filter, projection)
+              .populate('ownerId')
+              .skip(skip)
+              .limit(limit)
+              .lean()
+          : this.kayakModel
+              .find(filter, projection)
+              .skip(skip)
+              .limit(limit)
+              .lean(),
+        populateOwner
+          ? this.yachtModel
+              .find(filter, projection)
+              .populate('ownerId')
+              .skip(skip)
+              .limit(limit)
+              .lean()
+          : this.yachtModel
+              .find(filter, projection)
+              .skip(skip)
+              .limit(limit)
+              .lean(),
+        populateOwner
+          ? this.speedboatModel
+              .find(filter, projection)
+              .populate('ownerId')
+              .skip(skip)
+              .limit(limit)
+              .lean()
+          : this.speedboatModel
+              .find(filter, projection)
+              .skip(skip)
+              .limit(limit)
+              .lean(),
+        populateOwner
+          ? this.resortModel
+              .find(filter, projection)
+              .populate('ownerId')
+              .skip(skip)
+              .limit(limit)
+              .lean()
+          : this.resortModel
+              .find(filter, projection)
+              .skip(skip)
+              .limit(limit)
+              .lean(),
+      ]);
+
+      const allProducts = [
+        ...jetskis,
+        ...kayaks,
+        ...yachts,
+        ...speedboats,
+        ...resorts,
+      ];
+
+      const transformedProducts = transformProductsArrayForDualLanguage(
+        allProducts,
+        displayLang,
+      );
+
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      // Log performance metrics
+      console.log(
+        `Pagination query completed in ${duration}ms for ${transformedProducts.length} products (page ${page}, limit ${limit})`,
+      );
+
+      return {
+        data: transformedProducts,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          hasNext: page < Math.ceil(totalCount / limit),
+          hasPrev: page > 1,
+        },
+      };
+    } catch (error) {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      console.error(`Pagination query failed after ${duration}ms:`, error);
+      throw error;
+    }
   }
 }

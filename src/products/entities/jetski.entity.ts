@@ -17,7 +17,7 @@ export class Jetski {
   @Prop({ required: true })
   descriptionAr: string;
 
-  @Prop({ required: false, default: "jetski" })
+  @Prop({ required: false, default: 'jetski' })
   type: string;
 
   @Prop({ required: false, default: true })
@@ -151,3 +151,14 @@ export class Jetski {
 }
 
 export const JetskiSchema = SchemaFactory.createForClass(Jetski);
+
+// Add performance indexes
+JetskiSchema.index({ status: 1, ownerId: 1 }); // For filtering by status and owner
+JetskiSchema.index({ status: 1, createdAt: -1 }); // For sorting by creation date
+JetskiSchema.index({ ownerId: 1, status: 1, type: 1 }); // For owner's products by type
+JetskiSchema.index({ cityEn: 1, status: 1 }); // For location-based queries
+JetskiSchema.index({ cityAr: 1, status: 1 }); // For Arabic location queries
+JetskiSchema.index({ pricePerHour: 1, status: 1 }); // For price-based filtering
+JetskiSchema.index({ pricePerDay: 1, status: 1 }); // For daily price filtering
+JetskiSchema.index({ capacity: 1, status: 1 }); // For capacity-based filtering
+JetskiSchema.index({ isFeatured: 1, status: 1 }); // For featured products

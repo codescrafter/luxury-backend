@@ -10,14 +10,12 @@ const { rejectProduct } = require('./reject-product');
 const { getProducts } = require('./get-products');
 const { testPendingProductVisibility } = require('./get-pending-products');
 
-
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 const isProductVisible = async (type, id) => {
   const products = await getProducts({ productType: type });
   return products.some((p) => p._id === id);
 };
-
 
 const runFlow = async (type, createFn) => {
   const created = await createFn();
