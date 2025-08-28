@@ -543,6 +543,248 @@ export class ProductsService {
   }
 
   /**
+   * Get all approved products from all models with dual-language support and filtering
+   */
+  async getProductsWithDualLanguageAndFiltering(
+    displayLang: string = 'en',
+    page: number = 1,
+    limit: number = 20,
+    filters: {
+      types?: string[];
+      minPrice?: number;
+      maxPrice?: number;
+      minCapacity?: number;
+      maxCapacity?: number;
+      brands?: string[];
+      cities?: string[];
+      yachtTypes?: string[];
+      resortTypes?: string[];
+      starRating?: number;
+      amenities?: string[];
+      tags?: string[];
+      search?: string;
+      pricingType?: string; // 'perHour', 'perDay', 'daily', 'yearly'
+      isDailyResort?: boolean;
+      isAnnualResort?: boolean;
+      canHostEvent?: boolean;
+    } = {},
+  ) {
+    const baseFilter = { status: 'approved' };
+    const skip = (page - 1) * limit;
+
+    // Build filter criteria for each product type
+    const buildFilter = (type: string) => {
+      const filter: any = { ...baseFilter };
+
+      // Product type filter
+      if (filters.types && filters.types.length > 0) {
+        if (!filters.types.includes(type)) {
+          return null; // Skip this product type
+        }
+      }
+
+      // Price filters with pricing type support
+      if (filters.minPrice || filters.maxPrice) {
+        let priceField = 'pricePerHour';
+
+        // Determine price field based on product type and pricing type filter
+        if (type === 'resort') {
+          if (filters.pricingType === 'yearly') {
+            priceField = 'yearlyPrice';
+          } else {
+            priceField = 'dailyPrice'; // Default for resorts
+          }
+        } else {
+          // For non-resort products (jetski, kayak, yacht, speedboat)
+          if (filters.pricingType === 'perDay') {
+            priceField = 'pricePerDay';
+          } else {
+            priceField = 'pricePerHour'; // Default for non-resort products
+          }
+        }
+
+        // Only apply price filter if the specified price field exists
+        if (filters.minPrice || filters.maxPrice) {
+          filter[priceField] = {};
+          if (filters.minPrice) filter[priceField].$gte = filters.minPrice;
+          if (filters.maxPrice) filter[priceField].$lte = filters.maxPrice;
+        }
+      }
+
+      // Capacity filters
+      if (filters.minCapacity || filters.maxCapacity) {
+        filter.capacity = {};
+        if (filters.minCapacity) filter.capacity.$gte = filters.minCapacity;
+        if (filters.maxCapacity) filter.capacity.$lte = filters.maxCapacity;
+      }
+
+      // Brand filters (for non-resort products)
+      if (filters.brands && filters.brands.length > 0 && type !== 'resort') {
+        filter.brand = { $in: filters.brands };
+      }
+
+      // City filters
+      if (filters.cities && filters.cities.length > 0) {
+        filter.cityEn = { $in: filters.cities };
+      }
+
+      // Yacht type filters
+      if (
+        filters.yachtTypes &&
+        filters.yachtTypes.length > 0 &&
+        type === 'yacht'
+      ) {
+        filter.yachtType = { $in: filters.yachtTypes };
+      }
+
+      // Resort type filters
+      if (
+        filters.resortTypes &&
+        filters.resortTypes.length > 0 &&
+        type === 'resort'
+      ) {
+        const resortFilters = [];
+        if (filters.resortTypes.includes('daily'))
+          resortFilters.push({ isDailyResort: true });
+        if (filters.resortTypes.includes('annual'))
+          resortFilters.push({ isAnnualResort: true });
+        if (filters.resortTypes.includes('event'))
+          resortFilters.push({ canHostEvent: true });
+        if (resortFilters.length > 0) {
+          filter.$or = resortFilters;
+        }
+      }
+
+      // Dedicated resort boolean filters (for more granular control)
+      if (type === 'resort') {
+        if (filters.isDailyResort !== undefined) {
+          filter.isDailyResort = filters.isDailyResort;
+        }
+        if (filters.isAnnualResort !== undefined) {
+          filter.isAnnualResort = filters.isAnnualResort;
+        }
+        if (filters.canHostEvent !== undefined) {
+          filter.canHostEvent = filters.canHostEvent;
+        }
+      }
+
+      // Star rating filter (for resorts)
+      if (filters.starRating && type === 'resort') {
+        filter.starRating = { $gte: filters.starRating };
+      }
+
+      // Amenities filter (for resorts)
+      if (
+        filters.amenities &&
+        filters.amenities.length > 0 &&
+        type === 'resort'
+      ) {
+        filter.amenitiesEn = { $in: filters.amenities };
+      }
+
+      // Tags filter
+      if (filters.tags && filters.tags.length > 0) {
+        filter.tagsEn = { $in: filters.tags };
+      }
+
+      // Search filter (title and description)
+      if (filters.search) {
+        const searchRegex = new RegExp(filters.search, 'i');
+        filter.$or = [
+          { titleEn: searchRegex },
+          { titleAr: searchRegex },
+          { descriptionEn: searchRegex },
+          { descriptionAr: searchRegex },
+        ];
+      }
+
+      return filter;
+    };
+
+    // Build filters for each product type
+    const jetskiFilter = buildFilter('jetski');
+    const kayakFilter = buildFilter('kayak');
+    const yachtFilter = buildFilter('yacht');
+    const speedboatFilter = buildFilter('speedboat');
+    const resortFilter = buildFilter('resort');
+
+    // Get total count with filters
+    const [jetskiCount, kayakCount, yachtCount, speedboatCount, resortCount] =
+      await Promise.all([
+        jetskiFilter
+          ? this.jetSkiModel.countDocuments(jetskiFilter)
+          : Promise.resolve(0),
+        kayakFilter
+          ? this.kayakModel.countDocuments(kayakFilter)
+          : Promise.resolve(0),
+        yachtFilter
+          ? this.yachtModel.countDocuments(yachtFilter)
+          : Promise.resolve(0),
+        speedboatFilter
+          ? this.speedboatModel.countDocuments(speedboatFilter)
+          : Promise.resolve(0),
+        resortFilter
+          ? this.resortModel.countDocuments(resortFilter)
+          : Promise.resolve(0),
+      ]);
+
+    const totalCount =
+      jetskiCount + kayakCount + yachtCount + speedboatCount + resortCount;
+
+    // Get paginated data with filters
+    const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+      jetskiFilter
+        ? this.jetSkiModel.find(jetskiFilter).skip(skip).limit(limit).lean()
+        : Promise.resolve([]),
+      kayakFilter
+        ? this.kayakModel.find(kayakFilter).skip(skip).limit(limit).lean()
+        : Promise.resolve([]),
+      yachtFilter
+        ? this.yachtModel.find(yachtFilter).skip(skip).limit(limit).lean()
+        : Promise.resolve([]),
+      speedboatFilter
+        ? this.speedboatModel
+            .find(speedboatFilter)
+            .skip(skip)
+            .limit(limit)
+            .lean()
+        : Promise.resolve([]),
+      resortFilter
+        ? this.resortModel.find(resortFilter).skip(skip).limit(limit).lean()
+        : Promise.resolve([]),
+    ]);
+
+    const allProducts = [
+      ...jetskis,
+      ...kayaks,
+      ...yachts,
+      ...speedboats,
+      ...resorts,
+    ];
+
+    const transformedProducts = transformProductsArrayForDualLanguage(
+      allProducts,
+      displayLang,
+    );
+
+    return {
+      data: transformedProducts,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNext: page < Math.ceil(totalCount / limit),
+        hasPrev: page > 1,
+      },
+      filters: {
+        applied: filters,
+        totalResults: totalCount,
+      },
+    };
+  }
+
+  /**
    * Get all approved products from all models with dual-language support
    */
   async getProductsWithDualLanguage(displayLang: string = 'en') {

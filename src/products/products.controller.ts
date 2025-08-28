@@ -49,22 +49,70 @@ export class ProductsController {
     );
   }
 
-  @Get() // This is for users and it will show only approved products
+  @Get() // This is for users and it will show only approved products with filtering
   // @UseGuards(AuthGuard())
   async getProducts(
     @Req() req,
     @Query('lang') lang?: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
+    // Filter parameters
+    @Query('types') types?: string, // Comma-separated: jetski,kayak,yacht,speedboat,resort
+    @Query('minPrice') minPrice?: number,
+    @Query('maxPrice') maxPrice?: number,
+    @Query('minCapacity') minCapacity?: number,
+    @Query('maxCapacity') maxCapacity?: number,
+    @Query('brands') brands?: string, // Comma-separated: Yamaha,Sea Ray
+    @Query('cities') cities?: string, // Comma-separated: Dubai,Abu Dhabi
+    @Query('yachtTypes') yachtTypes?: string, // Comma-separated: motor,sailing,catamaran
+    @Query('resortTypes') resortTypes?: string, // Comma-separated: daily,annual,event
+    @Query('starRating') starRating?: number,
+    @Query('amenities') amenities?: string, // Comma-separated: WiFi,Parking,Pool
+    @Query('tags') tags?: string, // Comma-separated: luxury,family,romantic
+    @Query('search') search?: string, // Search in title and description
+    @Query('pricingType') pricingType?: string, // perHour, perDay, daily, yearly
+    @Query('isDailyResort') isDailyResort?: boolean, // true/false for resorts
+    @Query('isAnnualResort') isAnnualResort?: boolean, // true/false for resorts
+    @Query('canHostEvent') canHostEvent?: boolean, // true/false for resorts
   ) {
     try {
       const userLang = req.user?.lang || 'en';
       const displayLang = lang || userLang;
+
+      // Parse comma-separated string parameters into arrays
+      const parseArrayParam = (param?: string) =>
+        param ? param.split(',').map((item) => item.trim()) : undefined;
+
+      // Build filters object
+      const filters = {
+        types: parseArrayParam(types),
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        minCapacity: minCapacity ? Number(minCapacity) : undefined,
+        maxCapacity: maxCapacity ? Number(maxCapacity) : undefined,
+        brands: parseArrayParam(brands),
+        cities: parseArrayParam(cities),
+        yachtTypes: parseArrayParam(yachtTypes),
+        resortTypes: parseArrayParam(resortTypes),
+        starRating: starRating ? Number(starRating) : undefined,
+        amenities: parseArrayParam(amenities),
+        tags: parseArrayParam(tags),
+        search: search?.trim() || undefined,
+        pricingType: pricingType?.trim() || undefined,
+        isDailyResort:
+          isDailyResort !== undefined ? Boolean(isDailyResort) : undefined,
+        isAnnualResort:
+          isAnnualResort !== undefined ? Boolean(isAnnualResort) : undefined,
+        canHostEvent:
+          canHostEvent !== undefined ? Boolean(canHostEvent) : undefined,
+      };
+
       const result =
-        await this.productsService.getProductsWithDualLanguageAndPagination(
+        await this.productsService.getProductsWithDualLanguageAndFiltering(
           displayLang,
           page,
           limit,
+          filters,
         );
       return { success: true, ...result };
     } catch (error) {
