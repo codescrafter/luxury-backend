@@ -54,7 +54,8 @@ async function testResortBooleanFilters() {
     {
       name: 'All Three Boolean Filters',
       url: '/products?types=resort&isDailyResort=true&isAnnualResort=true&canHostEvent=true',
-      description: 'Get resorts that offer daily, annual rentals and can host events',
+      description:
+        'Get resorts that offer daily, annual rentals and can host events',
     },
   ];
 
@@ -93,7 +94,6 @@ async function testResortBooleanFilters() {
       }
 
       console.log(''); // Empty line for readability
-
     } catch (error) {
       console.log(
         `   ❌ Error: ${error.response?.data?.message || error.message}`,
@@ -125,12 +125,14 @@ async function testResortBooleanWithOtherFilters() {
     {
       name: 'Daily + Event Hosting + Star Rating + Price',
       url: '/products?types=resort&isDailyResort=true&canHostEvent=true&starRating=5&minPrice=300&maxPrice=1000&pricingType=daily',
-      description: 'Get 5-star daily resorts that can host events with daily price 300-1000',
+      description:
+        'Get 5-star daily resorts that can host events with daily price 300-1000',
     },
     {
       name: 'Complex Resort Filter',
       url: '/products?types=resort&isDailyResort=true&isAnnualResort=false&canHostEvent=true&starRating=4&minPrice=200&maxPrice=800&pricingType=daily&cities=Dubai,Abu Dhabi&amenities=WiFi,Pool',
-      description: 'Complex filter combining all resort boolean filters with other criteria',
+      description:
+        'Complex filter combining all resort boolean filters with other criteria',
     },
   ];
 
@@ -170,7 +172,6 @@ async function testResortBooleanWithOtherFilters() {
       }
 
       console.log(''); // Empty line for readability
-
     } catch (error) {
       console.log(
         `   ❌ Error: ${error.response?.data?.message || error.message}`,
@@ -197,7 +198,8 @@ async function testResortBooleanValidation() {
     {
       name: 'Boolean Filter for Non-Resort Products',
       url: '/products?types=yacht&isDailyResort=true',
-      expectedBehavior: 'Should return yachts (boolean filter ignored for non-resorts)',
+      expectedBehavior:
+        'Should return yachts (boolean filter ignored for non-resorts)',
     },
     {
       name: 'Multiple Boolean Values',
@@ -219,7 +221,6 @@ async function testResortBooleanValidation() {
       if (response.data.filters) {
         console.log(`   🔍 Applied Filters:`, response.data.filters.applied);
       }
-
     } catch (error) {
       console.log(
         `   ❌ Error: ${error.response?.data?.message || error.message}`,
