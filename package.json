@@ -33,6 +33,8 @@
     "@nestjs/websockets": "^11.0.5",
     "@sendgrid/mail": "^8.1.4",
     "@types/compression": "^1.8.1",
+    "@types/qrcode": "^1.5.5",
+    "@types/uuid": "^10.0.0",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
@@ -51,10 +53,12 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
+    "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.0",
     "resend": "^4.8.0",
     "rxjs": "^7.8.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@nestjs/schematics": "^10.0.0",

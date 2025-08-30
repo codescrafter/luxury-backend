@@ -27,13 +27,14 @@ import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
 import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
 import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
 import { CreateUnavailabilityDto } from './dto/unavailability.dto';
-import { CreateBookingDto } from './dto/booking.dto';
+import { CreateBookingDto, UpdatePaymentStatusDto } from './dto/booking.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import {
   transformProductsArrayForLanguage,
   transformProductsArrayForDualLanguage,
   transformProductForDualLanguage,
 } from '../helpers/dto-helpers';
+import { BookingQrService } from './booking-qr.service';
 
 @Injectable()
 export class ProductsService {
@@ -50,6 +51,7 @@ export class ProductsService {
     private unavailabilityModel: Model<Unavailability>,
     @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly bookingQrService: BookingQrService,
   ) {}
 
   private async uploadImages(files: any[] | undefined, folder: string) {
@@ -1300,6 +1302,9 @@ export class ProductsService {
       });
     }
 
+    // Note: QR code will be generated when payment is confirmed via updatePaymentStatus
+    // This ensures QR codes are only available for paid bookings
+
     return booking;
   }
 
@@ -1701,8 +1706,174 @@ export class ProductsService {
     if (!product) {
       throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
     }
+    const productObjectId = new Types.ObjectId(productId);
 
-    return this.unavailabilityModel.find({ productId, productType: type });
+    return this.unavailabilityModel.find({
+      productId: productObjectId,
+      productType: type,
+    });
+  }
+
+  /**
+   * Verify QR code token
+   */
+  async verifyQrToken(token: string) {
+    return this.bookingQrService.verifyQrToken(token);
+  }
+
+  /**
+   * Update payment status for a booking (partner only)
+   */
+  async updatePaymentStatus(
+    bookingId: string,
+    partnerId: string,
+    dto: UpdatePaymentStatusDto,
+  ) {
+    const booking = await this.bookingModel.findOne({
+      _id: bookingId,
+      partnerId,
+    });
+
+    if (!booking) {
+      throw new HttpException(
+        'Booking not found or unauthorized',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const previousPaymentStatus = booking.paymentStatus;
+    const previousBookingStatus = booking.bookingStatus;
+
+    // Update payment status
+    booking.paymentStatus = dto.paymentStatus;
+    if (dto.transactionId) {
+      booking.transactionId = dto.transactionId;
+    }
+
+    // Handle booking status based on payment status
+    if (dto.paymentStatus === PaymentStatus.PAID) {
+      // If payment is confirmed, also confirm the booking
+      if (booking.bookingStatus !== BookingStatus.CANCELLED) {
+        booking.bookingStatus = BookingStatus.CONFIRMED;
+      }
+    } else if (dto.paymentStatus === PaymentStatus.FAILED) {
+      // If payment failed, keep booking as pending
+      if (booking.bookingStatus === BookingStatus.CONFIRMED) {
+        booking.bookingStatus = BookingStatus.PENDING;
+      }
+    } else if (dto.paymentStatus === PaymentStatus.REFUNDED) {
+      // If payment is refunded, cancel the booking
+      booking.bookingStatus = BookingStatus.CANCELLED;
+    }
+
+    await booking.save();
+
+    // Handle QR code generation/removal based on payment status
+    if (
+      dto.paymentStatus === PaymentStatus.PAID &&
+      previousPaymentStatus !== PaymentStatus.PAID
+    ) {
+      // Generate QR code when payment is confirmed
+      try {
+        await this.bookingQrService.generateQrForBooking(bookingId);
+        console.log(
+          `QR code generated for booking ${bookingId} after payment confirmation`,
+        );
+      } catch (error) {
+        console.error(
+          `Failed to generate QR code for booking ${bookingId}:`,
+          error,
+        );
+        // Don't fail the payment update if QR generation fails
+      }
+
+      // Create unavailability for this booking after payment confirmation
+      const existingUnavailability = await this.unavailabilityModel.findOne({
+        productId: booking.productId,
+        consumerId: booking.consumerId,
+        productType: booking.productType,
+        unavailabilityType: 'booked',
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+      });
+
+      if (!existingUnavailability) {
+        await this.unavailabilityModel.create({
+          productId: booking.productId,
+          consumerId: booking.consumerId,
+          productType: booking.productType,
+          unavailabilityType: 'booked',
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+        });
+      }
+    } else if (
+      dto.paymentStatus === PaymentStatus.FAILED &&
+      previousPaymentStatus === PaymentStatus.PAID
+    ) {
+      // Remove QR code when payment fails after being paid
+      try {
+        await this.bookingQrService.removeQrForBooking(bookingId);
+        console.log(
+          `QR code removed for booking ${bookingId} after payment failure`,
+        );
+      } catch (error) {
+        console.error(
+          `Failed to remove QR code for booking ${bookingId}:`,
+          error,
+        );
+      }
+
+      // Remove unavailability when payment fails
+      await this.unavailabilityModel.deleteOne({
+        productId: booking.productId,
+        consumerId: booking.consumerId,
+        productType: booking.productType,
+        unavailabilityType: 'booked',
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+      });
+    } else if (
+      dto.paymentStatus === PaymentStatus.REFUNDED &&
+      previousPaymentStatus === PaymentStatus.PAID
+    ) {
+      // Remove QR code when payment is refunded
+      try {
+        await this.bookingQrService.removeQrForBooking(bookingId);
+        console.log(
+          `QR code removed for booking ${bookingId} after payment refund`,
+        );
+      } catch (error) {
+        console.error(
+          `Failed to remove QR code for booking ${bookingId}:`,
+          error,
+        );
+      }
+
+      // Remove unavailability when payment is refunded
+      await this.unavailabilityModel.deleteOne({
+        productId: booking.productId,
+        consumerId: booking.consumerId,
+        productType: booking.productType,
+        unavailabilityType: 'booked',
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+      });
+    }
+
+    return {
+      booking,
+      changes: {
+        paymentStatus: {
+          from: previousPaymentStatus,
+          to: dto.paymentStatus,
+        },
+        bookingStatus: {
+          from: previousBookingStatus,
+          to: booking.bookingStatus,
+        },
+      },
+    };
   }
 
   /**

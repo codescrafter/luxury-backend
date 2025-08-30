@@ -41,11 +41,6 @@ export class CreateResortDto {
   @Transform(({ value }) => value === 'true' || value === true)
   canHostEvent: boolean;
 
-  // @IsOptional()
-  // @IsArray()
-  // @IsString({ each: true })
-  // @Transform(({ value }) => value ? JSON.parse(value) : undefined)
-  // amenities?: string[];
   @IsOptional()
   @IsArray()
   @Transform(({ value }) => {

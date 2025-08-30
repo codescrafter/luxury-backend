@@ -26,7 +26,8 @@ import { CreateYachtDto, UpdateYachtDto } from './dto/yacht.dto';
 import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
 import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
 import { CreateUnavailabilityDto } from './dto/unavailability.dto';
-import { CreateBookingDto } from './dto/booking.dto';
+import { CreateBookingDto, UpdatePaymentStatusDto } from './dto/booking.dto';
+import { VerifyQrDto } from './dto/booking-qr.dto';
 
 import { ProductsService } from './products.service';
 import { Types } from 'mongoose';
@@ -882,7 +883,7 @@ export class ProductsController {
   }
 
   /**
-   * Get unavailability for a product (partner only, must be owner)
+   * Get unavailability for a products
    */
   @Get(':type/:productId/unavailability')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -898,6 +899,42 @@ export class ProductsController {
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('get unavailability for product', error);
+    }
+  }
+
+  /**
+   * Verify QR code token (public endpoint)
+   */
+  @Post('qr/verify')
+  async verifyQr(@Body() dto: VerifyQrDto) {
+    try {
+      const result = await this.productsService.verifyQrToken(dto.token);
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('verify QR code', error);
+    }
+  }
+
+  /**
+   * Update payment status for a booking (partner only)
+   */
+  @Put('booking/:id/payment-status')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER)
+  async updatePaymentStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdatePaymentStatusDto,
+    @Req() req,
+  ) {
+    try {
+      const result = await this.productsService.updatePaymentStatus(
+        id,
+        req.user._id,
+        dto,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('update payment status', error);
     }
   }
 }
