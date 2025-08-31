@@ -4,7 +4,7 @@ const BASE_URL = 'http://localhost:8080';
 let authToken = '';
 let partnerToken = '';
 let bookingId = '';
-let productId = '68ad686ea5208006878b4c15'; // The product ID from your URL
+const productId = '68ad686ea5208006878b4c15'; // The product ID from your URL
 
 // Test data
 const testUser = {

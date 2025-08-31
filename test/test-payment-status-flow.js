@@ -36,7 +36,10 @@ async function loginUser() {
     console.log('✅ User login successful');
     return authToken;
   } catch (error) {
-    console.error('❌ User login failed:', error.response?.data || error.message);
+    console.error(
+      '❌ User login failed:',
+      error.response?.data || error.message,
+    );
     throw error;
   }
 }
@@ -49,7 +52,10 @@ async function loginPartner() {
     console.log('✅ Partner login successful');
     return partnerToken;
   } catch (error) {
-    console.error('❌ Partner login failed:', error.response?.data || error.message);
+    console.error(
+      '❌ Partner login failed:',
+      error.response?.data || error.message,
+    );
     throw error;
   }
 }
@@ -89,8 +95,14 @@ async function approveBooking() {
       },
     );
     console.log('✅ Booking approved');
-    console.log('Booking status after approval:', response.data.data.bookingStatus);
-    console.log('Payment status after approval:', response.data.data.paymentStatus);
+    console.log(
+      'Booking status after approval:',
+      response.data.data.bookingStatus,
+    );
+    console.log(
+      'Payment status after approval:',
+      response.data.data.paymentStatus,
+    );
     return response.data;
   } catch (error) {
     console.error(
@@ -107,7 +119,7 @@ async function updatePaymentStatus(status, transactionId = null) {
     const payload = {
       paymentStatus: status,
     };
-    
+
     if (transactionId) {
       payload.transactionId = transactionId;
     }
@@ -120,8 +132,14 @@ async function updatePaymentStatus(status, transactionId = null) {
       },
     );
     console.log('✅ Payment status updated');
-    console.log('New payment status:', response.data.data.booking.paymentStatus);
-    console.log('New booking status:', response.data.data.booking.bookingStatus);
+    console.log(
+      'New payment status:',
+      response.data.data.booking.paymentStatus,
+    );
+    console.log(
+      'New booking status:',
+      response.data.data.booking.bookingStatus,
+    );
     console.log('Changes:', response.data.data.changes);
     return response.data.data;
   } catch (error) {
@@ -136,12 +154,9 @@ async function updatePaymentStatus(status, transactionId = null) {
 async function checkQrCode() {
   try {
     console.log('🔍 Checking QR code availability...');
-    const response = await axios.get(
-      `${BASE_URL}/qr/booking/${bookingId}`,
-      {
-        headers: { Authorization: `Bearer ${authToken}` },
-      },
-    );
+    const response = await axios.get(`${BASE_URL}/qr/booking/${bookingId}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
     console.log('✅ QR code found');
     console.log('QR status:', response.data.data.qrCode.status);
     console.log('QR image URL:', response.data.data.qrImageUrl);
@@ -151,7 +166,10 @@ async function checkQrCode() {
       console.log('❌ QR code not found (expected for unpaid bookings)');
       return null;
     }
-    console.error('❌ QR code check failed:', error.response?.data || error.message);
+    console.error(
+      '❌ QR code check failed:',
+      error.response?.data || error.message,
+    );
     throw error;
   }
 }
@@ -189,7 +207,7 @@ async function testPaymentStatusFlow() {
     // Step 4: Approve booking (should not generate QR)
     console.log('\n--- Step 4: Approve booking ---');
     await approveBooking();
-    
+
     // Step 5: Check QR after approval (should not exist)
     console.log('\n--- Step 5: Check QR after approval ---');
     await checkQrCode();
@@ -197,16 +215,16 @@ async function testPaymentStatusFlow() {
     // Step 6: Update payment status to PAID
     console.log('\n--- Step 6: Update payment to PAID ---');
     const paidResult = await updatePaymentStatus('paid', 'txn_123456789');
-    
+
     // Step 7: Check QR after payment (should exist)
     console.log('\n--- Step 7: Check QR after payment ---');
     const qrData = await checkQrCode();
-    
+
     if (qrData) {
       // Step 8: Verify QR code
       console.log('\n--- Step 8: Verify QR code ---');
       await verifyQrCode(qrData.token);
-      
+
       // Step 9: Try to verify the same QR again (should fail)
       console.log('\n--- Step 9: Try to verify QR again ---');
       try {
@@ -220,7 +238,7 @@ async function testPaymentStatusFlow() {
     // Step 10: Test payment failure
     console.log('\n--- Step 10: Test payment failure ---');
     await updatePaymentStatus('failed');
-    
+
     // Step 11: Check QR after payment failure (should not exist)
     console.log('\n--- Step 11: Check QR after payment failure ---');
     await checkQrCode();
@@ -228,7 +246,7 @@ async function testPaymentStatusFlow() {
     // Step 12: Test payment refund
     console.log('\n--- Step 12: Test payment refund ---');
     await updatePaymentStatus('refunded');
-    
+
     // Step 13: Check QR after refund (should not exist)
     console.log('\n--- Step 13: Check QR after refund ---');
     await checkQrCode();
