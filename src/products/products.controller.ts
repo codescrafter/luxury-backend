@@ -28,6 +28,7 @@ import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
 import { CreateUnavailabilityDto } from './dto/unavailability.dto';
 import { CreateBookingDto, UpdatePaymentStatusDto } from './dto/booking.dto';
 import { VerifyQrDto } from './dto/booking-qr.dto';
+import { DashboardSummaryDto } from './dto/dashboard.dto';
 
 import { ProductsService } from './products.service';
 import { Types } from 'mongoose';
@@ -935,6 +936,26 @@ export class ProductsController {
       return { success: true, data: result };
     } catch (error) {
       this.catchResponse('update payment status', error);
+    }
+  }
+
+  /**
+   * Get dashboard summary statistics
+   * Works for both admin and partner roles
+   */
+  @Get('dashboard/summary')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.ADMIN, Role.PARTNER)
+  async getDashboardSummary(@Query() dto: DashboardSummaryDto, @Req() req) {
+    try {
+      const result = await this.productsService.getDashboardSummary(
+        req.user._id,
+        req.user.role,
+        dto,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('get dashboard summary', error);
     }
   }
 }

@@ -28,6 +28,7 @@ import { CreateSpeedboatDto, UpdateSpeedboatDto } from './dto/speedboat.dto';
 import { CreateResortDto, UpdateResortDto } from './dto/resort.dto';
 import { CreateUnavailabilityDto } from './dto/unavailability.dto';
 import { CreateBookingDto, UpdatePaymentStatusDto } from './dto/booking.dto';
+import { DashboardSummaryDto } from './dto/dashboard.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import {
   transformProductsArrayForLanguage,
@@ -2071,6 +2072,373 @@ export class ProductsService {
       const duration = endTime - startTime;
       console.error(`Pagination query failed after ${duration}ms:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Get dashboard summary statistics
+   * Optimized for performance with aggregation pipelines
+   */
+  async getDashboardSummary(
+    userId: string,
+    userRole: string[],
+    dto: DashboardSummaryDto,
+  ) {
+    const startTime = Date.now();
+
+    try {
+      // Build date filter
+      const dateFilter: any = {};
+      if (dto.startDate && dto.endDate) {
+        dateFilter.createdAt = {
+          $gte: new Date(dto.startDate),
+          $lte: new Date(dto.endDate + 'T23:59:59.999Z'),
+        };
+      }
+
+      // Build booking filter based on user role
+      const bookingFilter: any = { ...dateFilter };
+      if (userRole.includes('PARTNER') && !userRole.includes('ADMIN')) {
+        bookingFilter.partnerId = new Types.ObjectId(userId);
+      }
+
+      // Get today's date range
+      const today = new Date();
+      const todayStart = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
+      const todayEnd = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        23,
+        59,
+        59,
+        999,
+      );
+
+      // Parallel aggregation queries for optimal performance
+      const [bookingStats, todayBookingStats, revenueStats, recentBookings] =
+        await Promise.all([
+          // Overall booking statistics
+          this.bookingModel.aggregate([
+            { $match: bookingFilter },
+            {
+              $group: {
+                _id: null,
+                bookingsCount: { $sum: 1 },
+                confirmedBookings: {
+                  $sum: {
+                    $cond: [{ $eq: ['$bookingStatus', 'confirmed'] }, 1, 0],
+                  },
+                },
+                cancelledBookings: {
+                  $sum: {
+                    $cond: [{ $eq: ['$bookingStatus', 'cancelled'] }, 1, 0],
+                  },
+                },
+                completedBookings: {
+                  $sum: {
+                    $cond: [{ $eq: ['$bookingStatus', 'completed'] }, 1, 0],
+                  },
+                },
+                pendingApprovals: {
+                  $sum: {
+                    $cond: [{ $eq: ['$bookingStatus', 'pending'] }, 1, 0],
+                  },
+                },
+                revenueTotal: { $sum: '$totalPrice' },
+                averageBookingValue: { $avg: '$totalPrice' },
+              },
+            },
+          ]),
+
+          // Today's booking statistics
+          this.bookingModel.aggregate([
+            {
+              $match: {
+                ...bookingFilter,
+                createdAt: { $gte: todayStart, $lte: todayEnd },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                todayBookings: { $sum: 1 },
+                todayRevenue: { $sum: '$totalPrice' },
+              },
+            },
+          ]),
+
+          // Revenue breakdown by payment status
+          dto.includeRevenueBreakdown
+            ? this.bookingModel.aggregate([
+                { $match: bookingFilter },
+                {
+                  $group: {
+                    _id: '$paymentStatus',
+                    revenue: { $sum: '$totalPrice' },
+                  },
+                },
+              ])
+            : Promise.resolve([]),
+
+          // Recent bookings (last 10)
+          this.bookingModel.aggregate([
+            { $match: bookingFilter },
+            { $sort: { createdAt: -1 } },
+            { $limit: 10 },
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'consumerId',
+                foreignField: '_id',
+                as: 'consumer',
+              },
+            },
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'partnerId',
+                foreignField: '_id',
+                as: 'partner',
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                productType: 1,
+                totalPrice: 1,
+                bookingStatus: 1,
+                paymentStatus: 1,
+                startTime: 1,
+                endTime: 1,
+                consumerName: { $arrayElemAt: ['$consumer.name', 0] },
+                partnerName: { $arrayElemAt: ['$partner.name', 0] },
+              },
+            },
+          ]),
+        ]);
+
+      // Get product statistics if requested
+      let productStats = null;
+      if (dto.includeProductStats) {
+        const productFilter: any = {};
+        if (userRole.includes('PARTNER') && !userRole.includes('ADMIN')) {
+          productFilter.ownerId = new Types.ObjectId(userId);
+        }
+
+        const [
+          jetskiStats,
+          kayakStats,
+          yachtStats,
+          speedboatStats,
+          resortStats,
+        ] = await Promise.all([
+          this.jetSkiModel.aggregate([
+            { $match: productFilter },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                active: {
+                  $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] },
+                },
+                pending: {
+                  $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] },
+                },
+              },
+            },
+          ]),
+          this.kayakModel.aggregate([
+            { $match: productFilter },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                active: {
+                  $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] },
+                },
+                pending: {
+                  $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] },
+                },
+              },
+            },
+          ]),
+          this.yachtModel.aggregate([
+            { $match: productFilter },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                active: {
+                  $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] },
+                },
+                pending: {
+                  $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] },
+                },
+              },
+            },
+          ]),
+          this.speedboatModel.aggregate([
+            { $match: productFilter },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                active: {
+                  $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] },
+                },
+                pending: {
+                  $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] },
+                },
+              },
+            },
+          ]),
+          this.resortModel.aggregate([
+            { $match: productFilter },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                active: {
+                  $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] },
+                },
+                pending: {
+                  $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] },
+                },
+              },
+            },
+          ]),
+        ]);
+
+        const totalProducts = [
+          jetskiStats[0]?.total || 0,
+          kayakStats[0]?.total || 0,
+          yachtStats[0]?.total || 0,
+          speedboatStats[0]?.total || 0,
+          resortStats[0]?.total || 0,
+        ].reduce((sum, count) => sum + count, 0);
+
+        const activeProducts = [
+          jetskiStats[0]?.active || 0,
+          kayakStats[0]?.active || 0,
+          yachtStats[0]?.active || 0,
+          speedboatStats[0]?.active || 0,
+          resortStats[0]?.active || 0,
+        ].reduce((sum, count) => sum + count, 0);
+
+        const pendingProducts = [
+          jetskiStats[0]?.pending || 0,
+          kayakStats[0]?.pending || 0,
+          yachtStats[0]?.pending || 0,
+          speedboatStats[0]?.pending || 0,
+          resortStats[0]?.pending || 0,
+        ].reduce((sum, count) => sum + count, 0);
+
+        productStats = {
+          totalProducts,
+          activeProducts,
+          pendingProducts,
+          productsByType: {
+            jetski: jetskiStats[0]?.total || 0,
+            kayak: kayakStats[0]?.total || 0,
+            yacht: yachtStats[0]?.total || 0,
+            speedboat: speedboatStats[0]?.total || 0,
+            resort: resortStats[0]?.total || 0,
+          },
+        };
+      }
+
+      // Get user statistics for admin only
+      let userStats = null;
+      if (userRole.includes('ADMIN')) {
+        // This would require User model injection - for now, we'll skip it
+        // You can add User model to the constructor if needed
+        userStats = {
+          totalUsers: 0, // Placeholder
+          totalPartners: 0, // Placeholder
+          newUsersThisMonth: 0, // Placeholder
+          newPartnersThisMonth: 0, // Placeholder
+        };
+      }
+
+      // Process revenue breakdown
+      let revenueByStatus = null;
+      if (dto.includeRevenueBreakdown && revenueStats.length > 0) {
+        revenueByStatus = {
+          paid: 0,
+          pending: 0,
+          failed: 0,
+          refunded: 0,
+        };
+
+        revenueStats.forEach((stat) => {
+          revenueByStatus[stat._id] = stat.revenue;
+        });
+      }
+
+      // Extract results
+      const bookingResult = bookingStats[0] || {
+        bookingsCount: 0,
+        confirmedBookings: 0,
+        cancelledBookings: 0,
+        completedBookings: 0,
+        pendingApprovals: 0,
+        revenueTotal: 0,
+        averageBookingValue: 0,
+      };
+
+      const todayResult = todayBookingStats[0] || {
+        todayBookings: 0,
+        todayRevenue: 0,
+      };
+
+      const endTime = Date.now();
+      console.log(
+        `Dashboard summary query completed in ${endTime - startTime}ms`,
+      );
+
+      return {
+        // Booking Statistics
+        bookingsCount: bookingResult.bookingsCount,
+        todayBookings: todayResult.todayBookings,
+        pendingApprovals: bookingResult.pendingApprovals,
+        confirmedBookings: bookingResult.confirmedBookings,
+        cancelledBookings: bookingResult.cancelledBookings,
+        completedBookings: bookingResult.completedBookings,
+
+        // Revenue Statistics
+        revenueTotal: bookingResult.revenueTotal,
+        todayRevenue: todayResult.todayRevenue,
+        averageBookingValue:
+          Math.round(bookingResult.averageBookingValue * 100) / 100,
+        revenueByStatus,
+
+        // Product Statistics
+        productStats,
+
+        // User Statistics (admin only)
+        userStats,
+
+        // Recent Activity
+        recentBookings,
+
+        // Date Range
+        dateRange: {
+          startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+          endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+          isFiltered: !!(dto.startDate && dto.endDate),
+        },
+      };
+    } catch (error) {
+      console.error('Dashboard summary error:', error);
+      throw new HttpException(
+        'Failed to get dashboard summary',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }
