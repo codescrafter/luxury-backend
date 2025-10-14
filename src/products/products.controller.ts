@@ -822,10 +822,16 @@ export class ProductsController {
   @Get('consumer/:consumerId/bookings')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.USER)
-  async getBookingsForConsumer(@Param('consumerId') consumerId: string) {
+  async getBookingsForConsumer(
+    @Param('consumerId') consumerId: string,
+    @Req() req,
+  ) {
     try {
-      const bookings =
-        await this.productsService.getBookingsForConsumer(consumerId);
+      const displayLang = req.user?.lang || 'en';
+      const bookings = await this.productsService.getBookingsForConsumer(
+        consumerId,
+        displayLang,
+      );
       return { success: true, data: bookings };
     } catch (error) {
       return { success: false, error: error.message };

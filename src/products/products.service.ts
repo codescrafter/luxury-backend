@@ -1467,7 +1467,10 @@ export class ProductsService {
     }
   }
 
-  async getBookingsForConsumer(consumerId: string): Promise<any[]> {
+  async getBookingsForConsumer(
+    consumerId: string,
+    displayLang: string = 'en',
+  ): Promise<any[]> {
     const bookings = await this.bookingModel
       .find({ consumerId: new Types.ObjectId(consumerId) })
       .populate('partnerId')
@@ -1478,7 +1481,12 @@ export class ProductsService {
         const model = this.getModelBasedOnProductType(booking.productType);
         if (model) {
           const product = await model.findById(booking.productId).lean();
-          return { ...booking, productId: product };
+          // Transform product to include proper language fields
+          const transformedProduct = transformProductForDualLanguage(
+            product,
+            displayLang,
+          );
+          return { ...booking, productId: transformedProduct };
         }
         return booking;
       }),

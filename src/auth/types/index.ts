@@ -2,6 +2,7 @@ export enum Role {
   ADMIN = 'admin',
   USER = 'user',
   PARTNER = 'partner',
+  SECURITY = 'security',
 }
 export type TUserReturn = {
   id: string;

@@ -57,9 +57,11 @@ export class BookingQrController {
 
   /**
    * Verify QR code token
-   * Public endpoint - no authentication required
+   * Only accessible by security personnel or admin
    */
   @Post('verify')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.SECURITY, Role.ADMIN, Role.PARTNER)
   async verifyQr(@Body() dto: VerifyQrDto) {
     try {
       const result = await this.bookingQrService.verifyQrToken(dto.token);
