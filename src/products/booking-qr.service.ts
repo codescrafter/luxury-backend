@@ -310,6 +310,148 @@ export class BookingQrService {
   }
 
   /**
+   * Get QR codes for a partner with optional status filter and pagination
+   */
+  async getQrCodesForPartner(
+    partnerId: string,
+    status?: QrStatus,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<any> {
+    try {
+      const skip = (page - 1) * limit;
+
+      // Build filter criteria
+      const filter: any = {};
+
+      // Get all bookings for this partner first
+      const partnerBookings = await this.bookingModel
+        .find({ partnerId: new Types.ObjectId(partnerId) })
+        .select('_id')
+        .lean();
+
+      const bookingIds = partnerBookings.map((booking) => booking._id);
+
+      if (bookingIds.length === 0) {
+        return {
+          qrCodes: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+        };
+      }
+
+      // Filter by booking IDs (which belong to the partner)
+      filter.bookingId = { $in: bookingIds };
+
+      // Add status filter if provided
+      if (status) {
+        filter.status = status;
+      }
+
+      // Get total count for pagination
+      const totalCount = await this.bookingQrModel.countDocuments(filter);
+
+      // Get paginated QR codes with populated data
+      const qrCodes = await this.bookingQrModel
+        .find(filter)
+        .populate('bookingId')
+        .populate('userId', 'name email phone')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      // Populate product data for each QR code
+      const populatedQrCodes = await Promise.all(
+        qrCodes.map(async (qrCode) => {
+          const model = this.getProductModel(qrCode.productType);
+          const product = await model.findById(qrCode.productId).lean();
+
+          return {
+            ...qrCode,
+            product,
+          };
+        }),
+      );
+
+      return {
+        qrCodes: populatedQrCodes,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          hasNext: page < Math.ceil(totalCount / limit),
+          hasPrev: page > 1,
+        },
+      };
+    } catch (error) {
+      console.error('Error getting QR codes for partner:', error);
+      throw new HttpException(
+        'Failed to get QR codes for partner',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Mark expired QR codes for a specific partner
+   * This method finds QR codes that have passed their endTime and marks them as expired
+   */
+  async markExpiredQrCodesForPartner(partnerId: string): Promise<{
+    expiredCount: number;
+    message: string;
+  }> {
+    try {
+      const now = new Date();
+
+      // Get all bookings for this partner first
+      const partnerBookings = await this.bookingModel
+        .find({ partnerId: new Types.ObjectId(partnerId) })
+        .select('_id')
+        .lean();
+
+      const bookingIds = partnerBookings.map((booking) => booking._id);
+
+      if (bookingIds.length === 0) {
+        return {
+          expiredCount: 0,
+          message: 'No bookings found for this partner',
+        };
+      }
+
+      // Find QR codes that belong to this partner's bookings and have passed their endTime
+      const result = await this.bookingQrModel.updateMany(
+        {
+          bookingId: { $in: bookingIds },
+          status: QrStatus.ACTIVE,
+          endTime: { $lt: now }, // QR codes where endTime has passed
+        },
+        {
+          status: QrStatus.EXPIRED,
+        },
+      );
+
+      return {
+        expiredCount: result.modifiedCount,
+        message: `Successfully marked ${result.modifiedCount} QR codes as expired`,
+      };
+    } catch (error) {
+      console.error('Error marking expired QR codes for partner:', error);
+      throw new HttpException(
+        'Failed to mark expired QR codes',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Get QR statistics
    */
   async getQrStatistics() {

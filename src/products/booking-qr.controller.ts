@@ -4,6 +4,7 @@ import {
   Body,
   Get,
   Param,
+  Query,
   UseGuards,
   HttpException,
   HttpStatus,
@@ -15,7 +16,11 @@ import { RolesGuard } from 'src/auth/guards/roles.guards';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/types';
 import { BookingQrService } from './booking-qr.service';
-import { VerifyQrDto, GenerateQrDto } from './dto/booking-qr.dto';
+import {
+  VerifyQrDto,
+  GenerateQrDto,
+  GetPartnerQrCodesQueryDto,
+} from './dto/booking-qr.dto';
 
 @Controller('qr')
 export class BookingQrController {
@@ -168,6 +173,76 @@ export class BookingQrController {
         {
           success: false,
           message: 'Failed to get QR statistics',
+          error: error.message,
+        },
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Get QR codes for a partner with optional status filter and pagination
+   * Only accessible by the partner themselves or admin
+   */
+  @Get('partner/:partnerId')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER, Role.ADMIN)
+  async getQrCodesForPartner(
+    @Param('partnerId') partnerId: string,
+    @Query() query: GetPartnerQrCodesQueryDto,
+  ): Promise<any> {
+    try {
+      const { status, page = '1', limit = '20' } = query;
+      const result = await this.bookingQrService.getQrCodesForPartner(
+        partnerId,
+        status,
+        parseInt(page),
+        parseInt(limit),
+      );
+
+      return {
+        success: true,
+        data: result,
+        message: 'QR codes retrieved successfully',
+      };
+    } catch (error) {
+      console.error('Error getting QR codes for partner:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to get QR codes for partner',
+          error: error.message,
+        },
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Mark expired QR codes for a partner
+   * Only accessible by the partner themselves or admin
+   */
+  @Post('partner/:partnerId/mark-expired')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER, Role.ADMIN)
+  async markExpiredQrCodesForPartner(
+    @Param('partnerId') partnerId: string,
+  ): Promise<any> {
+    try {
+      const result =
+        await this.bookingQrService.markExpiredQrCodesForPartner(partnerId);
+
+      return {
+        success: true,
+        data: result,
+        message: result.message,
+      };
+    } catch (error) {
+      console.error('Error marking expired QR codes for partner:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to mark expired QR codes',
           error: error.message,
         },
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,

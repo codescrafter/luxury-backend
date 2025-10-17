@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsEnum,
+  IsNumberString,
+} from 'class-validator';
+import { QrStatus } from '../entities/booking-qr.entity';
 
 export class VerifyQrDto {
   @IsString()
@@ -10,6 +17,20 @@ export class GenerateQrDto {
   @IsString()
   @IsNotEmpty()
   bookingId: string;
+}
+
+export class GetPartnerQrCodesQueryDto {
+  @IsOptional()
+  @IsEnum(QrStatus)
+  status?: QrStatus;
+
+  @IsOptional()
+  @IsNumberString()
+  page?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  limit?: string;
 }
 
 export class QrVerificationResponseDto {
