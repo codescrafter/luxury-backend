@@ -16,6 +16,14 @@ export class RolesGuard implements CanActivate {
     }
     const request = context.switchToHttp().getRequest();
     const user = request.user;
+
+    // Handle security guard authentication
+    if (user.type === 'security_guard') {
+      // Security guards can only access SECURITY role endpoints
+      return requiredRoles.includes(Role.SECURITY);
+    }
+
+    // Handle regular user authentication
     return matchRoles(requiredRoles, user.role);
   }
 }

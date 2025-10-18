@@ -13,6 +13,7 @@ import {
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from 'src/auth/guards/roles.guards';
+import { UnifiedAuthGuard } from 'src/auth/guards/unified-auth.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/types';
 import { BookingQrService } from './booking-qr.service';
@@ -65,7 +66,7 @@ export class BookingQrController {
    * Only accessible by security personnel or admin
    */
   @Post('verify')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(UnifiedAuthGuard, RolesGuard)
   @Roles(Role.SECURITY, Role.ADMIN, Role.PARTNER)
   async verifyQr(@Body() dto: VerifyQrDto) {
     try {

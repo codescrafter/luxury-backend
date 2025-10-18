@@ -12,6 +12,13 @@ import {
 } from './schemas/user-verification-schema';
 import { JwtStrategy } from './jwt.strategy';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
+import { SecurityGuardController } from './security-guard.controller';
+import { SecurityGuardService } from './security-guard.service';
+import {
+  SecurityGuard,
+  SecurityGuardSchema,
+} from './schemas/security-guard-schema';
+import { SecurityGuardJwtStrategy } from './security-guard-jwt.strategy';
 
 @Module({
   imports: [
@@ -28,12 +35,18 @@ import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: UserVerification.name, schema: UserVerificationSchema },
+      { name: SecurityGuard.name, schema: SecurityGuardSchema },
     ]),
     ConfigModule,
     CloudinaryModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [JwtStrategy, PassportModule],
+  controllers: [AuthController, SecurityGuardController],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    SecurityGuardService,
+    SecurityGuardJwtStrategy,
+  ],
+  exports: [JwtStrategy, SecurityGuardJwtStrategy, PassportModule],
 })
 export class AuthModule {}

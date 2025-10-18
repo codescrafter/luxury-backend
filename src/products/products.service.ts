@@ -2449,4 +2449,86 @@ export class ProductsService {
       );
     }
   }
+
+  /**
+   * Get products for a partner (for security guard assignment)
+   */
+  async getPartnerProducts(partnerId: string): Promise<{
+    products: Array<{
+      id: string;
+      name: string;
+      type: string;
+      city: string;
+    }>;
+  }> {
+    try {
+      // Get all products for this partner from all product types
+      const [jetskis, kayaks, yachts, speedboats, resorts] = await Promise.all([
+        this.jetSkiModel
+          .find({ ownerId: new Types.ObjectId(partnerId) })
+          .select('_id titleEn titleAr type cityEn cityAr')
+          .lean(),
+        this.kayakModel
+          .find({ ownerId: new Types.ObjectId(partnerId) })
+          .select('_id titleEn titleAr type cityEn cityAr')
+          .lean(),
+        this.yachtModel
+          .find({ ownerId: new Types.ObjectId(partnerId) })
+          .select('_id titleEn titleAr type cityEn cityAr')
+          .lean(),
+        this.speedboatModel
+          .find({ ownerId: new Types.ObjectId(partnerId) })
+          .select('_id titleEn titleAr type cityEn cityAr')
+          .lean(),
+        this.resortModel
+          .find({ ownerId: new Types.ObjectId(partnerId) })
+          .select('_id titleEn titleAr type cityEn cityAr')
+          .lean(),
+      ]);
+
+      // Combine all products and format them
+      const allProducts = [
+        ...jetskis.map((product) => ({
+          id: product._id.toString(),
+          name: product.titleEn,
+          type: product.type || 'jetski',
+          city: product.cityEn,
+        })),
+        ...kayaks.map((product) => ({
+          id: product._id.toString(),
+          name: product.titleEn,
+          type: product.type || 'kayak',
+          city: product.cityEn,
+        })),
+        ...yachts.map((product) => ({
+          id: product._id.toString(),
+          name: product.titleEn,
+          type: product.type || 'yacht',
+          city: product.cityEn,
+        })),
+        ...speedboats.map((product) => ({
+          id: product._id.toString(),
+          name: product.titleEn,
+          type: product.type || 'speedboat',
+          city: product.cityEn,
+        })),
+        ...resorts.map((product) => ({
+          id: product._id.toString(),
+          name: product.titleEn,
+          type: product.type || 'resort',
+          city: product.cityEn,
+        })),
+      ];
+
+      return {
+        products: allProducts,
+      };
+    } catch (error) {
+      console.error('Error getting partner products:', error);
+      throw new HttpException(
+        'Failed to get partner products',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

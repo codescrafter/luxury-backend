@@ -964,4 +964,35 @@ export class ProductsController {
       this.catchResponse('get dashboard summary', error);
     }
   }
+
+  /**
+   * Get partner products for security guard assignment
+   */
+  @Get('partner/:partnerId/products')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER, Role.ADMIN)
+  async getPartnerProducts(@Param('partnerId') partnerId: string, @Req() req) {
+    try {
+      // Partners can only view their own products
+      if (
+        req.user.role.includes(Role.PARTNER) &&
+        req.user._id.toString() !== partnerId
+      ) {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      }
+
+      const result = await this.productsService.getPartnerProducts(partnerId);
+      return {
+        success: true,
+        data: result,
+        message: 'Partner products retrieved successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to get partner products',
+        error: error.message,
+      };
+    }
+  }
 }
