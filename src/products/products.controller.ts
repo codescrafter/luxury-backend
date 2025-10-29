@@ -32,6 +32,7 @@ import { DashboardSummaryDto } from './dto/dashboard.dto';
 
 import { ProductsService } from './products.service';
 import { Types } from 'mongoose';
+import { SecurityGuardAuthGuard } from 'src/auth/guards/security-guard-auth.guard';
 
 @Controller('products')
 export class ProductsController {
@@ -843,6 +844,28 @@ export class ProductsController {
   @Roles(Role.PARTNER)
   async getBookingsForPartner(@Param('partnerId') partnerId: string) {
     try {
+      const bookings =
+        await this.productsService.getBookingsForPartner(partnerId);
+      return { success: true, data: bookings };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  @Get('security-guard/bookings')
+  @UseGuards(SecurityGuardAuthGuard)
+  async getBookingsForSecurityGuard(@Req() req) {
+    try {
+      // Get partnerId from the authenticated security guard's data
+      const partnerId = req.user.partnerId;
+
+      if (!partnerId) {
+        throw new HttpException(
+          'Partner ID not found for security guard',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const bookings =
         await this.productsService.getBookingsForPartner(partnerId);
       return { success: true, data: bookings };

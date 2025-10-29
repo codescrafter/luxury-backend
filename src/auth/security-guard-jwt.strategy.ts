@@ -36,6 +36,11 @@ export class SecurityGuardJwtStrategy extends PassportStrategy(
       throw new Error('Security guard not found');
     }
 
+    // Check if security guard is active
+    if (securityGuard.status !== 'active') {
+      throw new Error('Security guard account is not active');
+    }
+
     return {
       ...securityGuard.toObject(),
       type: 'security_guard',

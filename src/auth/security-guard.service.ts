@@ -387,12 +387,18 @@ export class SecurityGuardService {
    */
   async login(loginDto: SecurityGuardLoginDto): Promise<{
     token: string;
-    securityGuard: SecurityGuard;
   }> {
     const { username, password } = loginDto;
+    const identifier = (username || '').trim();
 
-    // Find security guard by username
-    const securityGuard = await this.securityGuardModel.findOne({ username });
+    // Find security guard by username OR email OR phone
+    const securityGuard = await this.securityGuardModel.findOne({
+      $or: [
+        { username: identifier },
+        { email: identifier },
+        { phone: identifier },
+      ],
+    });
     if (!securityGuard) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -424,14 +430,8 @@ export class SecurityGuardService {
       lang: securityGuard.language || 'en',
     });
 
-    // Return security guard without password
-    const securityGuardObj = securityGuard.toObject();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...securityGuardWithoutPassword } = securityGuardObj;
-
     return {
       token,
-      securityGuard: securityGuardWithoutPassword as any,
     };
   }
 

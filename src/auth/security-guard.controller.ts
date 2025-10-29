@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from './guards/roles.guards';
+import { SecurityGuardAuthGuard } from './guards/security-guard-auth.guard';
 import { Roles } from './decorators/roles.decorator';
 import { Role } from './types';
 import { SecurityGuardService } from './security-guard.service';
@@ -212,10 +213,7 @@ export class SecurityGuardController {
       const result = await this.securityGuardService.login(loginDto);
       return {
         success: true,
-        data: {
-          token: result.token,
-          securityGuard: result.securityGuard,
-        },
+        data: result,
         message: 'Login successful',
       };
     } catch (error) {
@@ -228,19 +226,38 @@ export class SecurityGuardController {
   }
 
   /**
+   * Get current security guard user (similar to auth/getUser)
+   */
+  @Get('user/me')
+  @UseGuards(SecurityGuardAuthGuard)
+  async getSecurityGuardUser(@Req() req) {
+    try {
+      // The SecurityGuardAuthGuard already validates the token and ensures it's a security guard
+      // So we can directly return the user data from req.user
+      return {
+        success: true,
+        data: req.user,
+        message: 'Security guard profile retrieved successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to get security guard profile',
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * Get security guard profile (for security guards themselves)
    */
   @Get('profile/me')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(SecurityGuardAuthGuard)
   async getSecurityGuardProfile(@Req() req) {
     try {
-      // Check if the request is from a security guard
-      if (req.user.type !== 'security_guard') {
-        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-      }
-
+      // The SecurityGuardAuthGuard already validates the token and ensures it's a security guard
       const securityGuard =
-        await this.securityGuardService.getSecurityGuardProfile(req.user.id);
+        await this.securityGuardService.getSecurityGuardProfile(req.user._id);
       return {
         success: true,
         data: securityGuard,
@@ -259,20 +276,16 @@ export class SecurityGuardController {
    * Update security guard profile (for security guards themselves)
    */
   @Put('profile/me')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(SecurityGuardAuthGuard)
   async updateSecurityGuardProfile(
     @Body() updateDto: UpdateSecurityGuardDto,
     @Req() req,
   ) {
     try {
-      // Check if the request is from a security guard
-      if (req.user.type !== 'security_guard') {
-        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-      }
-
+      // The SecurityGuardAuthGuard already validates the token and ensures it's a security guard
       const securityGuard =
         await this.securityGuardService.updateSecurityGuardProfile(
-          req.user.id,
+          req.user._id,
           updateDto,
         );
       return {

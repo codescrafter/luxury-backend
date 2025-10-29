@@ -19,6 +19,7 @@ import {
   SecurityGuardSchema,
 } from './schemas/security-guard-schema';
 import { SecurityGuardJwtStrategy } from './security-guard-jwt.strategy';
+import { SecurityGuardAuthGuard } from './guards/security-guard-auth.guard';
 
 @Module({
   imports: [
@@ -46,7 +47,13 @@ import { SecurityGuardJwtStrategy } from './security-guard-jwt.strategy';
     JwtStrategy,
     SecurityGuardService,
     SecurityGuardJwtStrategy,
+    SecurityGuardAuthGuard,
   ],
-  exports: [JwtStrategy, SecurityGuardJwtStrategy, PassportModule],
+  exports: [
+    JwtStrategy,
+    SecurityGuardJwtStrategy,
+    SecurityGuardAuthGuard,
+    PassportModule,
+  ],
 })
 export class AuthModule {}
