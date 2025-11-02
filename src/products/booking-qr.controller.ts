@@ -9,6 +9,7 @@ import {
   HttpException,
   HttpStatus,
   Res,
+  Req,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
@@ -21,6 +22,7 @@ import {
   GenerateQrDto,
   GetPartnerQrCodesQueryDto,
 } from './dto/booking-qr.dto';
+import { SecurityGuardAuthGuard } from 'src/auth/guards/security-guard-auth.guard';
 
 @Controller('qr')
 export class BookingQrController {
@@ -192,6 +194,39 @@ export class BookingQrController {
     @Query() query: GetPartnerQrCodesQueryDto,
   ): Promise<any> {
     try {
+      const { status, page = '1', limit = '20' } = query;
+      const result = await this.bookingQrService.getQrCodesForPartner(
+        partnerId,
+        status,
+        parseInt(page),
+        parseInt(limit),
+      );
+
+      return {
+        success: true,
+        data: result,
+        message: 'QR codes retrieved successfully',
+      };
+    } catch (error) {
+      console.error('Error getting QR codes for partner:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to get QR codes for partner',
+          error: error.message,
+        },
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  @Get('security-guard')
+  @UseGuards(SecurityGuardAuthGuard)
+  async getQrCodesForSecurityGuard(
+    @Req() req,
+    @Query() query: GetPartnerQrCodesQueryDto,
+  ): Promise<any> {
+    try {
+      const partnerId = req.user.partnerId;
       const { status, page = '1', limit = '20' } = query;
       const result = await this.bookingQrService.getQrCodesForPartner(
         partnerId,
