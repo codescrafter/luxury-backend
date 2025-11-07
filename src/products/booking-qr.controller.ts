@@ -68,8 +68,30 @@ export class BookingQrController {
    */
   @Post('verify')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.SECURITY, Role.ADMIN, Role.PARTNER)
+  @Roles(Role.ADMIN, Role.PARTNER)
   async verifyQr(@Body() dto: VerifyQrDto) {
+    try {
+      const result = await this.bookingQrService.verifyQrToken(dto.token);
+      return {
+        success: true,
+        data: result,
+        message: 'QR code verified successfully',
+      };
+    } catch (error) {
+      console.error('Error verifying QR code:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to verify QR code',
+          error: error.message,
+        },
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  @Post('security-guard/verify')
+  @UseGuards(SecurityGuardAuthGuard)
+  async verifyQrForSecurityGuard(@Body() dto: VerifyQrDto) {
     try {
       const result = await this.bookingQrService.verifyQrToken(dto.token);
       return {
