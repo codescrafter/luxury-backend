@@ -32,6 +32,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import * as bcrypt from 'bcryptjs';
 import { Resend } from 'resend';
+import { SecurityGuardService } from './security-guard.service';
+import { UnifiedLoginDto } from './dto/unified-login.dto';
 
 const resend = new Resend('re_iWMcNFHK_NRKQ3xrx2eo6jeoMhJQtyYtJ');
 
@@ -64,6 +66,8 @@ export class AuthService {
     private configService: ConfigService,
 
     private cloudinaryService: CloudinaryService,
+
+    private securityGuardService: SecurityGuardService,
   ) {}
 
   private generateRandomCode(): string {
@@ -542,6 +546,34 @@ export class AuthService {
       lang: user.language || 'en',
     });
     return { token };
+  }
+
+  async unifiedLogin(
+    unifiedLoginDto: UnifiedLoginDto,
+  ): Promise<{ token: string; type: string }> {
+    const { identifier, password } = unifiedLoginDto;
+
+    // First attempt to log in as a standard user, admin, or partner
+    try {
+      const loginResult = await this.login({
+        emailOrPhone: identifier,
+        password,
+      });
+      return { token: loginResult.token, type: 'user' };
+    } catch (userError) {
+      // If the user login fails (not found or invalid password), 
+      // attempt to log in as a security guard
+      try {
+        const guardLoginResult = await this.securityGuardService.login({
+          username: identifier, // SecurityGuardService login uses 'username' for the identifier
+          password,
+        });
+        return { token: guardLoginResult.token, type: 'security_guard' };
+      } catch (guardError) {
+        // If both logins fail, return a generic unauthorized error
+        throw new UnauthorizedException('Invalid credentials');
+      }
+    }
   }
 
   async googleLogin(): Promise<{ token: string }> {

@@ -25,4 +25,4 @@ RUN npm install --only=production
 
 EXPOSE 8080
 
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "npm run seed:admin:prod && node dist/main.js"]

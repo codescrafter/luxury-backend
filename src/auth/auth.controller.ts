@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { UnifiedLoginDto } from './dto/unified-login.dto';
 import { VerifyAccountDto } from './dto/verify-account-dto';
 import { AuthGuard } from '@nestjs/passport';
 import { Role } from './types';
@@ -72,6 +73,16 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto): Promise<any> {
     try {
       const result = await this.authService.login(loginDto);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, message: 'Login failed', error: error.message };
+    }
+  }
+
+  @Post('unified-login')
+  async unifiedLogin(@Body() unifiedLoginDto: UnifiedLoginDto): Promise<any> {
+    try {
+      const result = await this.authService.unifiedLogin(unifiedLoginDto);
       return { success: true, data: result };
     } catch (error) {
       return { success: false, message: 'Login failed', error: error.message };
