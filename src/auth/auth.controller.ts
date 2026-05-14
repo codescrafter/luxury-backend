@@ -279,6 +279,28 @@ export class AuthController {
     }
   }
 
+  @Post('reject-partner-application/:userId')
+  @UseGuards(AuthGuard(), RolesGuard)
+  @Roles(Role.ADMIN)
+  async rejectPartnerApplication(
+    @Param('userId') userId: string,
+    @Body('reason') reason: string,
+  ): Promise<any> {
+    try {
+      const result = await this.authService.rejectPartnerApplication(
+        userId,
+        reason,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to reject partner application',
+        error: error.message,
+      };
+    }
+  }
+
   @Get('partners')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.ADMIN)

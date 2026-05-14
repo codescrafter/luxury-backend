@@ -16,6 +16,8 @@ export type TUserReturn = {
   avatar: string;
   isPartnerApplicationSubmitted: boolean;
   isPartnerApplicationApproved: boolean;
+  isPartnerApplicationRejected: boolean;
+  partnerApplicationRejectionReason: string;
   language: string;
 };
 

@@ -561,7 +561,7 @@ export class AuthService {
       });
       return { token: loginResult.token, type: 'user' };
     } catch (userError) {
-      // If the user login fails (not found or invalid password), 
+      // If the user login fails (not found or invalid password),
       // attempt to log in as a security guard
       try {
         const guardLoginResult = await this.securityGuardService.login({
@@ -668,6 +668,10 @@ export class AuthService {
         userVerification.isPartnerApplicationSubmitted,
       isPartnerApplicationApproved:
         userVerification.isPartnerApplicationApproved,
+      isPartnerApplicationRejected:
+        userVerification.isPartnerApplicationRejected,
+      partnerApplicationRejectionReason:
+        userVerification.partnerApplicationRejectionReason,
       language: user.language || 'en',
     };
   }
@@ -1156,27 +1160,62 @@ export class AuthService {
       .find({
         isPartnerApplicationSubmitted: true,
         isPartnerApplicationApproved: false,
+        isPartnerApplicationRejected: false,
       })
       .populate('userId');
-    // now map it to return only required fields
-    return userverifications.map((userVerification) => {
-      const user: any = userVerification.userId;
-      return {
-        id: user._id?.toString(),
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        isEmailVerified: userVerification.isEmailVerified,
-        isPhoneVerified: userVerification.isPhoneVerified,
-        createdAt: user.createdAt,
-        avatar: user.avatar,
-        isPartnerApplicationSubmitted:
-          userVerification.isPartnerApplicationSubmitted,
-        isPartnerApplicationApproved:
-          userVerification.isPartnerApplicationApproved,
-      };
+    // now map it to return only required fields, filtering out any records where the user no longer exists
+    return userverifications
+      .filter((uv) => uv.userId)
+      .map((userVerification) => {
+        const user: any = userVerification.userId;
+        return {
+          id: user._id?.toString(),
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          isEmailVerified: userVerification.isEmailVerified,
+          isPhoneVerified: userVerification.isPhoneVerified,
+          createdAt: user.createdAt,
+          avatar: user.avatar,
+          isPartnerApplicationSubmitted:
+            userVerification.isPartnerApplicationSubmitted,
+          isPartnerApplicationApproved:
+            userVerification.isPartnerApplicationApproved,
+          isPartnerApplicationRejected:
+            userVerification.isPartnerApplicationRejected,
+          partnerApplicationRejectionReason:
+            userVerification.partnerApplicationRejectionReason,
+        };
+      });
+  }
+
+  async rejectPartnerApplication(userId: string, reason: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const userVerification = await this.userVerification.findOne({
+      userId: userId,
     });
+
+    if (!userVerification) {
+      throw new Error('User has not applied for partner');
+    }
+
+    await this.userVerification.findOneAndUpdate(
+      { userId: userId },
+      {
+        isPartnerApplicationRejected: true,
+        isPartnerApplicationApproved: false,
+        partnerApplicationRejectionReason: reason,
+      },
+    );
+
+    return {
+      message: 'Partner application rejected',
+    };
   }
 
   async approvePartnerApplication(userId: string) {

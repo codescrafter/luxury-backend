@@ -30,6 +30,12 @@ export class UserVerification {
   @Prop({ default: false })
   isPartnerApplicationApproved: boolean;
 
+  @Prop({ default: false })
+  isPartnerApplicationRejected: boolean;
+
+  @Prop()
+  partnerApplicationRejectionReason: string;
+
   @Prop()
   passwordResetCode: string;
 
