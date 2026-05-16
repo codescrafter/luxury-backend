@@ -44,8 +44,9 @@ export class CreateResortDto {
   @IsOptional()
   @IsArray()
   @Transform(({ value }) => {
-    if (!value) return undefined;
-    if (Array.isArray(value)) return value;
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
     return value
       .split(',')
       .map((item: string) => item.trim())
@@ -57,8 +58,9 @@ export class CreateResortDto {
   @IsOptional()
   @IsArray()
   @Transform(({ value }) => {
-    if (!value) return undefined;
-    if (Array.isArray(value)) return value;
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
     return value
       .split(',')
       .map((item: string) => item.trim())
@@ -138,49 +140,67 @@ export class CreateResortDto {
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
   @IsString({ each: true })
   cancellationPolicyEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
   @IsString({ each: true })
   cancellationPolicyAr?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
   @IsString({ each: true })
   termsAndConditionsEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
   @IsString({ each: true })
   termsAndConditionsAr?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
   @IsString({ each: true })
   safetyFeaturesEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
   @IsString({ each: true })
   safetyFeaturesAr?: string[];
 
@@ -287,6 +307,28 @@ export class UpdateResortDto extends PartialType(CreateResortDto) {
   @IsArray()
   @IsString({ each: true })
   videos?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
+  existingImages?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
+  existingVideos?: string[];
 
   @IsOptional()
   @IsBoolean()

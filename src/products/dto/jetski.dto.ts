@@ -56,47 +56,69 @@ export class CreateJetskiDto {
   @Transform(({ value }) => parseInt(value))
   ageRequirement: number;
 
+  @IsOptional()
   @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
   @IsString({ each: true })
-  cancellationPolicyEn: string[];
-
-  @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
-  @IsString({ each: true })
-  cancellationPolicyAr: string[];
-
-  @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
-  @IsString({ each: true })
-  termsAndConditionsEn: string[];
-
-  @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
-  @IsString({ each: true })
-  termsAndConditionsAr: string[];
+  cancellationPolicyEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
+  @IsString({ each: true })
+  cancellationPolicyAr?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
+  @IsString({ each: true })
+  termsAndConditionsEn?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
+  @IsString({ each: true })
+  termsAndConditionsAr?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
   @IsString({ each: true })
   tagsEn?: string[];
 
   @IsOptional()
   @IsArray()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',') : value,
-  )
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return [];
+    if (Array.isArray(value)) return value.filter((v) => v !== '');
+    return typeof value === 'string' ? value.split(',') : value;
+  })
   @IsString({ each: true })
   tagsAr?: string[];
 
@@ -219,6 +241,26 @@ export class UpdateJetskiDto extends PartialType(CreateJetskiDto) {
   @IsArray()
   @IsString({ each: true })
   videos?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    if (Array.isArray(value)) return value;
+    return typeof value === 'string' ? value.split(',') : value;
+  })
+  existingImages?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    if (Array.isArray(value)) return value;
+    return typeof value === 'string' ? value.split(',') : value;
+  })
+  existingVideos?: string[];
 
   @IsOptional()
   @IsBoolean()

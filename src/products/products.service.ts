@@ -127,6 +127,38 @@ export class ProductsService {
     let newImages = oldImages;
     let newVideos = oldVideos;
 
+    // Handle existing images (explicit list of URLs to keep)
+    if (updateData.existingImages !== undefined) {
+      const existingImages = Array.isArray(updateData.existingImages)
+        ? updateData.existingImages
+        : [updateData.existingImages];
+
+      const imagesToDelete = oldImages.filter(
+        (url: string) => !existingImages.includes(url),
+      );
+
+      if (imagesToDelete.length > 0) {
+        await this.cloudinaryService.deleteMultipleMedia(imagesToDelete, 'image');
+      }
+      newImages = existingImages;
+    }
+
+    // Handle existing videos (explicit list of URLs to keep)
+    if (updateData.existingVideos !== undefined) {
+      const existingVideos = Array.isArray(updateData.existingVideos)
+        ? updateData.existingVideos
+        : [updateData.existingVideos];
+
+      const videosToDelete = oldVideos.filter(
+        (url: string) => !existingVideos.includes(url),
+      );
+
+      if (videosToDelete.length > 0) {
+        await this.cloudinaryService.deleteMultipleMedia(videosToDelete, 'video');
+      }
+      newVideos = existingVideos;
+    }
+
     // Handle new image uploads
     if (files?.images && files.images.length > 0) {
       const uploadedImages = await this.uploadImages(
@@ -136,14 +168,14 @@ export class ProductsService {
 
       // If replaceImages flag is true, replace all images
       if (updateData.replaceImages) {
-        // Delete old images from Cloudinary
-        if (oldImages.length > 0) {
-          await this.cloudinaryService.deleteMultipleMedia(oldImages, 'image');
+        // Delete current images from Cloudinary
+        if (newImages.length > 0) {
+          await this.cloudinaryService.deleteMultipleMedia(newImages, 'image');
         }
         newImages = uploadedImages;
       } else {
         // Append new images to existing ones
-        newImages = [...oldImages, ...uploadedImages];
+        newImages = [...newImages, ...uploadedImages];
       }
     }
 
@@ -156,18 +188,18 @@ export class ProductsService {
 
       // If replaceVideos flag is true, replace all videos
       if (updateData.replaceVideos) {
-        // Delete old videos from Cloudinary
-        if (oldVideos.length > 0) {
-          await this.cloudinaryService.deleteMultipleMedia(oldVideos, 'video');
+        // Delete current videos from Cloudinary
+        if (newVideos.length > 0) {
+          await this.cloudinaryService.deleteMultipleMedia(newVideos, 'video');
         }
         newVideos = uploadedVideos;
       } else {
         // Append new videos to existing ones
-        newVideos = [...oldVideos, ...uploadedVideos];
+        newVideos = [...newVideos, ...uploadedVideos];
       }
     }
 
-    // Handle specific image deletions
+    // Handle specific image deletions (Backward compatibility)
     if (updateData.deleteImageUrls && updateData.deleteImageUrls.length > 0) {
       const imagesToDelete = updateData.deleteImageUrls;
       const remainingImages = newImages.filter(
@@ -179,7 +211,7 @@ export class ProductsService {
       newImages = remainingImages;
     }
 
-    // Handle specific video deletions
+    // Handle specific video deletions (Backward compatibility)
     if (updateData.deleteVideoUrls && updateData.deleteVideoUrls.length > 0) {
       const videosToDelete = updateData.deleteVideoUrls;
       const remainingVideos = newVideos.filter(
