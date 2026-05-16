@@ -2563,4 +2563,101 @@ export class ProductsService {
       );
     }
   }
+
+  /**
+   * Get featured products grouped by category with dual-language support.
+   *
+   * Production-grade fallback strategy:
+   * - First, query products where isFeatured = true per category.
+   * - If a category has 0 featured products, automatically fall back to
+   *   the most popular approved products for that category, sorted by
+   *   averageRating desc → totalBookings desc → createdAt desc.
+   * - The response includes a `meta` object per category so the client
+   *   knows whether it is showing featured or popular/fallback items.
+   *   This allows the mobile app to render the correct section heading.
+   */
+  async getFeaturedProducts(displayLang: string = 'en', limit: number = 10) {
+    const featuredQuery = { status: 'approved', isFeatured: true };
+    const fallbackSort = {
+      averageRating: -1 as const,
+      totalBookings: -1 as const,
+      createdAt: -1 as const,
+    };
+
+    /**
+     * Fetch featured products for one model.
+     * If none are found, fall back to the top-rated/most-booked items.
+     * Returns { items, isFallback }.
+     */
+    const fetchWithFallback = async (model: Model<any>) => {
+      const featured = await model.find(featuredQuery).limit(limit).lean();
+      if (featured.length > 0) {
+        return { items: featured, isFallback: false };
+      }
+      // Fallback: most popular approved products of this type
+      const popular = await model
+        .find({ status: 'approved' })
+        .sort(fallbackSort)
+        .limit(limit)
+        .lean();
+      return { items: popular, isFallback: true };
+    };
+
+    const [
+      resortResult,
+      yachtResult,
+      jetskiResult,
+      kayakResult,
+      speedboatResult,
+    ] = await Promise.all([
+      fetchWithFallback(this.resortModel),
+      fetchWithFallback(this.yachtModel),
+      fetchWithFallback(this.jetSkiModel),
+      fetchWithFallback(this.kayakModel),
+      fetchWithFallback(this.speedboatModel),
+    ]);
+
+    return {
+      resort: {
+        items: transformProductsArrayForDualLanguage(
+          resortResult.items,
+          displayLang,
+        ),
+        isFallback: resortResult.isFallback,
+        isEmpty: resortResult.items.length === 0,
+      },
+      yacht: {
+        items: transformProductsArrayForDualLanguage(
+          yachtResult.items,
+          displayLang,
+        ),
+        isFallback: yachtResult.isFallback,
+        isEmpty: yachtResult.items.length === 0,
+      },
+      jetski: {
+        items: transformProductsArrayForDualLanguage(
+          jetskiResult.items,
+          displayLang,
+        ),
+        isFallback: jetskiResult.isFallback,
+        isEmpty: jetskiResult.items.length === 0,
+      },
+      kayak: {
+        items: transformProductsArrayForDualLanguage(
+          kayakResult.items,
+          displayLang,
+        ),
+        isFallback: kayakResult.isFallback,
+        isEmpty: kayakResult.items.length === 0,
+      },
+      speedboat: {
+        items: transformProductsArrayForDualLanguage(
+          speedboatResult.items,
+          displayLang,
+        ),
+        isFallback: speedboatResult.isFallback,
+        isEmpty: speedboatResult.items.length === 0,
+      },
+    };
+  }
 }

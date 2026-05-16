@@ -52,6 +52,22 @@ export class ProductsController {
     );
   }
 
+  @Get('featured') // Public endpoint for getting featured products by category
+  async getFeaturedProducts(
+    @Query('lang') lang: string = 'en',
+    @Query('limit') limit: number = 10,
+  ) {
+    try {
+      const result = await this.productsService.getFeaturedProducts(
+        lang,
+        Number(limit),
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      this.catchResponse('get featured products', error);
+    }
+  }
+
   @Get() // This is for users and it will show only approved products with filtering
   async getProducts(
     @Req() req,
