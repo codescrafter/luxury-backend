@@ -267,11 +267,21 @@ export class BookingQrService {
       status: QrStatus.ACTIVE,
     });
 
-    if (!qrRecord) {
-      throw new HttpException('QR code not found', HttpStatus.NOT_FOUND);
+    if (qrRecord) {
+      return qrRecord;
     }
 
-    return qrRecord;
+    // Lazy generate QR code if booking is confirmed but QR is missing
+    const booking = await this.bookingModel.findById(bookingId);
+    if (booking && booking.bookingStatus === BookingStatus.CONFIRMED) {
+      try {
+        return await this.generateQrForBooking(bookingId);
+      } catch (error) {
+        console.error('Lazy QR generation failed:', error);
+      }
+    }
+
+    throw new HttpException('QR code not found', HttpStatus.NOT_FOUND);
   }
 
   /**

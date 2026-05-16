@@ -1314,6 +1314,14 @@ export class ProductsService {
     booking.bookingStatus = BookingStatus.CONFIRMED;
     await booking.save();
 
+    // Generate QR code upon approval
+    try {
+      await this.bookingQrService.generateQrForBooking(bookingId);
+    } catch (error) {
+      console.error(`Failed to generate QR code for booking ${bookingId} on approval:`, error);
+      // Don't fail the approval if QR generation fails
+    }
+
     // Create unavailability for this booking after partner approval (if not already created)
     const existingUnavailability = await this.unavailabilityModel.findOne({
       productId: booking.productId,
