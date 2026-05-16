@@ -77,8 +77,8 @@ export class AuthService {
   }
 
   private async sendEmail(emailProperties: EmailTemplateProperties) {
-    const ENVIROMENT = this.configService.get('ENVIROMENT');
-    if (ENVIROMENT === 'development') {
+    const ENVIRONMENT = this.configService.get('ENVIRONMENT');
+    if (ENVIRONMENT === 'development') {
       return;
     }
     const { receiverEmail, code, template_id, username } = emailProperties;
@@ -179,8 +179,8 @@ export class AuthService {
     phone: string;
     message: string;
   }) {
-    const ENVIROMENT = this.configService.get('ENVIROMENT');
-    if (ENVIROMENT === 'development') {
+    const ENVIRONMENT = this.configService.get('ENVIRONMENT');
+    if (ENVIRONMENT === 'development') {
       return;
     }
     const ACCOUNT_SID = this.configService.get('TWILIO_ACCOUNT_SID');
