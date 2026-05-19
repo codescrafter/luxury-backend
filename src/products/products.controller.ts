@@ -264,7 +264,7 @@ export class ProductsController {
   // ----- Jetski -----
   @Post('jetski')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -294,7 +294,7 @@ export class ProductsController {
 
   @Put('jetski/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -343,7 +343,7 @@ export class ProductsController {
   // ----- Kayak -----
   @Post('kayak')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -373,7 +373,7 @@ export class ProductsController {
 
   @Put('kayak/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -422,7 +422,7 @@ export class ProductsController {
   // ----- Yacht -----
   @Post('yacht')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -452,7 +452,7 @@ export class ProductsController {
 
   @Put('yacht/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -501,8 +501,8 @@ export class ProductsController {
 
   // ----- Speedboat -----
   @Post('speedboat')
-  @UseGuards(AuthGuard(), RolesGuard)
-  @Roles(Role.PARTNER)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -531,8 +531,8 @@ export class ProductsController {
   }
 
   @Put('speedboat/:id')
-  @Roles(Role.PARTNER)
-  @UseGuards(AuthGuard())
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -581,7 +581,7 @@ export class ProductsController {
   // ----- Resort -----
   @Post('resort')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -611,7 +611,7 @@ export class ProductsController {
 
   @Put('resort/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [

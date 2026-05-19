@@ -61,10 +61,12 @@ export class EventsController {
     try {
       const displayLang = lang || req.user?.lang || 'en';
       const parsedTags = tags
-        ? tags
-            .split(',')
-            .map((item) => item.trim())
-            .filter(Boolean)
+        ? Array.isArray(tags)
+          ? tags
+          : tags
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean)
         : undefined;
       const filters = {
         city: city?.trim(),
@@ -96,7 +98,7 @@ export class EventsController {
 
   @Post('venues')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -122,7 +124,7 @@ export class EventsController {
 
   @Put('venues/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -257,9 +259,12 @@ export class EventsController {
   @Put('venues/:id/reject')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
-  async rejectVenue(@Param('id') id: string) {
+  async rejectVenue(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
     try {
-      const venue = await this.eventsService.rejectVenue(id);
+      const venue = await this.eventsService.rejectVenue(id, body?.reason);
       return { success: true, data: venue };
     } catch (error) {
       this.catchResponse('reject event venue', error);
@@ -268,10 +273,11 @@ export class EventsController {
 
   @Put('venues/:id/resubmit')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.PARTNER)
+  @Roles(Role.PARTNER, Role.ADMIN)
   async resubmitVenue(@Param('id') id: string, @Req() req) {
     try {
-      const venue = await this.eventsService.resubmitVenue(id, req.user._id);
+      const isAdmin = req.user.role.includes(Role.ADMIN);
+      const venue = await this.eventsService.resubmitVenue(id, req.user._id, isAdmin);
       return { success: true, data: venue };
     } catch (error) {
       this.catchResponse('resubmit event venue', error);

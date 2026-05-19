@@ -165,7 +165,8 @@ export class EventsService {
       throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
     }
 
-    if (venue.ownerId?.toString() !== user._id?.toString()) {
+    const isAdmin = user.role?.includes('admin');
+    if (!isAdmin && venue.ownerId?.toString() !== user._id?.toString()) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 
@@ -366,10 +367,10 @@ export class EventsService {
     return venue;
   }
 
-  async rejectVenue(id: string) {
+  async rejectVenue(id: string, reason?: string) {
     const venue = await this.eventVenueModel.findByIdAndUpdate(
       id,
-      { status: 'rejected' },
+      { status: 'rejected', ...(reason ? { rejectionReason: reason } : {}) },
       { new: true },
     );
     if (!venue) {
@@ -378,9 +379,13 @@ export class EventsService {
     return venue;
   }
 
-  async resubmitVenue(id: string, ownerId: string) {
+  async resubmitVenue(id: string, userId: string, isAdmin: boolean = false) {
+    const filter: any = { _id: id };
+    if (!isAdmin) {
+      filter.ownerId = userId;
+    }
     const venue = await this.eventVenueModel.findOneAndUpdate(
-      { _id: id, ownerId },
+      filter,
       { status: 'pending', $inc: { resubmissionCount: 1 } },
       { new: true },
     );

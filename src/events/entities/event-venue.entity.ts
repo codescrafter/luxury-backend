@@ -100,6 +100,9 @@ export class EventVenue {
 
   @Prop({ default: 0 })
   resubmissionCount: number;
+
+  @Prop()
+  rejectionReason?: string;
 }
 
 export const EventVenueSchema = SchemaFactory.createForClass(EventVenue);
