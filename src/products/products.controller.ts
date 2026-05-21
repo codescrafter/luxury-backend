@@ -118,11 +118,11 @@ export class ProductsController {
         search: search?.trim() || undefined,
         pricingType: pricingType?.trim() || undefined,
         isDailyResort:
-          isDailyResort !== undefined ? Boolean(isDailyResort) : undefined,
+          isDailyResort !== undefined ? String(isDailyResort) === 'true' : undefined,
         isAnnualResort:
-          isAnnualResort !== undefined ? Boolean(isAnnualResort) : undefined,
+          isAnnualResort !== undefined ? String(isAnnualResort) === 'true' : undefined,
         canHostEvent:
-          canHostEvent !== undefined ? Boolean(canHostEvent) : undefined,
+          canHostEvent !== undefined ? String(canHostEvent) === 'true' : undefined,
       };
 
       const result =
