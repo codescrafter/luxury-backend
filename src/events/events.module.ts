@@ -13,6 +13,7 @@ import {
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 import { JwtStrategy } from 'src/auth/jwt.strategy';
 import { User, UserSchema } from 'src/auth/schemas/user-schema';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { User, UserSchema } from 'src/auth/schemas/user-schema';
         },
       }),
     }),
+    NotificationsModule,
   ],
   controllers: [EventsController],
   providers: [EventsService, JwtStrategy],

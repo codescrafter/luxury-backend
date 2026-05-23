@@ -20,6 +20,7 @@ import {
 } from './schemas/security-guard-schema';
 import { SecurityGuardJwtStrategy } from './security-guard-jwt.strategy';
 import { SecurityGuardAuthGuard } from './guards/security-guard-auth.guard';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { SecurityGuardAuthGuard } from './guards/security-guard-auth.guard';
     ]),
     ConfigModule,
     CloudinaryModule,
+    NotificationsModule,
   ],
   controllers: [AuthController, SecurityGuardController],
   providers: [

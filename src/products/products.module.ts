@@ -24,6 +24,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { JwtStrategy } from 'src/auth/jwt.strategy';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { JwtStrategy } from 'src/auth/jwt.strategy';
         },
       }),
     }),
+    NotificationsModule,
   ],
   controllers: [ProductsController, BookingQrController],
   providers: [ProductsService, BookingQrService, JwtStrategy],

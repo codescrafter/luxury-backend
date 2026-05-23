@@ -16,6 +16,7 @@ import {
   transformProductForDualLanguage,
   transformProductsArrayForDualLanguage,
 } from 'src/helpers/dto-helpers';
+import { NotificationsFacadeService } from '../notifications/notifications-facade.service';
 
 type PaginatedResult<T> = {
   data: T[];
@@ -37,6 +38,7 @@ export class EventsService {
     @InjectModel(EventVenueRequest.name)
     private readonly eventVenueRequestModel: Model<EventVenueRequestDocument>,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly notificationsFacade: NotificationsFacadeService,
   ) {}
 
   private async uploadImages(files: any[] | undefined) {
@@ -149,6 +151,14 @@ export class EventsService {
       status: 'pending',
       type: 'event-venue',
     });
+
+    // Trigger notification
+    await this.notificationsFacade.notifyAssetSubmitted(
+      venue._id.toString(),
+      'EventVenue',
+      venue.titleEn,
+      user._id.toString(),
+    );
 
     return venue;
   }
@@ -352,6 +362,15 @@ export class EventsService {
     if (!venue) {
       throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
     }
+
+    // Trigger notification
+    await this.notificationsFacade.notifyAssetApproved(
+      venue._id.toString(),
+      'EventVenue',
+      venue.titleEn,
+      venue.ownerId.toString(),
+    );
+
     return venue;
   }
 
@@ -364,6 +383,15 @@ export class EventsService {
     if (!venue) {
       throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
     }
+
+    // Trigger notification
+    await this.notificationsFacade.notifyAssetRevisionRequested(
+      venue._id.toString(),
+      'EventVenue',
+      venue.titleEn,
+      venue.ownerId.toString(),
+    );
+
     return venue;
   }
 
@@ -376,6 +404,16 @@ export class EventsService {
     if (!venue) {
       throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
     }
+
+    // Trigger notification
+    await this.notificationsFacade.notifyAssetRejected(
+      venue._id.toString(),
+      'EventVenue',
+      venue.titleEn,
+      venue.ownerId.toString(),
+      reason,
+    );
+
     return venue;
   }
 
@@ -392,6 +430,15 @@ export class EventsService {
     if (!venue) {
       throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
     }
+
+    // Trigger notification
+    await this.notificationsFacade.notifyAssetSubmitted(
+      venue._id.toString(),
+      'EventVenue',
+      venue.titleEn,
+      userId,
+    );
+
     return venue;
   }
 
@@ -415,6 +462,15 @@ export class EventsService {
       ...dto,
       status: EventVenueRequestStatus.PENDING,
     });
+
+    if (user) {
+      await this.notificationsFacade.notifyBookingCreated(
+        request._id.toString(),
+        request.partnerId.toString(),
+        user._id.toString(),
+        venue.titleEn,
+      );
+    }
 
     return request;
   }
@@ -509,6 +565,25 @@ export class EventsService {
     }
 
     await request.save();
+
+    // Populate venue to get titleEn for notification
+    await request.populate('venueId');
+    const venueTitle = request.venueId ? (request.venueId as any).titleEn : 'Event Venue';
+
+    if (dto.status === EventVenueRequestStatus.CONTACTED && request.userId) {
+      await this.notificationsFacade.notifyBookingConfirmed(
+        request._id.toString(),
+        request.userId.toString(),
+        venueTitle,
+      );
+    } else if (dto.status === EventVenueRequestStatus.DISMISSED && request.userId) {
+      await this.notificationsFacade.notifyBookingRejected(
+        request._id.toString(),
+        request.userId.toString(),
+        venueTitle,
+      );
+    }
+
     return request;
   }
 }

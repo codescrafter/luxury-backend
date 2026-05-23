@@ -34,6 +34,7 @@ import * as bcrypt from 'bcryptjs';
 import { Resend } from 'resend';
 import { SecurityGuardService } from './security-guard.service';
 import { UnifiedLoginDto } from './dto/unified-login.dto';
+import { NotificationsFacadeService } from '../notifications/notifications-facade.service';
 
 const resend = new Resend('re_iWMcNFHK_NRKQ3xrx2eo6jeoMhJQtyYtJ');
 
@@ -68,6 +69,8 @@ export class AuthService {
     private cloudinaryService: CloudinaryService,
 
     private securityGuardService: SecurityGuardService,
+    
+    private notificationsFacade: NotificationsFacadeService,
   ) {}
 
   private generateRandomCode(): string {
@@ -954,6 +957,12 @@ export class AuthService {
     );
     //TODO: send email as confirmation
 
+    // Trigger notification
+    await this.notificationsFacade.notifyPartnerApplicationSubmitted(
+      user._id.toString(),
+      user.name || user.email || 'Unknown User',
+    );
+
     return { message: 'Partner application submitted successfully' };
   }
 
@@ -1213,6 +1222,9 @@ export class AuthService {
       },
     );
 
+    // Trigger notification
+    await this.notificationsFacade.notifyPartnerApplicationRejected(userId, reason);
+
     return {
       message: 'Partner application rejected',
     };
@@ -1242,7 +1254,12 @@ export class AuthService {
     await this.userModel.findOneAndUpdate(
       { _id: userId },
       { $push: { role: Role.PARTNER } },
+      { new: true },
     );
+
+    // Trigger notification
+    await this.notificationsFacade.notifyPartnerApplicationApproved(userId);
+
     return {
       message: 'Partner application approved',
     };

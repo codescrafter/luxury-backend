@@ -36,6 +36,7 @@ import {
   transformProductForDualLanguage,
 } from '../helpers/dto-helpers';
 import { BookingQrService } from './booking-qr.service';
+import { NotificationsFacadeService } from '../notifications/notifications-facade.service';
 
 @Injectable()
 export class ProductsService {
@@ -53,6 +54,7 @@ export class ProductsService {
     @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
     private readonly cloudinaryService: CloudinaryService,
     private readonly bookingQrService: BookingQrService,
+    private readonly notificationsFacade: NotificationsFacadeService,
   ) {}
 
   private async uploadImages(files: any[] | undefined, folder: string) {
@@ -104,6 +106,17 @@ export class ProductsService {
         `Failed to upload videos: ${error.message}`,
         HttpStatus.BAD_REQUEST,
       );
+    }
+  }
+
+  private getModelForType(type: string): Model<any> {
+    switch (type) {
+      case 'jetski': return this.jetSkiModel as Model<any>;
+      case 'kayak': return this.kayakModel as Model<any>;
+      case 'yacht': return this.yachtModel as Model<any>;
+      case 'speedboat': return this.speedboatModel as Model<any>;
+      case 'resort': return this.resortModel as Model<any>;
+      default: throw new Error('Invalid product type');
     }
   }
 
@@ -1088,6 +1101,15 @@ export class ProductsService {
 
     const result = await model.findByIdAndUpdate(id, update, { new: true });
     if (!result) throw new Error('Product not found');
+    
+    // Trigger notification
+    const title = result.titleEn || 'Product';
+    if (action === 'approve') {
+      await this.notificationsFacade.notifyAssetApproved(id, type, title, result.ownerId.toString());
+    } else if (action === 'reject') {
+      await this.notificationsFacade.notifyAssetRejected(id, type, title, result.ownerId.toString());
+    }
+    
     return result;
   }
 
@@ -1118,6 +1140,14 @@ export class ProductsService {
       { new: true },
     );
     if (!result) throw new Error('Product not found');
+
+    await this.notificationsFacade.notifyAssetSubmitted(
+      id,
+      type,
+      result.titleEn || 'Product',
+      result.ownerId.toString(),
+    );
+
     return result;
   }
 
@@ -1291,6 +1321,15 @@ export class ProductsService {
       startTime: start,
       endTime: end,
     });
+
+    // Trigger notification
+    await this.notificationsFacade.notifyBookingCreated(
+      booking._id.toString(),
+      finalPartnerId.toString(),
+      consumerId,
+      product.titleEn || 'Asset',
+    );
+
     return booking;
   }
 
@@ -1346,6 +1385,18 @@ export class ProductsService {
     // Note: QR code will be generated when payment is confirmed via updatePaymentStatus
     // This ensures QR codes are only available for paid bookings
 
+    // Trigger notification (need product title)
+    let productTitle = 'Asset';
+    try {
+      const product = await this.getModelForType(booking.productType).findById(booking.productId);
+      if (product) productTitle = product.titleEn;
+    } catch (e) {}
+    await this.notificationsFacade.notifyBookingConfirmed(
+      booking._id.toString(),
+      booking.consumerId.toString(),
+      productTitle,
+    );
+
     return booking;
   }
 
@@ -1382,6 +1433,18 @@ export class ProductsService {
       startTime: booking.startTime,
       endTime: booking.endTime,
     });
+
+    let productTitle = 'Asset';
+    try {
+      const product = await this.getModelForType(booking.productType).findById(booking.productId);
+      if (product) productTitle = product.titleEn;
+    } catch (e) {}
+    await this.notificationsFacade.notifyBookingRejected(
+      booking._id.toString(),
+      booking.consumerId.toString(),
+      productTitle,
+    );
+
     return booking;
   }
 
@@ -1464,6 +1527,23 @@ export class ProductsService {
       startTime: booking.startTime,
       endTime: booking.endTime,
     });
+
+    let productTitle = 'Asset';
+    try {
+      const product = await this.getModelForType(booking.productType).findById(booking.productId);
+      if (product) productTitle = product.titleEn;
+    } catch (e) {}
+    
+    const userRole = booking.consumerId.equals(userId) ? 'user' : 'partner';
+    
+    await this.notificationsFacade.notifyBookingCancelled(
+      booking._id.toString(),
+      booking.partnerId.toString(),
+      booking.consumerId.toString(),
+      productTitle,
+      userRole,
+    );
+
     return booking;
   }
 
@@ -1486,6 +1566,18 @@ export class ProductsService {
     }
     booking.bookingStatus = BookingStatus.COMPLETED;
     await booking.save();
+
+    let productTitle = 'Asset';
+    try {
+      const product = await this.getModelForType(booking.productType).findById(booking.productId);
+      if (product) productTitle = product.titleEn;
+    } catch (e) {}
+    await this.notificationsFacade.notifyBookingCompleted(
+      booking._id.toString(),
+      booking.consumerId.toString(),
+      productTitle,
+    );
+
     return booking;
   }
 
@@ -1767,7 +1859,20 @@ export class ProductsService {
    * Verify QR code token
    */
   async verifyQrToken(token: string) {
-    return this.bookingQrService.verifyQrToken(token);
+    const result = await this.bookingQrService.verifyQrToken(token);
+    if (result && result.isValid && result.booking) {
+      // Execute notification in a non-blocking manner
+      try {
+        await this.notificationsFacade.notifyQRVerified(
+          result.booking.id,
+          result.booking.partnerId,
+          result.booking.consumerId,
+        );
+      } catch (error) {
+        console.error(`Failed to send QR verification notification for booking ${result.booking.id}:`, error);
+      }
+    }
+    return result;
   }
 
   /**
@@ -1816,6 +1921,14 @@ export class ProductsService {
     }
 
     await booking.save();
+
+    // Trigger Notification
+    await this.notificationsFacade.notifyPaymentUpdated(
+      booking._id.toString(),
+      booking.partnerId.toString(),
+      booking.consumerId.toString(),
+      dto.paymentStatus,
+    );
 
     // Handle QR code generation/removal based on payment status
     if (
