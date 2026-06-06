@@ -400,7 +400,7 @@ export class BookingQrService {
    */
   async markExpiredQrCodesForPartner(partnerId: string): Promise<{
     expiredCount: number;
-    message: string;
+    messageCode: string;
   }> {
     try {
       const now = new Date();
@@ -416,7 +416,7 @@ export class BookingQrService {
       if (bookingIds.length === 0) {
         return {
           expiredCount: 0,
-          message: 'No bookings found for this partner',
+          messageCode: PRODUCT_CODES.QR_NO_BOOKINGS_FOUND,
         };
       }
 
@@ -434,7 +434,7 @@ export class BookingQrService {
 
       return {
         expiredCount: result.modifiedCount,
-        message: `Successfully marked ${result.modifiedCount} QR codes as expired`,
+        messageCode: PRODUCT_CODES.QR_MARKED_EXPIRED,
       };
     } catch (error) {
       console.error('Error marking expired QR codes for partner:', error);

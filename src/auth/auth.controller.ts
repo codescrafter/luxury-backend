@@ -27,6 +27,7 @@ import { multerMiddleware } from 'src/common/multer.middleware';
 import { ResendSignupCodeDto } from './dto/resend-signup-code-dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { translate } from '../i18n/registry';
 
 @Controller('auth')
 export class AuthController {
@@ -34,6 +35,13 @@ export class AuthController {
     private authService: AuthService,
     private cloudinaryService: CloudinaryService,
   ) {}
+
+  /** Extracts messageCode from service result, translates it, returns { message, ...rest } */
+  private withMessage(result: any, lang: string): any {
+    if (!result || !result.messageCode) return result;
+    const { messageCode, ...rest } = result;
+    return { ...rest, message: translate(messageCode, lang as any) };
+  }
 
   /**
    * Step 1 of signup: send verification codes to email + phone.
@@ -44,7 +52,7 @@ export class AuthController {
     @Body() sendSignUpRequestDto: SendSignUpRequestDto,
   ): Promise<any> {
     const result = await this.authService.sendSignupRequest(sendSignUpRequestDto);
-    return { success: true, data: result };
+    return { success: true, data: this.withMessage(result, 'en') };
   }
 
   /**
@@ -56,7 +64,7 @@ export class AuthController {
     @Body() verifyAccountDto: VerifyAccountDto,
   ): Promise<any> {
     const result = await this.authService.verifyAccountSignup(verifyAccountDto);
-    return { success: true, data: result };
+    return { success: true, data: this.withMessage(result, 'en') };
   }
 
   /**
@@ -88,7 +96,7 @@ export class AuthController {
     @Body() resendSignupCodeDto: ResendSignupCodeDto,
   ): Promise<any> {
     const result = await this.authService.resendSignupCode(resendSignupCodeDto);
-    return { success: true, data: result };
+    return { success: true, data: this.withMessage(result, 'en') };
   }
 
   /**
@@ -99,9 +107,10 @@ export class AuthController {
   @Post('reset-password')
   async resetPassword(
     @Body() resetPasswordDto: ResetPasswordDto,
+    @Query('lang') lang?: string,
   ): Promise<any> {
     const result = await this.authService.resetPassword(resetPasswordDto);
-    return { success: true, data: result };
+    return { success: true, data: this.withMessage(result, lang || 'en') };
   }
 
   /**
@@ -124,7 +133,8 @@ export class AuthController {
       req.user._id,
       body.email,
     );
-    return { success: true, data: result };
+    const lang = req.user?.lang || req.user?.language || 'en';
+    return { success: true, data: this.withMessage(result, lang) };
   }
 
   /**
@@ -137,7 +147,8 @@ export class AuthController {
       req.user._id,
       body.phone,
     );
-    return { success: true, data: result };
+    const lang = req.user?.lang || req.user?.language || 'en';
+    return { success: true, data: this.withMessage(result, lang) };
   }
 
   /**
@@ -171,7 +182,8 @@ export class AuthController {
       updateUserDto,
       avatarUrl,
     );
-    return { success: true, data: result };
+    const lang = req.user?.lang || req.user?.language || 'en';
+    return { success: true, data: this.withMessage(result, lang) };
   }
 
   /**
@@ -181,7 +193,8 @@ export class AuthController {
   @UseGuards(AuthGuard())
   async applyForPartner(@Req() req): Promise<any> {
     const result = await this.authService.applyForPartner(req.user._id);
-    return { success: true, data: result };
+    const lang = req.user?.lang || req.user?.language || 'en';
+    return { success: true, data: this.withMessage(result, lang) };
   }
 
   // ─── Admin routes ──────────────────────────────────────────────────────────
@@ -216,9 +229,11 @@ export class AuthController {
   @Roles(Role.ADMIN)
   async approvePartnerApplication(
     @Param('userId') userId: string,
+    @Req() req,
   ): Promise<any> {
     const result = await this.authService.approvePartnerApplication(userId);
-    return { success: true, data: result };
+    const lang = req.user?.lang || 'en';
+    return { success: true, data: this.withMessage(result, lang) };
   }
 
   /**
@@ -230,12 +245,14 @@ export class AuthController {
   async rejectPartnerApplication(
     @Param('userId') userId: string,
     @Body('reason') reason: string,
+    @Req() req,
   ): Promise<any> {
     const result = await this.authService.rejectPartnerApplication(
       userId,
       reason,
     );
-    return { success: true, data: result };
+    const lang = req.user?.lang || 'en';
+    return { success: true, data: this.withMessage(result, lang) };
   }
 
   /**

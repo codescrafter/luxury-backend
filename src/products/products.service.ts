@@ -1113,7 +1113,7 @@ export class ProductsService {
         model = this.resortModel;
         break;
       default:
-        throw new Error('Invalid product type');
+        throw new BadRequestException(PRODUCT_CODES.INVALID_TYPE);
     }
     const result = await model.findByIdAndUpdate(
       id,
@@ -1513,7 +1513,7 @@ export class ProductsService {
       case 'resort':
         return this.resortModel;
       default:
-        throw new Error('Invalid product type');
+        throw new BadRequestException(PRODUCT_CODES.INVALID_TYPE);
     }
   }
 
@@ -1728,10 +1728,7 @@ export class ProductsService {
       return transformProductsArrayForDualLanguage(relatedProducts, lang);
     } catch (error) {
       console.error('Error getting related products:', error);
-      throw new HttpException(
-        'Failed to get related products',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -1757,10 +1754,10 @@ export class ProductsService {
         product = await this.resortModel.findById(productId);
         break;
       default:
-        throw new HttpException('Invalid product type', HttpStatus.BAD_REQUEST);
+        throw new BadRequestException(PRODUCT_CODES.INVALID_TYPE);
     }
     if (!product) {
-      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
     }
     const productObjectId = new Types.ObjectId(productId);
 
@@ -1804,10 +1801,7 @@ export class ProductsService {
     });
 
     if (!booking) {
-      throw new HttpException(
-        'Booking not found or unauthorized',
-        HttpStatus.NOT_FOUND,
-      );
+      throw new NotFoundException(PRODUCT_CODES.BOOKING_NOT_FOUND);
     }
 
     const previousPaymentStatus = booking.paymentStatus;
@@ -2511,10 +2505,7 @@ export class ProductsService {
       };
     } catch (error) {
       console.error('Dashboard summary error:', error);
-      throw new HttpException(
-        'Failed to get dashboard summary',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -2593,10 +2584,7 @@ export class ProductsService {
       };
     } catch (error) {
       console.error('Error getting partner products:', error);
-      throw new HttpException(
-        'Failed to get partner products',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 

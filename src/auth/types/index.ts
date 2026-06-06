@@ -23,15 +23,15 @@ export type TUserReturn = {
 
 export type TSendVerificationCodeReturn =
   | {
-      message: string;
+      messageCode: string;
       emailCodeSentAt: number;
     }
   | {
-      message: string;
+      messageCode: string;
       phoneCodeSentAt: number;
     }
   | {
-      message: string;
+      messageCode: string;
       emailCodeSentAt: number;
       phoneCodeSentAt: number;
     };

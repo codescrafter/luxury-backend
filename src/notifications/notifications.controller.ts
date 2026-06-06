@@ -2,6 +2,8 @@ import { Controller, Get, Patch, Param, Query, UseGuards, Req } from '@nestjs/co
 import { AuthGuard } from '@nestjs/passport';
 import { NotificationsService } from './notifications.service';
 import { QueryNotificationDto } from './dto/query-notification.dto';
+import { translate } from '../i18n/registry';
+import { PRODUCT_CODES } from '../i18n/namespaces/product.namespace';
 
 @Controller('notifications')
 @UseGuards(AuthGuard('jwt'))
@@ -31,24 +33,28 @@ export class NotificationsController {
   @Patch(':id/read')
   async markAsRead(@Req() req, @Param('id') id: string) {
     const userId = req.user._id.toString();
+    const lang = req.user?.lang || req.user?.language || 'en';
     const notification = await this.notificationsService.markAsRead(id, userId);
-    
     return {
       success: true,
       data: notification,
-      message: 'Notification marked as read',
+      message: translate(PRODUCT_CODES.NOTIFICATION_MARKED_READ, lang as any),
     };
   }
 
   @Patch('read-all')
   async markAllAsRead(@Req() req) {
     const userId = req.user._id.toString();
+    const lang = req.user?.lang || req.user?.language || 'en';
     const result = await this.notificationsService.markAllAsRead(userId);
-    
+    const message = translate(PRODUCT_CODES.NOTIFICATIONS_MARKED_READ, lang as any).replace(
+      '{count}',
+      String(result.modifiedCount),
+    );
     return {
       success: true,
       data: result,
-      message: `Successfully marked ${result.modifiedCount} notifications as read.`,
+      message,
     };
   }
 }

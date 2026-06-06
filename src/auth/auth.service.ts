@@ -279,7 +279,7 @@ export class AuthService {
 
   async resetPassword(
     resetPasswordDto: ResetPasswordDto,
-  ): Promise<TSendVerificationCodeReturn | { message: string; token: string }> {
+  ): Promise<TSendVerificationCodeReturn | { messageCode: string; token: string }> {
     const { emailOrPhone, verificationCode, password } = resetPasswordDto;
 
     // Find user by email or phone
@@ -332,7 +332,7 @@ export class AuthService {
         );
 
         return {
-          message: 'Password reset code sent to email.',
+          messageCode: AUTH_CODES.PASSWORD_RESET_CODE_SENT_EMAIL,
           emailCodeSentAt: new Date().getTime(),
         };
       } else {
@@ -351,7 +351,7 @@ export class AuthService {
         );
 
         return {
-          message: 'Password reset code sent to phone.',
+          messageCode: AUTH_CODES.PASSWORD_RESET_CODE_SENT_PHONE,
           phoneCodeSentAt: new Date().getTime(),
         };
       }
@@ -401,7 +401,7 @@ export class AuthService {
       lang: user.language || 'en',
     });
 
-    return { message: 'Password reset successfully', token: token };
+    return { messageCode: AUTH_CODES.PASSWORD_RESET_SUCCESS, token: token };
   }
 
   async sendSignupRequest(
@@ -465,7 +465,7 @@ export class AuthService {
     );
 
     return {
-      message: 'Signup request sent',
+      messageCode: AUTH_CODES.SIGNUP_REQUEST_SENT,
       emailCodeSentAt: new Date().getTime(),
       phoneCodeSentAt: new Date().getTime(),
     };
@@ -473,7 +473,7 @@ export class AuthService {
 
   async verifyAccountSignup(
     verifyAccountDto: VerifyAccountDto,
-  ): Promise<{ message: string; token: string }> {
+  ): Promise<{ messageCode: string; token: string }> {
     const { email, phone, emailCode, phoneCode } = verifyAccountDto;
 
     // Find user by email and phone
@@ -515,7 +515,7 @@ export class AuthService {
       lang: user.language || 'en',
     });
 
-    return { message: 'Account verified successfully', token: token };
+    return { messageCode: AUTH_CODES.ACCOUNT_VERIFIED, token: token };
   }
 
   async login(loginDto: LoginDto): Promise<{ token: string }> {
@@ -713,7 +713,7 @@ export class AuthService {
       );
 
       return {
-        message: 'Email verification code sent.',
+        messageCode: AUTH_CODES.EMAIL_CODE_SENT,
         emailCodeSentAt: new Date().getTime(),
       };
     } else {
@@ -731,7 +731,7 @@ export class AuthService {
       );
 
       return {
-        message: 'Phone verification code sent.',
+        messageCode: AUTH_CODES.PHONE_CODE_SENT,
         phoneCodeSentAt: new Date().getTime(),
       };
     }
@@ -781,7 +781,7 @@ export class AuthService {
       },
     );
     return {
-      message: 'Signup verification codes resent',
+      messageCode: AUTH_CODES.SIGNUP_CODES_RESENT,
       emailCodeSentAt: new Date().getTime(),
       phoneCodeSentAt: new Date().getTime(),
     };
@@ -790,7 +790,7 @@ export class AuthService {
   async sendUpdateEmailCode(
     userId: string,
     email: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ messageCode: string }> {
     // make sure email is not already in use
     const existingUser = await this.userModel.findOne({ email: email });
     if (existingUser) {
@@ -818,14 +818,14 @@ export class AuthService {
     );
 
     return {
-      message: 'Email verification code sent.',
+      messageCode: AUTH_CODES.EMAIL_CODE_SENT,
     };
   }
 
   async sendUpdatePhoneCode(
     userId: string,
     phone: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ messageCode: string }> {
     // make sure phone is not already in use
     const existingUser = await this.userModel.findOne({ phone: phone });
     if (existingUser) {
@@ -856,7 +856,7 @@ export class AuthService {
     );
 
     return {
-      message: 'Phone verification code sent.',
+      messageCode: AUTH_CODES.PHONE_CODE_SENT,
     };
   }
 
@@ -876,7 +876,7 @@ export class AuthService {
         },
       );
       return {
-        message: 'User updated successfully',
+        messageCode: AUTH_CODES.USER_UPDATED,
       };
     } else if (name) {
       await this.userModel.findOneAndUpdate(
@@ -887,7 +887,7 @@ export class AuthService {
         { new: true },
       );
       return {
-        message: 'User updated successfully',
+        messageCode: AUTH_CODES.USER_UPDATED,
       };
     } else if (email && emailCode) {
       const user = await this.userModel.findOne({ _id: userId });
@@ -902,7 +902,7 @@ export class AuthService {
         },
       );
       return {
-        message: 'User updated successfully',
+        messageCode: AUTH_CODES.USER_UPDATED,
       };
     } else if (phone && phoneCode) {
       const user = await this.userModel.findOne({ _id: userId });
@@ -917,7 +917,7 @@ export class AuthService {
         },
       );
       return {
-        message: 'User updated successfully',
+        messageCode: AUTH_CODES.USER_UPDATED,
       };
     } else if (language) {
       await this.userModel.findOneAndUpdate(
@@ -928,12 +928,12 @@ export class AuthService {
         { new: true },
       );
       return {
-        message: 'User updated successfully',
+        messageCode: AUTH_CODES.USER_UPDATED,
       };
     }
   }
 
-  async applyForPartner(userId: string): Promise<{ message: string }> {
+  async applyForPartner(userId: string): Promise<{ messageCode: string }> {
     const user = await this.userModel.findOne({ _id: userId });
     if (!user) {
       throw new NotFoundException(AUTH_CODES.USER_NOT_FOUND);
@@ -966,7 +966,7 @@ export class AuthService {
       user.name || user.email || 'Unknown User',
     );
 
-    return { message: 'Partner application submitted successfully' };
+    return { messageCode: AUTH_CODES.PARTNER_APPLICATION_SUBMITTED };
   }
 
   // apis for admin and asuper admin
@@ -1231,7 +1231,7 @@ export class AuthService {
     await this.notificationsFacade.notifyPartnerApplicationRejected(userId, reason);
 
     return {
-      message: 'Partner application rejected',
+      messageCode: AUTH_CODES.PARTNER_APPLICATION_REJECTED,
     };
   }
 
@@ -1268,7 +1268,7 @@ export class AuthService {
     await this.notificationsFacade.notifyPartnerApplicationApproved(userId);
 
     return {
-      message: 'Partner application approved',
+      messageCode: AUTH_CODES.PARTNER_APPLICATION_APPROVED,
     };
   }
 

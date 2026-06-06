@@ -25,6 +25,7 @@ import { PRODUCT_TRANSLATIONS } from './namespaces/product.namespace';
 import { EVENT_TRANSLATIONS } from './namespaces/event.namespace';
 import { NOTIFICATION_TRANSLATIONS } from './namespaces/notification.namespace';
 import { PAYMENT_TRANSLATIONS } from './namespaces/payment.namespace';
+import { SECURITY_GUARD_TRANSLATIONS } from './namespaces/security-guard.namespace';
 
 /**
  * The merged translation registry.
@@ -38,6 +39,7 @@ const REGISTRY: Readonly<Record<ErrorCode, BilingualMessage>> = Object.freeze({
   ...EVENT_TRANSLATIONS,
   ...NOTIFICATION_TRANSLATIONS,
   ...PAYMENT_TRANSLATIONS,
+  ...SECURITY_GUARD_TRANSLATIONS,
 });
 
 /**
@@ -91,3 +93,4 @@ export * from './namespaces/product.namespace';
 export * from './namespaces/event.namespace';
 export * from './namespaces/notification.namespace';
 export * from './namespaces/payment.namespace';
+export * from './namespaces/security-guard.namespace';

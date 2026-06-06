@@ -60,10 +60,21 @@ export const PRODUCT_CODES = {
   QR_FETCH_FAILED: 'PRODUCT.QR_FETCH_FAILED',
   QR_NOT_FOR_CONFIRMED: 'PRODUCT.QR_NOT_FOR_CONFIRMED',
 
-  // ─── Validation (for DTO message options) ───────────────────────────────
+  // ─── Validation (for DTO message options) ────────────────────────────────────
   VALIDATION_FAILED: 'PRODUCT.VALIDATION_FAILED',
   FIELD_REQUIRED: 'PRODUCT.FIELD_REQUIRED',
   INVALID_DATE: 'PRODUCT.INVALID_DATE',
+  INVALID_COORDINATES: 'PRODUCT.INVALID_COORDINATES',
+  INVALID_CAPACITY: 'PRODUCT.INVALID_CAPACITY',
+  INVALID_EMAIL: 'PRODUCT.INVALID_EMAIL',
+  INVALID_PHONE: 'PRODUCT.INVALID_PHONE',
+
+  // ─── Success / info message codes (returned by service, translated in controller) ──
+  QR_NO_BOOKINGS_FOUND: 'PRODUCT.QR_NO_BOOKINGS_FOUND',
+  QR_MARKED_EXPIRED: 'PRODUCT.QR_MARKED_EXPIRED',
+  QR_CLEANUP_DONE: 'PRODUCT.QR_CLEANUP_DONE',
+  NOTIFICATION_MARKED_READ: 'PRODUCT.NOTIFICATION_MARKED_READ',
+  NOTIFICATIONS_MARKED_READ: 'PRODUCT.NOTIFICATIONS_MARKED_READ',
 } as const;
 
 export type ProductCode = (typeof PRODUCT_CODES)[keyof typeof PRODUCT_CODES];
@@ -235,5 +246,45 @@ export const PRODUCT_TRANSLATIONS: TranslationMap = {
   'PRODUCT.INVALID_DATE': {
     en: 'Invalid date format',
     ar: 'تنسيق التاريخ غير صالح',
+  },
+
+  // Validation extras
+  'PRODUCT.INVALID_COORDINATES': {
+    en: 'Invalid coordinates. Please enter a valid number.',
+    ar: 'إحداثيات غير صالحة. يرجى إدخال رقم صالح.',
+  },
+  'PRODUCT.INVALID_CAPACITY': {
+    en: 'Invalid capacity value.',
+    ar: 'قيمة السعة غير صالحة.',
+  },
+  'PRODUCT.INVALID_EMAIL': {
+    en: 'Please enter a valid email address.',
+    ar: 'يرجى إدخال عنوان بريد إلكتروني صحيح.',
+  },
+  'PRODUCT.INVALID_PHONE': {
+    en: 'Phone must be in E.164 format starting with +',
+    ar: 'يجب أن يكون الهاتف بتنسيق E.164 ويبدأ بعلامة +',
+  },
+
+  // ─── Success / info messages ─────────────────────────────────────────────────
+  'PRODUCT.QR_NO_BOOKINGS_FOUND': {
+    en: 'No bookings found for this partner.',
+    ar: 'لم يتم العثور على حجوزات لهذا الشريك.',
+  },
+  'PRODUCT.QR_MARKED_EXPIRED': {
+    en: '{count} QR code(s) marked as expired.',
+    ar: 'تم تحديد {count} رمز (رموز) استجابة سريعة كمنتهية الصلاحية.',
+  },
+  'PRODUCT.QR_CLEANUP_DONE': {
+    en: '{count} expired QR code(s) removed.',
+    ar: 'تم حذف {count} رمز (رموز) استجابة سريعة منتهية الصلاحية.',
+  },
+  'PRODUCT.NOTIFICATION_MARKED_READ': {
+    en: 'Notification marked as read.',
+    ar: 'تم تعيين الإشعار كمقروء.',
+  },
+  'PRODUCT.NOTIFICATIONS_MARKED_READ': {
+    en: '{count} notification(s) marked as read.',
+    ar: 'تم تعيين {count} إشعار (إشعارات) كمقروء.',
   },
 };

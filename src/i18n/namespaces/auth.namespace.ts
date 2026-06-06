@@ -66,6 +66,20 @@ export const AUTH_CODES = {
   INVALID_EMAIL_OR_PHONE: 'AUTH.INVALID_EMAIL_OR_PHONE',
   PASSWORD_TOO_SHORT: 'AUTH.PASSWORD_TOO_SHORT',
   CODE_INVALID_LENGTH: 'AUTH.CODE_INVALID_LENGTH',
+
+  // ─── Success / info message codes (returned by service, translated in controller) ──
+  PASSWORD_RESET_CODE_SENT_EMAIL: 'AUTH.PASSWORD_RESET_CODE_SENT_EMAIL',
+  PASSWORD_RESET_CODE_SENT_PHONE: 'AUTH.PASSWORD_RESET_CODE_SENT_PHONE',
+  PASSWORD_RESET_SUCCESS: 'AUTH.PASSWORD_RESET_SUCCESS',
+  SIGNUP_REQUEST_SENT: 'AUTH.SIGNUP_REQUEST_SENT',
+  ACCOUNT_VERIFIED: 'AUTH.ACCOUNT_VERIFIED',
+  EMAIL_CODE_SENT: 'AUTH.EMAIL_CODE_SENT',
+  PHONE_CODE_SENT: 'AUTH.PHONE_CODE_SENT',
+  SIGNUP_CODES_RESENT: 'AUTH.SIGNUP_CODES_RESENT',
+  USER_UPDATED: 'AUTH.USER_UPDATED',
+  PARTNER_APPLICATION_SUBMITTED: 'AUTH.PARTNER_APPLICATION_SUBMITTED',
+  PARTNER_APPLICATION_REJECTED: 'AUTH.PARTNER_APPLICATION_REJECTED',
+  PARTNER_APPLICATION_APPROVED: 'AUTH.PARTNER_APPLICATION_APPROVED',
 } as const;
 
 export type AuthCode = (typeof AUTH_CODES)[keyof typeof AUTH_CODES];
@@ -225,5 +239,55 @@ export const AUTH_TRANSLATIONS: TranslationMap = {
   'AUTH.CODE_INVALID_LENGTH': {
     en: 'Verification code must be exactly 6 digits',
     ar: 'يجب أن يكون رمز التحقق 6 أرقام بالضبط',
+  },
+
+  // ─── Success / info messages ─────────────────────────────────────────────────
+  'AUTH.PASSWORD_RESET_CODE_SENT_EMAIL': {
+    en: 'Password reset code sent to your email.',
+    ar: 'تم إرسال رمز إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.',
+  },
+  'AUTH.PASSWORD_RESET_CODE_SENT_PHONE': {
+    en: 'Password reset code sent to your phone.',
+    ar: 'تم إرسال رمز إعادة تعيين كلمة المرور إلى هاتفك.',
+  },
+  'AUTH.PASSWORD_RESET_SUCCESS': {
+    en: 'Password reset successfully.',
+    ar: 'تم إعادة تعيين كلمة المرور بنجاح.',
+  },
+  'AUTH.SIGNUP_REQUEST_SENT': {
+    en: 'Signup request sent. Please check your email and phone for verification codes.',
+    ar: 'تم إرسال طلب التسجيل. يرجى التحقق من بريدك الإلكتروني وهاتفك للحصول على رموز التحقق.',
+  },
+  'AUTH.ACCOUNT_VERIFIED': {
+    en: 'Account verified successfully.',
+    ar: 'تم التحقق من الحساب بنجاح.',
+  },
+  'AUTH.EMAIL_CODE_SENT': {
+    en: 'Email verification code sent.',
+    ar: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني.',
+  },
+  'AUTH.PHONE_CODE_SENT': {
+    en: 'Phone verification code sent.',
+    ar: 'تم إرسال رمز التحقق إلى هاتفك.',
+  },
+  'AUTH.SIGNUP_CODES_RESENT': {
+    en: 'Verification codes resent to your email and phone.',
+    ar: 'تمت إعادة إرسال رموز التحقق إلى بريدك الإلكتروني وهاتفك.',
+  },
+  'AUTH.USER_UPDATED': {
+    en: 'Profile updated successfully.',
+    ar: 'تم تحديث الملف الشخصي بنجاح.',
+  },
+  'AUTH.PARTNER_APPLICATION_SUBMITTED': {
+    en: 'Partner application submitted successfully.',
+    ar: 'تم تقديم طلب الشراكة بنجاح.',
+  },
+  'AUTH.PARTNER_APPLICATION_REJECTED': {
+    en: 'Partner application rejected.',
+    ar: 'تم رفض طلب الشراكة.',
+  },
+  'AUTH.PARTNER_APPLICATION_APPROVED': {
+    en: 'Partner application approved.',
+    ar: 'تمت الموافقة على طلب الشراكة.',
   },
 };

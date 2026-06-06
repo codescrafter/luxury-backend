@@ -1,9 +1,11 @@
 import {
-  Injectable,
-  NotFoundException,
   ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { SECURITY_GUARD_CODES } from '../i18n/namespaces/security-guard.namespace';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
@@ -92,7 +94,7 @@ export class SecurityGuardService {
       );
     } catch (error) {
       console.error('Error sending security guard credentials email:', error);
-      throw new Error('Failed to send credentials email');
+      throw new InternalServerErrorException(SECURITY_GUARD_CODES.EMAIL_SEND_FAILED);
     }
   }
 
@@ -141,7 +143,7 @@ export class SecurityGuardService {
       );
     } catch (error) {
       console.error('Error sending security guard credentials SMS:', error);
-      throw new Error('Failed to send credentials SMS');
+      throw new InternalServerErrorException(SECURITY_GUARD_CODES.SMS_SEND_FAILED);
     }
   }
 
@@ -162,25 +164,25 @@ export class SecurityGuardService {
       username,
     });
     if (existingUsername) {
-      throw new ConflictException('Username already exists');
+      throw new ConflictException(SECURITY_GUARD_CODES.USERNAME_TAKEN);
     }
 
     // Check if email already exists
     const existingEmail = await this.securityGuardModel.findOne({ email });
     if (existingEmail) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException(SECURITY_GUARD_CODES.EMAIL_TAKEN);
     }
 
     // Check if phone already exists
     const existingPhone = await this.securityGuardModel.findOne({ phone });
     if (existingPhone) {
-      throw new ConflictException('Phone number already exists');
+      throw new ConflictException(SECURITY_GUARD_CODES.PHONE_TAKEN);
     }
 
     // Verify partner exists
     const partner = await this.userModel.findById(partnerId);
     if (!partner) {
-      throw new NotFoundException('Partner not found');
+      throw new NotFoundException(SECURITY_GUARD_CODES.PARTNER_NOT_FOUND);
     }
 
     // Generate random password
@@ -292,7 +294,7 @@ export class SecurityGuardService {
       .lean();
 
     if (!securityGuard) {
-      throw new NotFoundException('Security guard not found');
+      throw new NotFoundException(SECURITY_GUARD_CODES.NOT_FOUND);
     }
 
     return securityGuard;
@@ -312,7 +314,7 @@ export class SecurityGuardService {
     });
 
     if (!securityGuard) {
-      throw new NotFoundException('Security guard not found');
+      throw new NotFoundException(SECURITY_GUARD_CODES.NOT_FOUND);
     }
 
     // Check for conflicts if updating username, email, or phone
@@ -322,7 +324,7 @@ export class SecurityGuardService {
         _id: { $ne: new Types.ObjectId(id) },
       });
       if (existingUsername) {
-        throw new ConflictException('Username already exists');
+        throw new ConflictException(SECURITY_GUARD_CODES.USERNAME_TAKEN);
       }
     }
 
@@ -332,7 +334,7 @@ export class SecurityGuardService {
         _id: { $ne: new Types.ObjectId(id) },
       });
       if (existingEmail) {
-        throw new ConflictException('Email already exists');
+        throw new ConflictException(SECURITY_GUARD_CODES.EMAIL_TAKEN);
       }
     }
 
@@ -342,7 +344,7 @@ export class SecurityGuardService {
         _id: { $ne: new Types.ObjectId(id) },
       });
       if (existingPhone) {
-        throw new ConflictException('Phone number already exists');
+        throw new ConflictException(SECURITY_GUARD_CODES.PHONE_TAKEN);
       }
     }
 
@@ -400,12 +402,12 @@ export class SecurityGuardService {
       ],
     });
     if (!securityGuard) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(SECURITY_GUARD_CODES.INVALID_CREDENTIALS);
     }
 
     // Check if security guard is active
     if (securityGuard.status !== SecurityGuardStatus.ACTIVE) {
-      throw new UnauthorizedException('Security guard account is not active');
+      throw new UnauthorizedException(SECURITY_GUARD_CODES.ACCOUNT_INACTIVE);
     }
 
     // Verify password
@@ -414,7 +416,7 @@ export class SecurityGuardService {
       securityGuard.password,
     );
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(SECURITY_GUARD_CODES.INVALID_CREDENTIALS);
     }
 
     // Update last login
@@ -445,7 +447,7 @@ export class SecurityGuardService {
       .lean();
 
     if (!securityGuard) {
-      throw new NotFoundException('Security guard not found');
+      throw new NotFoundException(SECURITY_GUARD_CODES.NOT_FOUND);
     }
 
     return securityGuard;
@@ -472,7 +474,7 @@ export class SecurityGuardService {
       .select('-password');
 
     if (!updatedSecurityGuard) {
-      throw new NotFoundException('Security guard not found');
+      throw new NotFoundException(SECURITY_GUARD_CODES.NOT_FOUND);
     }
 
     return updatedSecurityGuard;

@@ -23,10 +23,22 @@ import {
 } from './dto/booking-qr.dto';
 import { SecurityGuardAuthGuard } from 'src/auth/guards/security-guard-auth.guard';
 import { PRODUCT_CODES } from '../i18n/namespaces/product.namespace';
+import { translate } from '../i18n/registry';
 
 @Controller('qr')
 export class BookingQrController {
   constructor(private readonly bookingQrService: BookingQrService) {}
+
+  /** Translates a messageCode that may contain a {count} placeholder */
+  private withMessage(result: any, lang: string): any {
+    if (!result || !result.messageCode) return result;
+    const { messageCode, ...rest } = result;
+    let message = translate(messageCode, lang as any);
+    if ('expiredCount' in rest) {
+      message = message.replace('{count}', String(rest.expiredCount));
+    }
+    return { ...rest, message };
+  }
 
   /**
    * Generate QR code for a booking
@@ -172,10 +184,12 @@ export class BookingQrController {
   @Roles(Role.PARTNER, Role.ADMIN)
   async markExpiredQrCodesForPartner(
     @Param('partnerId') partnerId: string,
+    @Req() req,
   ): Promise<any> {
     const result =
       await this.bookingQrService.markExpiredQrCodesForPartner(partnerId);
-    return { success: true, data: result };
+    const lang = req.user?.lang || 'en';
+    return { success: true, data: this.withMessage(result, lang) };
   }
 
   /**
@@ -184,8 +198,13 @@ export class BookingQrController {
   @Post('cleanup')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
-  async cleanupExpiredQrCodes() {
+  async cleanupExpiredQrCodes(@Req() req) {
     const cleanedCount = await this.bookingQrService.cleanupExpiredQrCodes();
-    return { success: true, data: { cleanedCount } };
+    const lang = req.user?.lang || 'en';
+    const message = translate(PRODUCT_CODES.QR_CLEANUP_DONE, lang as any).replace(
+      '{count}',
+      String(cleanedCount),
+    );
+    return { success: true, data: { cleanedCount, message } };
   }
 }
