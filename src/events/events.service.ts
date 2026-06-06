@@ -1,4 +1,10 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
@@ -17,6 +23,7 @@ import {
   transformProductsArrayForDualLanguage,
 } from 'src/helpers/dto-helpers';
 import { NotificationsFacadeService } from '../notifications/notifications-facade.service';
+import { EVENT_CODES } from '../i18n/namespaces/event.namespace';
 
 type PaginatedResult<T> = {
   data: T[];
@@ -30,6 +37,9 @@ type PaginatedResult<T> = {
   };
 };
 
+/** Venue statuses that allow resubmission */
+const RESUBMITTABLE_STATUSES = ['revision', 'rejected'] as const;
+
 @Injectable()
 export class EventsService {
   constructor(
@@ -41,10 +51,10 @@ export class EventsService {
     private readonly notificationsFacade: NotificationsFacadeService,
   ) {}
 
-  private async uploadImages(files: any[] | undefined) {
-    if (!files || files.length === 0) {
-      return [];
-    }
+  // ─── Private media helpers ─────────────────────────────────────────────────
+
+  private async uploadImages(files: any[] | undefined): Promise<string[]> {
+    if (!files || files.length === 0) return [];
     try {
       const uploaded = await Promise.all(
         files.map((file) =>
@@ -54,17 +64,12 @@ export class EventsService {
       return uploaded.map((item) => item.secure_url);
     } catch (error) {
       console.error('Event venue image upload error:', error);
-      throw new HttpException(
-        `Failed to upload images: ${error.message}`,
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(EVENT_CODES.IMAGE_UPLOAD_FAILED);
     }
   }
 
-  private async uploadVideos(files: any[] | undefined) {
-    if (!files || files.length === 0) {
-      return [];
-    }
+  private async uploadVideos(files: any[] | undefined): Promise<string[]> {
+    if (!files || files.length === 0) return [];
     try {
       const uploaded = await Promise.all(
         files.map((file) =>
@@ -74,10 +79,7 @@ export class EventsService {
       return uploaded.map((item) => item.secure_url);
     } catch (error) {
       console.error('Event venue video upload error:', error);
-      throw new HttpException(
-        `Failed to upload videos: ${error.message}`,
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(EVENT_CODES.VIDEO_UPLOAD_FAILED);
     }
   }
 
@@ -86,9 +88,10 @@ export class EventsService {
     files: { images?: any[]; videos?: any[] } | undefined,
     updateDto: UpdateEventVenueDto,
   ) {
+    // Edge case: venue must still exist before media update
     const venue = await this.eventVenueModel.findById(venueId);
     if (!venue) {
-      throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(EVENT_CODES.VENUE_NOT_FOUND);
     }
 
     let images = venue.images || [];
@@ -133,6 +136,8 @@ export class EventsService {
     return { images, videos };
   }
 
+  // ─── Venue CRUD ────────────────────────────────────────────────────────────
+
   async createVenue(
     dto: CreateEventVenueDto,
     files: { images?: any[]; videos?: any[] } | undefined,
@@ -152,7 +157,6 @@ export class EventsService {
       type: 'event-venue',
     });
 
-    // Trigger notification
     await this.notificationsFacade.notifyAssetSubmitted(
       venue._id.toString(),
       'EventVenue',
@@ -170,14 +174,17 @@ export class EventsService {
     user: any,
   ) {
     const venueId = new Types.ObjectId(id);
+
+    // Edge case: venue must exist before any update
     const venue = await this.eventVenueModel.findById(venueId);
     if (!venue) {
-      throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(EVENT_CODES.VENUE_NOT_FOUND);
     }
 
+    // Edge case: only owner or admin can update
     const isAdmin = user.role?.includes('admin');
     if (!isAdmin && venue.ownerId?.toString() !== user._id?.toString()) {
-      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      throw new ForbiddenException(EVENT_CODES.NOT_VENUE_OWNER);
     }
 
     let images = venue.images || [];
@@ -211,7 +218,7 @@ export class EventsService {
   async getVenueById(id: string, lang?: string) {
     const venue = await this.eventVenueModel.findById(id).lean();
     if (!venue) {
-      throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(EVENT_CODES.VENUE_NOT_FOUND);
     }
     return transformProductForDualLanguage(venue, lang);
   }
@@ -353,66 +360,94 @@ export class EventsService {
     };
   }
 
+  // ─── Admin venue lifecycle actions ─────────────────────────────────────────
+
   async approveVenue(id: string) {
+    // Edge case: fetch first to validate current state before update
+    const existing = await this.eventVenueModel.findById(id);
+    if (!existing) {
+      throw new NotFoundException(EVENT_CODES.VENUE_NOT_FOUND);
+    }
+
+    // Edge case: approving an already-approved venue is a state conflict
+    if (existing.status === 'approved') {
+      throw new ConflictException(EVENT_CODES.VENUE_ALREADY_APPROVED);
+    }
+
     const venue = await this.eventVenueModel.findByIdAndUpdate(
       id,
       { status: 'approved' },
       { new: true },
     );
-    if (!venue) {
-      throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
-    }
 
-    // Trigger notification
-    await this.notificationsFacade.notifyAssetApproved(
-      venue._id.toString(),
-      'EventVenue',
-      venue.titleEn,
-      venue.ownerId.toString(),
-    );
+    // Edge case: venue owner missing (orphan venue) — notify but don't crash
+    if (venue && venue.ownerId) {
+      await this.notificationsFacade.notifyAssetApproved(
+        venue._id.toString(),
+        'EventVenue',
+        venue.titleEn,
+        venue.ownerId.toString(),
+      );
+    }
 
     return venue;
   }
 
   async markVenueForRevision(id: string) {
+    const existing = await this.eventVenueModel.findById(id);
+    if (!existing) {
+      throw new NotFoundException(EVENT_CODES.VENUE_NOT_FOUND);
+    }
+
+    // Edge case: cannot request revision on an already-rejected venue
+    if (existing.status === 'rejected') {
+      throw new ConflictException(EVENT_CODES.INVALID_STATUS_TRANSITION);
+    }
+
     const venue = await this.eventVenueModel.findByIdAndUpdate(
       id,
       { status: 'revision', $inc: { resubmissionCount: 1 } },
       { new: true },
     );
-    if (!venue) {
-      throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
-    }
 
-    // Trigger notification
-    await this.notificationsFacade.notifyAssetRevisionRequested(
-      venue._id.toString(),
-      'EventVenue',
-      venue.titleEn,
-      venue.ownerId.toString(),
-    );
+    if (venue && venue.ownerId) {
+      await this.notificationsFacade.notifyAssetRevisionRequested(
+        venue._id.toString(),
+        'EventVenue',
+        venue.titleEn,
+        venue.ownerId.toString(),
+      );
+    }
 
     return venue;
   }
 
   async rejectVenue(id: string, reason?: string) {
+    const existing = await this.eventVenueModel.findById(id);
+    if (!existing) {
+      throw new NotFoundException(EVENT_CODES.VENUE_NOT_FOUND);
+    }
+
+    // Edge case: rejecting an already-rejected venue is idempotent conflict
+    if (existing.status === 'rejected') {
+      throw new ConflictException(EVENT_CODES.VENUE_ALREADY_REJECTED);
+    }
+
     const venue = await this.eventVenueModel.findByIdAndUpdate(
       id,
       { status: 'rejected', ...(reason ? { rejectionReason: reason } : {}) },
       { new: true },
     );
-    if (!venue) {
-      throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
-    }
 
-    // Trigger notification
-    await this.notificationsFacade.notifyAssetRejected(
-      venue._id.toString(),
-      'EventVenue',
-      venue.titleEn,
-      venue.ownerId.toString(),
-      reason,
-    );
+    if (venue && venue.ownerId) {
+      await this.notificationsFacade.notifyAssetRejected(
+        venue._id.toString(),
+        'EventVenue',
+        venue.titleEn,
+        venue.ownerId.toString(),
+        reason,
+      );
+    }
 
     return venue;
   }
@@ -422,16 +457,33 @@ export class EventsService {
     if (!isAdmin) {
       filter.ownerId = userId;
     }
+
+    // Edge case: fetch first to check resubmittable state
+    const existing = await this.eventVenueModel.findOne({ _id: id });
+    if (!existing) {
+      throw new NotFoundException(EVENT_CODES.VENUE_NOT_FOUND);
+    }
+
+    // Edge case: only revision/rejected venues can be resubmitted
+    if (!RESUBMITTABLE_STATUSES.includes(existing.status as any)) {
+      throw new ConflictException(EVENT_CODES.VENUE_CANNOT_RESUBMIT);
+    }
+
+    // Edge case: non-admin accessing a venue they don't own
+    if (!isAdmin && existing.ownerId?.toString() !== userId) {
+      throw new ForbiddenException(EVENT_CODES.NOT_VENUE_OWNER);
+    }
+
     const venue = await this.eventVenueModel.findOneAndUpdate(
       filter,
       { status: 'pending', $inc: { resubmissionCount: 1 } },
       { new: true },
     );
+
     if (!venue) {
-      throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(EVENT_CODES.VENUE_NOT_FOUND);
     }
 
-    // Trigger notification
     await this.notificationsFacade.notifyAssetSubmitted(
       venue._id.toString(),
       'EventVenue',
@@ -442,17 +494,25 @@ export class EventsService {
     return venue;
   }
 
+  // ─── Venue request flow ────────────────────────────────────────────────────
+
   async createVenueRequest(
     venueId: string,
     dto: CreateEventVenueRequestDto,
     user?: any,
   ) {
+    // Edge case: venue must exist AND be approved — two distinct failure modes
     const venue = await this.eventVenueModel.findById(venueId);
-    if (!venue || venue.status !== 'approved') {
-      throw new HttpException(
-        'Event venue not available for requests',
-        HttpStatus.BAD_REQUEST,
-      );
+    if (!venue) {
+      throw new NotFoundException(EVENT_CODES.VENUE_NOT_FOUND);
+    }
+    if (venue.status !== 'approved') {
+      throw new BadRequestException(EVENT_CODES.VENUE_NOT_AVAILABLE);
+    }
+
+    // Edge case: orphan venue — owner must exist
+    if (!venue.ownerId) {
+      throw new BadRequestException(EVENT_CODES.VENUE_OWNER_NOT_FOUND);
     }
 
     const request = await this.eventVenueRequestModel.create({
@@ -526,11 +586,12 @@ export class EventsService {
   async getVenueRequests(venueId: string, partnerId: string) {
     const venue = await this.eventVenueModel.findById(venueId);
     if (!venue) {
-      throw new HttpException('Event venue not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(EVENT_CODES.VENUE_NOT_FOUND);
     }
 
+    // Edge case: partner can only see requests for their own venues
     if (venue.ownerId?.toString() !== partnerId?.toString()) {
-      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      throw new ForbiddenException(EVENT_CODES.NOT_VENUE_OWNER);
     }
 
     const requests = await this.eventVenueRequestModel
@@ -548,11 +609,17 @@ export class EventsService {
   ) {
     const request = await this.eventVenueRequestModel.findById(requestId);
     if (!request) {
-      throw new HttpException('Request not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(EVENT_CODES.REQUEST_NOT_FOUND);
     }
 
+    // Edge case: only the partner owning the venue can update this request
     if (request.partnerId?.toString() !== partnerId?.toString()) {
-      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      throw new ForbiddenException(EVENT_CODES.NOT_REQUEST_OWNER);
+    }
+
+    // Edge case: cannot update a request that has already been responded to
+    if (request.status !== EventVenueRequestStatus.PENDING) {
+      throw new ConflictException(EVENT_CODES.REQUEST_ALREADY_RESPONDED);
     }
 
     request.status = dto.status;
@@ -568,7 +635,9 @@ export class EventsService {
 
     // Populate venue to get titleEn for notification
     await request.populate('venueId');
-    const venueTitle = request.venueId ? (request.venueId as any).titleEn : 'Event Venue';
+    const venueTitle = request.venueId
+      ? (request.venueId as any).titleEn
+      : 'Event Venue';
 
     if (dto.status === EventVenueRequestStatus.CONTACTED && request.userId) {
       await this.notificationsFacade.notifyBookingConfirmed(
@@ -576,7 +645,10 @@ export class EventsService {
         request.userId.toString(),
         venueTitle,
       );
-    } else if (dto.status === EventVenueRequestStatus.DISMISSED && request.userId) {
+    } else if (
+      dto.status === EventVenueRequestStatus.DISMISSED &&
+      request.userId
+    ) {
       await this.notificationsFacade.notifyBookingRejected(
         request._id.toString(),
         request.userId.toString(),

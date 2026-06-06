@@ -35,144 +35,114 @@ export class AuthController {
     private cloudinaryService: CloudinaryService,
   ) {}
 
+  /**
+   * Step 1 of signup: send verification codes to email + phone.
+   * Returns timestamps for OTP cooldown timers.
+   */
   @Post('send-signup-req')
   async sendSignUpCode(
     @Body() sendSignUpRequestDto: SendSignUpRequestDto,
   ): Promise<any> {
-    try {
-      const result =
-        await this.authService.sendSignupRequest(sendSignUpRequestDto);
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to send signup code',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.sendSignupRequest(sendSignUpRequestDto);
+    return { success: true, data: result };
   }
 
+  /**
+   * Step 2 of signup: verify email + phone OTP codes and complete registration.
+   * Returns a JWT token on success.
+   */
   @Post('verify-account-signup')
   async verifyAccountSignup(
     @Body() verifyAccountDto: VerifyAccountDto,
   ): Promise<any> {
-    try {
-      const result =
-        await this.authService.verifyAccountSignup(verifyAccountDto);
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Verification failed',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.verifyAccountSignup(verifyAccountDto);
+    return { success: true, data: result };
   }
 
+  /**
+   * Login with email/phone and password.
+   * Returns a JWT token on success.
+   */
   @Post('login')
   async login(@Body() loginDto: LoginDto): Promise<any> {
-    try {
-      const result = await this.authService.login(loginDto);
-      return { success: true, data: result };
-    } catch (error) {
-      return { success: false, message: 'Login failed', error: error.message };
-    }
+    const result = await this.authService.login(loginDto);
+    return { success: true, data: result };
   }
 
+  /**
+   * Unified login for all user types (user, admin, partner, security guard).
+   * Returns JWT token and user type on success.
+   */
   @Post('unified-login')
   async unifiedLogin(@Body() unifiedLoginDto: UnifiedLoginDto): Promise<any> {
-    try {
-      const result = await this.authService.unifiedLogin(unifiedLoginDto);
-      return { success: true, data: result };
-    } catch (error) {
-      return { success: false, message: 'Login failed', error: error.message };
-    }
+    const result = await this.authService.unifiedLogin(unifiedLoginDto);
+    return { success: true, data: result };
   }
 
+  /**
+   * Resend signup OTP codes.
+   * Enforces rate-limit (1 per minute); returns countdown timestamps.
+   */
   @Post('resend-signup-code')
   async resendSignupCode(
     @Body() resendSignupCodeDto: ResendSignupCodeDto,
   ): Promise<any> {
-    try {
-      const result =
-        await this.authService.resendSignupCode(resendSignupCodeDto);
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to resend code',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.resendSignupCode(resendSignupCodeDto);
+    return { success: true, data: result };
   }
 
+  /**
+   * Initiate or complete password reset.
+   * Without code/password: sends reset code.
+   * With code + password: resets the password and returns a new JWT.
+   */
   @Post('reset-password')
   async resetPassword(
     @Body() resetPasswordDto: ResetPasswordDto,
   ): Promise<any> {
-    try {
-      const result = await this.authService.resetPassword(resetPasswordDto);
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to process password reset request',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.resetPassword(resetPasswordDto);
+    return { success: true, data: result };
   }
 
+  /**
+   * Get the currently authenticated user's profile.
+   */
   @Get('user')
   @UseGuards(AuthGuard())
   async getUser(@Req() req): Promise<any> {
-    try {
-      const result = await this.authService.getUser({ user: req.user });
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to get user',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.getUser({ user: req.user });
+    return { success: true, data: result };
   }
 
+  /**
+   * Send OTP to a new email address before updating it.
+   */
   @Post('send-update-email-code')
   @UseGuards(AuthGuard())
   async sendUpdateEmailCode(@Req() req, @Body() body): Promise<any> {
-    try {
-      const result = await this.authService.sendUpdateEmailCode(
-        req.user._id,
-        body.email,
-      );
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to send update email code',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.sendUpdateEmailCode(
+      req.user._id,
+      body.email,
+    );
+    return { success: true, data: result };
   }
 
+  /**
+   * Send OTP to a new phone number before updating it.
+   */
   @Post('send-update-phone-code')
   @UseGuards(AuthGuard())
   async sendUpdatePhoneCode(@Req() req, @Body() body): Promise<any> {
-    try {
-      const result = await this.authService.sendUpdatePhoneCode(
-        req.user._id,
-        body.phone,
-      );
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to send update phone code',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.sendUpdatePhoneCode(
+      req.user._id,
+      body.phone,
+    );
+    return { success: true, data: result };
   }
 
+  /**
+   * Update the authenticated user's profile (name, email, phone, avatar, language).
+   */
   @Put('update-user/:userId')
   @UseGuards(AuthGuard())
   @UseInterceptors(
@@ -186,99 +156,74 @@ export class AuthController {
       avatar?: any[];
     },
   ): Promise<any> {
-    try {
-      let avatarUrl: string | undefined;
+    let avatarUrl: string | undefined;
 
-      if (files?.avatar?.[0]) {
-        const uploadResult = await this.cloudinaryService.uploadImage(
-          files.avatar[0],
-          'user-avatars',
-        );
-        avatarUrl = uploadResult.secure_url;
-      }
-
-      const result = await this.authService.editUser(
-        req.user._id,
-        updateUserDto,
-        avatarUrl,
+    if (files?.avatar?.[0]) {
+      const uploadResult = await this.cloudinaryService.uploadImage(
+        files.avatar[0],
+        'user-avatars',
       );
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to update user',
-        error: error.message,
-      };
+      avatarUrl = uploadResult.secure_url;
     }
+
+    const result = await this.authService.editUser(
+      req.user._id,
+      updateUserDto,
+      avatarUrl,
+    );
+    return { success: true, data: result };
   }
 
+  /**
+   * Submit a partner application for the authenticated user.
+   */
   @Post('apply-for-partner')
   @UseGuards(AuthGuard())
   async applyForPartner(@Req() req): Promise<any> {
-    try {
-      const result = await this.authService.applyForPartner(req.user._id);
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to apply for partner',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.applyForPartner(req.user._id);
+    return { success: true, data: result };
   }
 
-  // admin and super admin routes start
+  // ─── Admin routes ──────────────────────────────────────────────────────────
 
+  /**
+   * Get all users with optional filters/pagination (admin only).
+   */
   @Get('users')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.ADMIN)
   async getUsers(@Query() getAllUsersDto: GetAllUsersDto): Promise<any> {
-    try {
-      const result = await this.authService.getUsers(getAllUsersDto);
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to get users',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.getUsers(getAllUsersDto);
+    return { success: true, data: result };
   }
 
+  /**
+   * Get pending partner applications (admin only).
+   */
   @Get('partner-applications')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.ADMIN)
   async getPartnerApplications(): Promise<any> {
-    try {
-      const result = await this.authService.getPartnerApplications();
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to get partner applications',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.getPartnerApplications();
+    return { success: true, data: result };
   }
 
+  /**
+   * Approve a partner application (admin only).
+   */
   @Post('approve-partner-application/:userId')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.ADMIN)
   async approvePartnerApplication(
     @Param('userId') userId: string,
   ): Promise<any> {
-    try {
-      const result = await this.authService.approvePartnerApplication(userId);
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to approve partner application',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.approvePartnerApplication(userId);
+    return { success: true, data: result };
   }
 
+  /**
+   * Reject a partner application with a reason (admin only).
+   */
   @Post('reject-partner-application/:userId')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.ADMIN)
@@ -286,55 +231,38 @@ export class AuthController {
     @Param('userId') userId: string,
     @Body('reason') reason: string,
   ): Promise<any> {
-    try {
-      const result = await this.authService.rejectPartnerApplication(
-        userId,
-        reason,
-      );
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to reject partner application',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.rejectPartnerApplication(
+      userId,
+      reason,
+    );
+    return { success: true, data: result };
   }
 
+  /**
+   * Get all approved partners (admin only).
+   */
   @Get('partners')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.ADMIN)
   async getPartners(): Promise<any> {
-    try {
-      const result = await this.authService.getPartners();
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to get partners',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.getPartners();
+    return { success: true, data: result };
   }
 
+  /**
+   * Update the authenticated user's language preference.
+   * Generates and returns a new JWT token with the updated language embedded.
+   */
   @Post('update-language')
   @UseGuards(AuthGuard())
   async updateLanguage(
     @Req() req,
     @Body() body: { language: string },
   ): Promise<any> {
-    try {
-      const result = await this.authService.updateLanguageAndGetNewToken(
-        req.user._id,
-        body.language,
-      );
-      return { success: true, data: result };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to update language',
-        error: error.message,
-      };
-    }
+    const result = await this.authService.updateLanguageAndGetNewToken(
+      req.user._id,
+      body.language,
+    );
+    return { success: true, data: result };
   }
 }

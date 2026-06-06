@@ -6,6 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { AUTH_CODES } from '../i18n/namespaces/auth.namespace';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './schemas/user-schema';
 import { Model } from 'mongoose';
@@ -143,7 +144,7 @@ export class AuthService {
       );
     } catch (e) {
       console.log(e);
-      throw new BadRequestException('Email sending failed');
+      throw new BadRequestException(AUTH_CODES.EMAIL_SEND_FAILED);
     }
   }
 
@@ -169,7 +170,7 @@ export class AuthService {
 
     if (error) {
       console.error('Error sending verification email:', error);
-      throw new Error('Failed to send verification email');
+      throw new BadRequestException(AUTH_CODES.EMAIL_SEND_FAILED);
     }
 
     console.log('Verification email sent:', data);
@@ -210,13 +211,13 @@ export class AuthService {
       });
     } catch (e) {
       console.log(e);
-      throw new BadRequestException('SMS sending failed');
+      throw new BadRequestException(AUTH_CODES.SMS_SEND_FAILED);
     }
   }
 
   private isUserAllowedOnPlatform(userVerification: UserVerification): boolean {
     if (!userVerification?.isSignupCompleted) {
-      throw new UnauthorizedException('Signup not completed');
+      throw new UnauthorizedException(AUTH_CODES.SIGNUP_NOT_COMPLETED);
     }
     return true;
   }
@@ -228,23 +229,23 @@ export class AuthService {
   ) {
     if (type === 'email') {
       if (userVerification.emailVerificationCode !== code) {
-        throw new UnauthorizedException('Invalid email verification code');
+        throw new UnauthorizedException(AUTH_CODES.INVALID_EMAIL_CODE);
       }
       const expirationTime =
         (userVerification?.emailCodeSentAt?.getTime() || 0) +
         this.CODE_EXPIRATION * 60 * 1000;
       if (expirationTime < new Date().getTime()) {
-        throw new BadRequestException('Email verification code expired');
+        throw new BadRequestException(AUTH_CODES.EMAIL_CODE_EXPIRED);
       }
     } else {
       if (userVerification.phoneVerificationCode !== code) {
-        throw new UnauthorizedException('Invalid phone verification code');
+        throw new UnauthorizedException(AUTH_CODES.INVALID_PHONE_CODE);
       }
       const expirationTime =
         (userVerification?.phoneCodeSentAt?.getTime() || 0) +
         this.CODE_EXPIRATION * 60 * 1000;
       if (expirationTime < new Date().getTime()) {
-        throw new BadRequestException('Phone verification code expired');
+        throw new BadRequestException(AUTH_CODES.PHONE_CODE_EXPIRED);
       }
     }
   }
@@ -259,7 +260,7 @@ export class AuthService {
     if (emailCodeExpirationTime > new Date().getTime()) {
       throw new HttpException(
         {
-          message: 'Email verification code already sent',
+          message: AUTH_CODES.EMAIL_CODE_ALREADY_SENT,
           emailCodeSentAt: userVerification?.emailCodeSentAt?.getTime() || 0,
         },
         429,
@@ -268,7 +269,7 @@ export class AuthService {
     if (phoneCodeExpirationTime > new Date().getTime()) {
       throw new HttpException(
         {
-          message: 'Phone verification code already sent',
+          message: AUTH_CODES.PHONE_CODE_ALREADY_SENT,
           phoneCodeSentAt: userVerification?.phoneCodeSentAt?.getTime() || 0,
         },
         429,
@@ -287,13 +288,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(AUTH_CODES.USER_NOT_FOUND);
     }
 
     // Check if user signed up with password method
     if (user.signInMethod !== ESignInMethods.PASSWORD) {
       throw new UnauthorizedException(
-        `This account was created using ${user.signInMethod} sign-in. Password reset is not available for this account.`,
+        AUTH_CODES.PASSWORD_RESET_NOT_AVAILABLE,
       );
     }
 
@@ -302,7 +303,7 @@ export class AuthService {
     });
 
     if (!userVerification) {
-      throw new NotFoundException('User verification not found');
+      throw new NotFoundException(AUTH_CODES.USER_VERIFICATION_NOT_FOUND);
     }
 
     // Check if user is allowed on platform
@@ -365,7 +366,7 @@ export class AuthService {
 
     // Verify the password reset code
     if (userVerification.passwordResetCode !== verificationCode) {
-      throw new UnauthorizedException('Invalid password reset code');
+      throw new UnauthorizedException(AUTH_CODES.INVALID_PASSWORD_RESET_CODE);
     }
 
     // Check if code has expired
@@ -373,7 +374,7 @@ export class AuthService {
       (userVerification?.passwordResetCodeSentAt?.getTime() || 0) +
       this.CODE_EXPIRATION * 60 * 1000;
     if (expirationTime < new Date().getTime()) {
-      throw new BadRequestException('Password reset code expired');
+      throw new BadRequestException(AUTH_CODES.PASSWORD_RESET_CODE_EXPIRED);
     }
 
     // Hash the new password
@@ -417,7 +418,7 @@ export class AuthService {
     });
     if (existingUser) {
       if (userVerification.isSignupCompleted) {
-        throw new ConflictException('User already exist');
+        throw new ConflictException(AUTH_CODES.USER_ALREADY_EXISTS);
       }
 
       this.isResendCodeAllowed(userVerification);
@@ -482,7 +483,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(AUTH_CODES.USER_NOT_FOUND);
     }
 
     const userVerification = await this.userVerification.findOne({
@@ -490,7 +491,7 @@ export class AuthService {
     });
 
     if (!userVerification) {
-      throw new NotFoundException('User verification not found');
+      throw new NotFoundException(AUTH_CODES.USER_VERIFICATION_NOT_FOUND);
     }
 
     // Verify email code
@@ -523,13 +524,13 @@ export class AuthService {
       $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
     });
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(AUTH_CODES.USER_NOT_FOUND);
     }
 
     // Check if user signed up with password method
     if (user.signInMethod !== ESignInMethods.PASSWORD) {
       throw new UnauthorizedException(
-        `This account was created using ${user.signInMethod} sign-in. Please use the appropriate login method.`,
+        AUTH_CODES.WRONG_SIGN_IN_METHOD,
       );
     }
 
@@ -541,7 +542,7 @@ export class AuthService {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid password');
+      throw new UnauthorizedException(AUTH_CODES.INVALID_PASSWORD);
     }
 
     const token = this.jwtService.sign({
@@ -574,7 +575,7 @@ export class AuthService {
         return { token: guardLoginResult.token, type: 'security_guard' };
       } catch (guardError) {
         // If both logins fail, return a generic unauthorized error
-        throw new UnauthorizedException('Invalid credentials');
+        throw new UnauthorizedException(AUTH_CODES.INVALID_CREDENTIALS);
       }
     }
   }
@@ -584,7 +585,7 @@ export class AuthService {
     const googleUser = await this.verifyGoogleToken();
 
     if (!googleUser) {
-      throw new UnauthorizedException('Invalid Google token');
+      throw new UnauthorizedException(AUTH_CODES.INVALID_GOOGLE_TOKEN);
     }
 
     // Check if user already exists
@@ -594,7 +595,7 @@ export class AuthService {
       // User exists, check if they signed up with Google
       if (user.signInMethod !== ESignInMethods.GOOGLE) {
         throw new UnauthorizedException(
-          `This email is already registered with ${user.signInMethod} sign-in. Please use the appropriate login method.`,
+          AUTH_CODES.WRONG_SIGN_IN_METHOD,
         );
       }
 
@@ -687,7 +688,7 @@ export class AuthService {
       $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
     });
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(AUTH_CODES.USER_NOT_FOUND);
     }
     const userVerification = await this.userVerification.findOne({
       userId: user._id,
@@ -751,10 +752,10 @@ export class AuthService {
       userId: user._id,
     });
     if (!userVerification) {
-      throw new NotFoundException('User verification not found');
+      throw new NotFoundException(AUTH_CODES.USER_VERIFICATION_NOT_FOUND);
     }
     if (userVerification.isSignupCompleted) {
-      throw new ConflictException('User already exist');
+      throw new ConflictException(AUTH_CODES.USER_ALREADY_EXISTS);
     }
     this.isResendCodeAllowed(userVerification);
 
@@ -793,7 +794,7 @@ export class AuthService {
     // make sure email is not already in use
     const existingUser = await this.userModel.findOne({ email: email });
     if (existingUser) {
-      throw new ConflictException('Email already in use');
+      throw new ConflictException(AUTH_CODES.EMAIL_ALREADY_IN_USE);
     }
 
     const user = await this.userModel.findOne({ _id: userId });
@@ -828,12 +829,12 @@ export class AuthService {
     // make sure phone is not already in use
     const existingUser = await this.userModel.findOne({ phone: phone });
     if (existingUser) {
-      throw new ConflictException('Phone already in use');
+      throw new ConflictException(AUTH_CODES.PHONE_ALREADY_IN_USE);
     }
 
     const user = await this.userModel.findOne({ _id: userId });
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(AUTH_CODES.USER_NOT_FOUND);
     }
     const userVerification = await this.userVerification.findOne({
       userId: user._id,
@@ -935,7 +936,7 @@ export class AuthService {
   async applyForPartner(userId: string): Promise<{ message: string }> {
     const user = await this.userModel.findOne({ _id: userId });
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(AUTH_CODES.USER_NOT_FOUND);
     }
 
     const userVerification = await this.userVerification.findOne({
@@ -945,7 +946,9 @@ export class AuthService {
     this.isUserAllowedOnPlatform(userVerification);
 
     if (userVerification.isPartnerApplicationSubmitted) {
-      throw new ConflictException('Partner application already submitted');
+      throw new ConflictException(
+        AUTH_CODES.PARTNER_APPLICATION_ALREADY_SUBMITTED,
+      );
     }
 
     // Update the verification record to mark the application as submitted
@@ -1202,7 +1205,7 @@ export class AuthService {
   async rejectPartnerApplication(userId: string, reason: string) {
     const user = await this.userModel.findById(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException(AUTH_CODES.USER_NOT_FOUND);
     }
 
     const userVerification = await this.userVerification.findOne({
@@ -1210,7 +1213,9 @@ export class AuthService {
     });
 
     if (!userVerification) {
-      throw new Error('User has not applied for partner');
+      throw new NotFoundException(
+        AUTH_CODES.PARTNER_APPLICATION_NOT_FOUND,
+      );
     }
 
     await this.userVerification.findOneAndUpdate(
@@ -1233,19 +1238,21 @@ export class AuthService {
   async approvePartnerApplication(userId: string) {
     const user = await this.userModel.findById(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException(AUTH_CODES.USER_NOT_FOUND);
     }
     if (user.role.includes(Role.PARTNER)) {
-      throw new Error('User is already a partner');
+      throw new ConflictException(AUTH_CODES.USER_ALREADY_PARTNER);
     }
     const userVerification = await this.userVerification.findOne({
       userId: userId,
     });
     if (!userVerification) {
-      throw new Error('User has not applied for partner');
+      throw new NotFoundException(
+        AUTH_CODES.PARTNER_APPLICATION_NOT_FOUND,
+      );
     }
     if (userVerification.isPartnerApplicationApproved) {
-      throw new Error('User is already a partner');
+      throw new ConflictException(AUTH_CODES.USER_ALREADY_PARTNER);
     }
     await this.userVerification.findOneAndUpdate(
       { userId: userId },
@@ -1285,7 +1292,7 @@ export class AuthService {
   ): Promise<{ token: string }> {
     const user = await this.userModel.findById(userId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(AUTH_CODES.USER_NOT_FOUND);
     }
 
     // Update user's language preference

@@ -1,4 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
@@ -30,6 +37,7 @@ import { CreateUnavailabilityDto } from './dto/unavailability.dto';
 import { CreateBookingDto, UpdatePaymentStatusDto } from './dto/booking.dto';
 import { DashboardSummaryDto } from './dto/dashboard.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { PRODUCT_CODES } from '../i18n/namespaces/product.namespace';
 import {
   transformProductsArrayForLanguage,
   transformProductsArrayForDualLanguage,
@@ -67,19 +75,13 @@ export class ProductsService {
             .then((res) => res.secure_url)
             .catch((error) => {
               console.error('Image upload error:', error);
-              throw new HttpException(
-                `Failed to upload image: ${error.message}`,
-                HttpStatus.BAD_REQUEST,
-              );
+              throw new BadRequestException(PRODUCT_CODES.IMAGE_UPLOAD_FAILED);
             }),
         ),
       );
     } catch (error) {
       console.error('Image upload batch error:', error);
-      throw new HttpException(
-        `Failed to upload images: ${error.message}`,
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.IMAGE_UPLOAD_FAILED);
     }
   }
 
@@ -93,19 +95,13 @@ export class ProductsService {
             .then((res) => res.secure_url)
             .catch((error) => {
               console.error('Video upload error:', error);
-              throw new HttpException(
-                `Failed to upload video: ${error.message}`,
-                HttpStatus.BAD_REQUEST,
-              );
+              throw new BadRequestException(PRODUCT_CODES.VIDEO_UPLOAD_FAILED);
             }),
         ),
       );
     } catch (error) {
       console.error('Video upload batch error:', error);
-      throw new HttpException(
-        `Failed to upload videos: ${error.message}`,
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.VIDEO_UPLOAD_FAILED);
     }
   }
 
@@ -116,7 +112,7 @@ export class ProductsService {
       case 'yacht': return this.yachtModel as Model<any>;
       case 'speedboat': return this.speedboatModel as Model<any>;
       case 'resort': return this.resortModel as Model<any>;
-      default: throw new Error('Invalid product type');
+      default: throw new BadRequestException(PRODUCT_CODES.INVALID_TYPE);
     }
   }
 
@@ -132,7 +128,7 @@ export class ProductsService {
   ) {
     const currentProduct = await model.findById(productId);
     if (!currentProduct) {
-      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
     }
 
     const oldImages = currentProduct.images || [];
@@ -263,10 +259,7 @@ export class ProductsService {
   ) {
     // Validate that the frontend ownerId matches the JWT token user._id
     if (dto.ownerId && dto.ownerId !== user._id.toString()) {
-      throw new HttpException(
-        'OwnerId mismatch - you can only update your own products',
-        HttpStatus.FORBIDDEN,
-      );
+      throw new ForbiddenException(PRODUCT_CODES.UNAUTHORIZED);
     }
 
     // Use the ownerId from the frontend (or fallback to JWT token)
@@ -300,7 +293,7 @@ export class ProductsService {
   async getJetSkiById(id: string, lang?: string) {
     const jetski = await this.jetSkiModel.findById(id).lean();
     if (!jetski) {
-      throw new HttpException('Jetski not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
     }
     return transformProductForDualLanguage(jetski, lang);
   }
@@ -329,10 +322,7 @@ export class ProductsService {
   ) {
     // Validate that the frontend ownerId matches the JWT token user._id
     if (dto.ownerId && dto.ownerId !== user._id.toString()) {
-      throw new HttpException(
-        'OwnerId mismatch - you can only update your own products',
-        HttpStatus.FORBIDDEN,
-      );
+      throw new ForbiddenException(PRODUCT_CODES.UNAUTHORIZED);
     }
 
     // Use the ownerId from the frontend (or fallback to JWT token)
@@ -366,7 +356,7 @@ export class ProductsService {
   async getKayakById(id: string, lang?: string) {
     const kayak = await this.kayakModel.findById(id).lean();
     if (!kayak) {
-      throw new HttpException('Kayak not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
     }
     return transformProductForDualLanguage(kayak, lang);
   }
@@ -395,10 +385,7 @@ export class ProductsService {
   ) {
     // Validate that the frontend ownerId matches the JWT token user._id
     if (dto.ownerId && dto.ownerId !== user._id.toString()) {
-      throw new HttpException(
-        'OwnerId mismatch - you can only update your own products',
-        HttpStatus.FORBIDDEN,
-      );
+      throw new ForbiddenException(PRODUCT_CODES.UNAUTHORIZED);
     }
 
     // Use the ownerId from the frontend (or fallback to JWT token)
@@ -432,7 +419,7 @@ export class ProductsService {
   async getYachtById(id: string, lang?: string) {
     const yacht = await this.yachtModel.findById(id).lean();
     if (!yacht) {
-      throw new HttpException('Yacht not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
     }
     return transformProductForDualLanguage(yacht, lang);
   }
@@ -461,10 +448,7 @@ export class ProductsService {
   ) {
     // Validate that the frontend ownerId matches the JWT token user._id
     if (dto.ownerId && dto.ownerId !== user._id.toString()) {
-      throw new HttpException(
-        'OwnerId mismatch - you can only update your own products',
-        HttpStatus.FORBIDDEN,
-      );
+      throw new ForbiddenException(PRODUCT_CODES.UNAUTHORIZED);
     }
 
     // Use the ownerId from the frontend (or fallback to JWT token)
@@ -498,7 +482,7 @@ export class ProductsService {
   async getSpeedboatById(id: string, lang?: string) {
     const speedboat = await this.speedboatModel.findById(id).lean();
     if (!speedboat) {
-      throw new HttpException('Speedboat not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
     }
     return transformProductForDualLanguage(speedboat, lang);
   }
@@ -527,10 +511,7 @@ export class ProductsService {
   ) {
     // Validate that the frontend ownerId matches the JWT token user._id
     if (dto.ownerId && dto.ownerId !== user._id.toString()) {
-      throw new HttpException(
-        'OwnerId mismatch - you can only update your own products',
-        HttpStatus.FORBIDDEN,
-      );
+      throw new ForbiddenException(PRODUCT_CODES.UNAUTHORIZED);
     }
 
     // Use the ownerId from the frontend (or fallback to JWT token)
@@ -564,7 +545,7 @@ export class ProductsService {
   async getResortById(id: string, lang?: string) {
     const resort = await this.resortModel.findById(id).lean();
     if (!resort) {
-      throw new HttpException('Resort not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
     }
     return transformProductForDualLanguage(resort, lang);
   }
@@ -1083,7 +1064,7 @@ export class ProductsService {
         model = this.resortModel;
         break;
       default:
-        throw new Error('Invalid product type');
+        throw new BadRequestException(PRODUCT_CODES.INVALID_TYPE);
     }
 
     let update: any = {};
@@ -1096,11 +1077,11 @@ export class ProductsService {
       // FIXED: Don't increment resubmissionCount when rejecting
       update = { status: 'rejected' };
     } else {
-      throw new Error('Invalid action');
+      throw new BadRequestException(PRODUCT_CODES.INVALID_ACTION);
     }
 
     const result = await model.findByIdAndUpdate(id, update, { new: true });
-    if (!result) throw new Error('Product not found');
+    if (!result) throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
     
     // Trigger notification
     const title = result.titleEn || 'Product';
@@ -1139,7 +1120,7 @@ export class ProductsService {
       { status: 'pending', $inc: { resubmissionCount: 1 } },
       { new: true },
     );
-    if (!result) throw new Error('Product not found');
+    if (!result) throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
 
     await this.notificationsFacade.notifyAssetSubmitted(
       id,
@@ -1156,24 +1137,15 @@ export class ProductsService {
     const start = new Date(dto.startTime);
     const end = new Date(dto.endTime);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      throw new HttpException(
-        'Invalid startTime or endTime',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.INVALID_DATE);
     }
     if (start >= end) {
-      throw new HttpException(
-        'startTime must be before endTime',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.INVALID_TIME_RANGE);
     }
     // 2. Check not in the past
     const now = new Date();
     if (start < now) {
-      throw new HttpException(
-        'Cannot add unavailability in the past',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.TIME_IN_PAST);
     }
     // 3. Check for overlapping unavailability
     const overlap = await this.unavailabilityModel.findOne({
@@ -1182,10 +1154,7 @@ export class ProductsService {
       $or: [{ startTime: { $lt: end }, endTime: { $gt: start } }],
     });
     if (overlap) {
-      throw new HttpException(
-        'Unavailability already exists for this time range',
-        HttpStatus.CONFLICT,
-      );
+      throw new ConflictException(PRODUCT_CODES.UNAVAILABILITY_OVERLAP);
     }
     // 4. Create unavailability
     return this.unavailabilityModel.create(dto);
@@ -1196,23 +1165,14 @@ export class ProductsService {
     const start = new Date(dto.startTime);
     const end = new Date(dto.endTime);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      throw new HttpException(
-        'Invalid startTime or endTime',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.INVALID_DATE);
     }
     if (start >= end) {
-      throw new HttpException(
-        'startTime must be before endTime',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.INVALID_TIME_RANGE);
     }
     const now = new Date();
     if (start < now) {
-      throw new HttpException(
-        'Cannot book in the past',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.BOOKING_IN_PAST);
     }
     // 2. Check for overlapping unavailability and confirmed bookings
     const overlap = await this.unavailabilityModel.findOne({
@@ -1221,10 +1181,7 @@ export class ProductsService {
       $or: [{ startTime: { $lt: end }, endTime: { $gt: start } }],
     });
     if (overlap) {
-      throw new HttpException(
-        'Product is unavailable for this time range',
-        HttpStatus.CONFLICT,
-      );
+      throw new ConflictException(PRODUCT_CODES.BOOKING_UNAVAILABLE);
     }
     // Also check for overlapping confirmed bookings
     const overlappingBooking = await this.bookingModel.findOne({
@@ -1236,10 +1193,7 @@ export class ProductsService {
       $or: [{ startTime: { $lt: end }, endTime: { $gt: start } }],
     });
     if (overlappingBooking) {
-      throw new HttpException(
-        'Product is already booked for this time range',
-        HttpStatus.CONFLICT,
-      );
+      throw new ConflictException(PRODUCT_CODES.BOOKING_ALREADY_BOOKED);
     }
 
     let product: any;
@@ -1260,11 +1214,11 @@ export class ProductsService {
         product = await this.resortModel.findById(dto.productId);
         break;
       default:
-        throw new HttpException('Invalid product type', HttpStatus.BAD_REQUEST);
+        throw new BadRequestException(PRODUCT_CODES.INVALID_TYPE);
     }
 
     if (!product) {
-      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
     }
     const finalPartnerId = product.ownerId;
 
@@ -1280,10 +1234,7 @@ export class ProductsService {
       } else if (product.dailyPrice) {
         expectedPrice = days * product.dailyPrice;
       } else {
-        throw new HttpException(
-          'Resort does not have pricing info',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new BadRequestException(PRODUCT_CODES.NO_PRICING_INFO);
       }
     } else {
       if (product.pricePerDay && hours >= 24) {
@@ -1292,24 +1243,15 @@ export class ProductsService {
         // Allow booking by half-hour increments (minimum 0.5 hour)
         const halfHourBlocks = Math.round(hours * 2) / 2;
         if (halfHourBlocks < 0.5) {
-          throw new HttpException(
-            'Minimum booking duration is 0.5 hour',
-            HttpStatus.BAD_REQUEST,
-          );
+          throw new BadRequestException(PRODUCT_CODES.MIN_BOOKING_DURATION);
         }
         expectedPrice = halfHourBlocks * product.pricePerHour;
       } else {
-        throw new HttpException(
-          'Product does not have pricing info',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new BadRequestException(PRODUCT_CODES.NO_PRICING_INFO);
       }
     }
     if (dto.totalPrice !== expectedPrice) {
-      throw new HttpException(
-        `Total price does not match expected price (${expectedPrice})`,
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.PRICE_MISMATCH);
     }
     // 4. Create booking (without creating unavailability yet)
     const booking = await this.bookingModel.create({
@@ -1339,16 +1281,10 @@ export class ProductsService {
       partnerId,
     });
     if (!booking) {
-      throw new HttpException(
-        'Booking not found or unauthorized',
-        HttpStatus.NOT_FOUND,
-      );
+      throw new NotFoundException(PRODUCT_CODES.BOOKING_NOT_FOUND);
     }
     if (booking.bookingStatus !== BookingStatus.PENDING) {
-      throw new HttpException(
-        'Only pending bookings can be approved',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.BOOKING_NOT_PENDING);
     }
     booking.bookingStatus = BookingStatus.CONFIRMED;
     await booking.save();
@@ -1410,16 +1346,10 @@ export class ProductsService {
       partnerId,
     });
     if (!booking) {
-      throw new HttpException(
-        'Booking not found or unauthorized',
-        HttpStatus.NOT_FOUND,
-      );
+      throw new NotFoundException(PRODUCT_CODES.BOOKING_NOT_FOUND);
     }
     if (booking.bookingStatus !== BookingStatus.PENDING) {
-      throw new HttpException(
-        'Only pending bookings can be rejected',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.BOOKING_NOT_PENDING);
     }
     booking.bookingStatus = BookingStatus.CANCELLED;
     booking.cancellationReason = cancellationReason || 'Rejected by partner';
@@ -1451,13 +1381,10 @@ export class ProductsService {
   async confirmPayment(bookingId: string, transactionId: string) {
     const booking = await this.bookingModel.findById(bookingId);
     if (!booking) {
-      throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.BOOKING_NOT_FOUND);
     }
     if (booking.paymentStatus === PaymentStatus.PAID) {
-      throw new HttpException(
-        'Payment already confirmed',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.BOOKING_PAYMENT_ALREADY_CONFIRMED);
     }
     booking.paymentStatus = PaymentStatus.PAID;
     booking.transactionId = transactionId;
@@ -1497,23 +1424,20 @@ export class ProductsService {
   ) {
     const booking = await this.bookingModel.findById(bookingId);
     if (!booking) {
-      throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.BOOKING_NOT_FOUND);
     }
     //  only partner and consumer can cancel
     if (
       !booking.consumerId.equals(userId) &&
       !booking.partnerId.equals(userId)
     ) {
-      throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
+      throw new ForbiddenException(PRODUCT_CODES.BOOKING_UNAUTHORIZED);
     }
     if (
       booking.bookingStatus === BookingStatus.CANCELLED ||
       booking.bookingStatus === BookingStatus.COMPLETED
     ) {
-      throw new HttpException(
-        'Cannot cancel this booking',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.BOOKING_CANNOT_CANCEL);
     }
     booking.bookingStatus = BookingStatus.CANCELLED;
     booking.cancellationReason = reason || 'Cancelled';
@@ -1553,16 +1477,10 @@ export class ProductsService {
       partnerId,
     });
     if (!booking) {
-      throw new HttpException(
-        'Booking not found or unauthorized',
-        HttpStatus.NOT_FOUND,
-      );
+      throw new NotFoundException(PRODUCT_CODES.BOOKING_NOT_FOUND);
     }
     if (booking.bookingStatus !== BookingStatus.CONFIRMED) {
-      throw new HttpException(
-        'Only confirmed bookings can be completed',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException(PRODUCT_CODES.BOOKING_NOT_CONFIRMED);
     }
     booking.bookingStatus = BookingStatus.COMPLETED;
     await booking.save();
@@ -1652,14 +1570,14 @@ export class ProductsService {
       new Types.ObjectId(bookingId),
     );
     if (!booking) {
-      throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException(PRODUCT_CODES.BOOKING_NOT_FOUND);
     }
 
     if (
       !booking.consumerId.equals(userId) &&
       !booking.partnerId.equals(userId)
     ) {
-      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      throw new ForbiddenException(PRODUCT_CODES.BOOKING_UNAUTHORIZED);
     }
     return booking;
   }
@@ -1695,15 +1613,12 @@ export class ProductsService {
           model = this.resortModel;
           break;
         default:
-          throw new HttpException(
-            'Invalid product type',
-            HttpStatus.BAD_REQUEST,
-          );
+          throw new BadRequestException(PRODUCT_CODES.INVALID_TYPE);
       }
 
       const currentProduct = await model.findById(productId).lean();
       if (!currentProduct) {
-        throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+        throw new NotFoundException(PRODUCT_CODES.NOT_FOUND);
       }
 
       // Build similarity criteria

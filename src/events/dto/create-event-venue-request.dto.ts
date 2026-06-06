@@ -7,23 +7,24 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { phoneValidationRegex } from 'src/helpers/dto-helpers';
+import { EVENT_CODES } from '../../i18n/namespaces/event.namespace';
 
 export class CreateEventVenueRequestDto {
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   @IsString()
-  @IsNotEmpty()
   name: string;
 
-  @IsEmail()
+  @IsEmail({}, { message: EVENT_CODES.INVALID_EMAIL })
   email: string;
 
   @IsString()
   @Matches(phoneValidationRegex, {
-    message: 'phone must be in E.164 format starting with +',
+    message: EVENT_CODES.INVALID_PHONE,
   })
   phone: string;
 
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   @IsString()
-  @IsNotEmpty()
   message: string;
 
   @IsOptional()

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -7,6 +7,8 @@ import {
   SecurityGuardDocument,
 } from './schemas/security-guard-schema';
 import { Model } from 'mongoose';
+import { COMMON_CODES } from '../i18n/namespaces/common.namespace';
+import { AUTH_CODES } from '../i18n/namespaces/auth.namespace';
 
 @Injectable()
 export class SecurityGuardJwtStrategy extends PassportStrategy(
@@ -33,12 +35,12 @@ export class SecurityGuardJwtStrategy extends PassportStrategy(
 
     const securityGuard = await this.securityGuardModel.findById(id);
     if (!securityGuard) {
-      throw new Error('Security guard not found');
+      throw new UnauthorizedException(AUTH_CODES.SECURITY_GUARD_NOT_FOUND);
     }
 
     // Check if security guard is active
     if (securityGuard.status !== 'active') {
-      throw new Error('Security guard account is not active');
+      throw new UnauthorizedException(AUTH_CODES.SECURITY_GUARD_INACTIVE);
     }
 
     return {
@@ -48,3 +50,4 @@ export class SecurityGuardJwtStrategy extends PassportStrategy(
     };
   }
 }
+

@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { phoneValidationRegex } from 'src/helpers/dto-helpers';
+import { EVENT_CODES } from '../../i18n/namespaces/event.namespace';
 
 const toArray = (value: any) => {
   if (value === undefined || value === null || value === '') return undefined;
@@ -32,19 +33,19 @@ const toNumber = ({ value }: { value: any }) =>
 
 export class CreateEventVenueDto {
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   titleEn: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   titleAr: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   descriptionEn: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   descriptionAr: string;
 
   @IsOptional()
@@ -90,34 +91,34 @@ export class CreateEventVenueDto {
   tagsAr?: string[];
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   cityEn: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   cityAr: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   countryEn: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   countryAr: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   addressEn: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: EVENT_CODES.FIELD_REQUIRED })
   addressAr: string;
 
-  @IsNumber()
+  @IsNumber({}, { message: EVENT_CODES.INVALID_COORDINATES })
   @Transform(toNumber)
   lat: number;
 
-  @IsNumber()
+  @IsNumber({}, { message: EVENT_CODES.INVALID_COORDINATES })
   @Transform(toNumber)
   lng: number;
 
@@ -134,13 +135,13 @@ export class CreateEventVenueDto {
   videos?: string[];
 
   @IsOptional()
-  @IsEmail()
+  @IsEmail({}, { message: EVENT_CODES.INVALID_EMAIL })
   contactEmail?: string;
 
   @IsOptional()
   @IsString()
   @Matches(phoneValidationRegex, {
-    message: 'phone must be in E.164 format starting with +',
+    message: EVENT_CODES.INVALID_PHONE,
   })
   contactPhone?: string;
 

@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { User } from './schemas/user-schema';
 import { Model } from 'mongoose';
+import { COMMON_CODES } from '../i18n/namespaces/common.namespace';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -21,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const { id } = payload;
     const user = await this.userModel.findById(id);
     if (!user) {
-      throw new Error('Login first to access this resource');
+      throw new UnauthorizedException(COMMON_CODES.LOGIN_REQUIRED);
     }
     return {
       ...user.toObject(),
@@ -29,3 +30,4 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     };
   }
 }
+

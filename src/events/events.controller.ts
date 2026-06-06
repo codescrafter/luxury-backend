@@ -2,8 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  HttpException,
-  HttpStatus,
   Param,
   Post,
   Put,
@@ -30,19 +28,6 @@ import { EventVenueRequestStatus } from './entities/event-venue-request.entity';
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
-  private catchResponse(action: string, error: any) {
-    const status =
-      error?.status || error?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
-    console.error(`❌ Error in ${action}:`, error);
-    throw new HttpException(
-      {
-        success: false,
-        message: `Failed to ${action}`,
-        error: error.message,
-      },
-      status,
-    );
-  }
 
   @Get('venues')
   async getPublicVenues(
@@ -58,42 +43,38 @@ export class EventsController {
     @Query('isOutdoor') isOutdoor?: string,
     @Query('search') search?: string,
   ) {
-    try {
-      const displayLang = lang || req.user?.lang || 'en';
-      const parsedTags = tags
-        ? Array.isArray(tags)
-          ? tags
-          : tags
-              .split(',')
-              .map((item) => item.trim())
-              .filter(Boolean)
-        : undefined;
-      const filters = {
-        city: city?.trim(),
-        tags: parsedTags,
-        minCapacity: minCapacity ? Number(minCapacity) : undefined,
-        maxCapacity: maxCapacity ? Number(maxCapacity) : undefined,
-        isIndoor:
-          isIndoor !== undefined
-            ? ['true', '1', 'yes'].includes(String(isIndoor).toLowerCase())
-            : undefined,
-        isOutdoor:
-          isOutdoor !== undefined
-            ? ['true', '1', 'yes'].includes(String(isOutdoor).toLowerCase())
-            : undefined,
-        search: search?.trim(),
-      };
+    const displayLang = lang || req.user?.lang || 'en';
+    const parsedTags = tags
+      ? Array.isArray(tags)
+        ? tags
+        : tags
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean)
+      : undefined;
+    const filters = {
+      city: city?.trim(),
+      tags: parsedTags,
+      minCapacity: minCapacity ? Number(minCapacity) : undefined,
+      maxCapacity: maxCapacity ? Number(maxCapacity) : undefined,
+      isIndoor:
+        isIndoor !== undefined
+          ? ['true', '1', 'yes'].includes(String(isIndoor).toLowerCase())
+          : undefined,
+      isOutdoor:
+        isOutdoor !== undefined
+          ? ['true', '1', 'yes'].includes(String(isOutdoor).toLowerCase())
+          : undefined,
+      search: search?.trim(),
+    };
 
-      const result = await this.eventsService.getPublicVenues(
-        displayLang,
-        Number(page) || 1,
-        Number(limit) || 20,
-        filters,
-      );
-      return { success: true, ...result };
-    } catch (error) {
-      this.catchResponse('get event venues', error);
-    }
+    const result = await this.eventsService.getPublicVenues(
+      displayLang,
+      Number(page) || 1,
+      Number(limit) || 20,
+      filters,
+    );
+    return { success: true, ...result };
   }
 
   @Post('venues')
@@ -114,12 +95,8 @@ export class EventsController {
     @Body() dto: CreateEventVenueDto,
     @Req() req,
   ) {
-    try {
-      const venue = await this.eventsService.createVenue(dto, files, req.user);
-      return { success: true, data: venue };
-    } catch (error) {
-      this.catchResponse('create event venue', error);
-    }
+    const venue = await this.eventsService.createVenue(dto, files, req.user);
+    return { success: true, data: venue };
   }
 
   @Put('venues/:id')
@@ -141,17 +118,8 @@ export class EventsController {
     @Body() dto: UpdateEventVenueDto,
     @Req() req,
   ) {
-    try {
-      const venue = await this.eventsService.updateVenue(
-        id,
-        dto,
-        files,
-        req.user,
-      );
-      return { success: true, data: venue };
-    } catch (error) {
-      this.catchResponse('update event venue', error);
-    }
+    const venue = await this.eventsService.updateVenue(id, dto, files, req.user);
+    return { success: true, data: venue };
   }
 
   @Get('venues/pending')
@@ -163,21 +131,17 @@ export class EventsController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ) {
-    try {
-      const isAdmin = req.user.role.includes(Role.ADMIN);
-      const ownerId = isAdmin ? undefined : req.user._id;
-      const displayLang = lang || req.user?.lang || undefined;
-      const result = await this.eventsService.getVenuesByStatus(
-        ['pending', 'revision'],
-        ownerId,
-        displayLang,
-        Number(page) || 1,
-        Number(limit) || 20,
-      );
-      return { success: true, ...result };
-    } catch (error) {
-      this.catchResponse('get pending event venues', error);
-    }
+    const isAdmin = req.user.role.includes(Role.ADMIN);
+    const ownerId = isAdmin ? undefined : req.user._id;
+    const displayLang = lang || req.user?.lang || undefined;
+    const result = await this.eventsService.getVenuesByStatus(
+      ['pending', 'revision'],
+      ownerId,
+      displayLang,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
+    return { success: true, ...result };
   }
 
   @Get('venues/approved')
@@ -189,21 +153,17 @@ export class EventsController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ) {
-    try {
-      const isAdmin = req.user.role.includes(Role.ADMIN);
-      const ownerId = isAdmin ? undefined : req.user._id;
-      const displayLang = lang || req.user?.lang || undefined;
-      const result = await this.eventsService.getVenuesByStatus(
-        ['approved'],
-        ownerId,
-        displayLang,
-        Number(page) || 1,
-        Number(limit) || 20,
-      );
-      return { success: true, ...result };
-    } catch (error) {
-      this.catchResponse('get approved event venues', error);
-    }
+    const isAdmin = req.user.role.includes(Role.ADMIN);
+    const ownerId = isAdmin ? undefined : req.user._id;
+    const displayLang = lang || req.user?.lang || undefined;
+    const result = await this.eventsService.getVenuesByStatus(
+      ['approved'],
+      ownerId,
+      displayLang,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
+    return { success: true, ...result };
   }
 
   @Get('venues/rejected')
@@ -215,45 +175,33 @@ export class EventsController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ) {
-    try {
-      const isAdmin = req.user.role.includes(Role.ADMIN);
-      const ownerId = isAdmin ? undefined : req.user._id;
-      const displayLang = lang || req.user?.lang || undefined;
-      const result = await this.eventsService.getVenuesByStatus(
-        ['rejected'],
-        ownerId,
-        displayLang,
-        Number(page) || 1,
-        Number(limit) || 20,
-      );
-      return { success: true, ...result };
-    } catch (error) {
-      this.catchResponse('get rejected event venues', error);
-    }
+    const isAdmin = req.user.role.includes(Role.ADMIN);
+    const ownerId = isAdmin ? undefined : req.user._id;
+    const displayLang = lang || req.user?.lang || undefined;
+    const result = await this.eventsService.getVenuesByStatus(
+      ['rejected'],
+      ownerId,
+      displayLang,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
+    return { success: true, ...result };
   }
 
   @Put('venues/:id/approve')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
   async approveVenue(@Param('id') id: string) {
-    try {
-      const venue = await this.eventsService.approveVenue(id);
-      return { success: true, data: venue };
-    } catch (error) {
-      this.catchResponse('approve event venue', error);
-    }
+    const venue = await this.eventsService.approveVenue(id);
+    return { success: true, data: venue };
   }
 
   @Put('venues/:id/revision')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
   async markVenueForRevision(@Param('id') id: string) {
-    try {
-      const venue = await this.eventsService.markVenueForRevision(id);
-      return { success: true, data: venue };
-    } catch (error) {
-      this.catchResponse('mark event venue for revision', error);
-    }
+    const venue = await this.eventsService.markVenueForRevision(id);
+    return { success: true, data: venue };
   }
 
   @Put('venues/:id/reject')
@@ -263,25 +211,17 @@ export class EventsController {
     @Param('id') id: string,
     @Body() body: { reason?: string },
   ) {
-    try {
-      const venue = await this.eventsService.rejectVenue(id, body?.reason);
-      return { success: true, data: venue };
-    } catch (error) {
-      this.catchResponse('reject event venue', error);
-    }
+    const venue = await this.eventsService.rejectVenue(id, body?.reason);
+    return { success: true, data: venue };
   }
 
   @Put('venues/:id/resubmit')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER, Role.ADMIN)
   async resubmitVenue(@Param('id') id: string, @Req() req) {
-    try {
-      const isAdmin = req.user.role.includes(Role.ADMIN);
-      const venue = await this.eventsService.resubmitVenue(id, req.user._id, isAdmin);
-      return { success: true, data: venue };
-    } catch (error) {
-      this.catchResponse('resubmit event venue', error);
-    }
+    const isAdmin = req.user.role.includes(Role.ADMIN);
+    const venue = await this.eventsService.resubmitVenue(id, req.user._id, isAdmin);
+    return { success: true, data: venue };
   }
 
   @Get('venues/mine')
@@ -293,19 +233,15 @@ export class EventsController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ) {
-    try {
-      const displayLang = lang || req.user?.lang || 'en';
-      const result = await this.eventsService.getVenuesByStatus(
-        ['pending', 'approved', 'revision', 'rejected'],
-        req.user._id,
-        displayLang,
-        Number(page) || 1,
-        Number(limit) || 20,
-      );
-      return { success: true, ...result };
-    } catch (error) {
-      this.catchResponse('get partner event venues', error);
-    }
+    const displayLang = lang || req.user?.lang || 'en';
+    const result = await this.eventsService.getVenuesByStatus(
+      ['pending', 'approved', 'revision', 'rejected'],
+      req.user._id,
+      displayLang,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
+    return { success: true, ...result };
   }
 
   @Post('venues/:venueId/requests')
@@ -314,16 +250,12 @@ export class EventsController {
     @Body() dto: CreateEventVenueRequestDto,
     @Req() req,
   ) {
-    try {
-      const request = await this.eventsService.createVenueRequest(
-        venueId,
-        dto,
-        req.user,
-      );
-      return { success: true, data: request };
-    } catch (error) {
-      this.catchResponse('submit event venue request', error);
-    }
+    const request = await this.eventsService.createVenueRequest(
+      venueId,
+      dto,
+      req.user,
+    );
+    return { success: true, data: request };
   }
 
   @Get('requests')
@@ -336,41 +268,33 @@ export class EventsController {
     @Query('limit') limit: number = 20,
     @Query('lang') lang?: string,
   ) {
-    try {
-      const normalizedStatus =
-        status &&
-        Object.values(EventVenueRequestStatus).includes(
-          status as EventVenueRequestStatus,
-        )
-          ? (status as EventVenueRequestStatus)
-          : undefined;
+    const normalizedStatus =
+      status &&
+      Object.values(EventVenueRequestStatus).includes(
+        status as EventVenueRequestStatus,
+      )
+        ? (status as EventVenueRequestStatus)
+        : undefined;
 
-      const result = await this.eventsService.getPartnerRequests(
-        req.user._id,
-        normalizedStatus,
-        Number(page) || 1,
-        Number(limit) || 20,
-        lang || req.user?.lang || 'en',
-      );
-      return { success: true, ...result };
-    } catch (error) {
-      this.catchResponse('get event venue requests', error);
-    }
+    const result = await this.eventsService.getPartnerRequests(
+      req.user._id,
+      normalizedStatus,
+      Number(page) || 1,
+      Number(limit) || 20,
+      lang || req.user?.lang || 'en',
+    );
+    return { success: true, ...result };
   }
 
   @Get('venues/:venueId/requests')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
   async getVenueRequests(@Param('venueId') venueId: string, @Req() req) {
-    try {
-      const requests = await this.eventsService.getVenueRequests(
-        venueId,
-        req.user._id,
-      );
-      return { success: true, data: requests };
-    } catch (error) {
-      this.catchResponse('get event venue requests for venue', error);
-    }
+    const requests = await this.eventsService.getVenueRequests(
+      venueId,
+      req.user._id,
+    );
+    return { success: true, data: requests };
   }
 
   @Put('requests/:id/status')
@@ -381,16 +305,12 @@ export class EventsController {
     @Body() dto: UpdateEventVenueRequestStatusDto,
     @Req() req,
   ) {
-    try {
-      const request = await this.eventsService.updateRequestStatus(
-        id,
-        req.user._id,
-        dto,
-      );
-      return { success: true, data: request };
-    } catch (error) {
-      this.catchResponse('update event venue request status', error);
-    }
+    const request = await this.eventsService.updateRequestStatus(
+      id,
+      req.user._id,
+      dto,
+    );
+    return { success: true, data: request };
   }
 
   @Get('venues/:id')
@@ -399,12 +319,8 @@ export class EventsController {
     @Req() req,
     @Query('lang') lang?: string,
   ) {
-    try {
-      const displayLang = lang || req.user?.lang || 'en';
-      const venue = await this.eventsService.getVenueById(id, displayLang);
-      return { success: true, data: venue };
-    } catch (error) {
-      this.catchResponse('get event venue', error);
-    }
+    const displayLang = lang || req.user?.lang || 'en';
+    const venue = await this.eventsService.getVenueById(id, displayLang);
+    return { success: true, data: venue };
   }
 }

@@ -1,8 +1,10 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import * as compression from 'compression';
 import * as os from 'os';
 import { AppModule } from './app.module';
+import { LocalizedExceptionFilter } from './common/http-exception.filter';
+import { createLocalizedValidationPipe } from './common/validation.pipe';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -22,18 +24,15 @@ async function bootstrap() {
   app.enableCors({
     origin: env === 'development' || env === 'dev' ? '*' : allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization',
+    allowedHeaders: 'Content-Type,Authorization,Accept-Language',
     credentials: true,
   });
 
-  // Apply global validation pipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+  // Apply global exception filter (handles localization of all HttpExceptions)
+  app.useGlobalFilters(new LocalizedExceptionFilter());
+
+  // Apply global validation pipe (structured errors for localization)
+  app.useGlobalPipes(createLocalizedValidationPipe());
 
   // Bind to 0.0.0.0 to allow access from other devices on the network
   await app.listen(port, '0.0.0.0');

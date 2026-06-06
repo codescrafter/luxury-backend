@@ -10,9 +10,11 @@ import {
   Put,
   Get,
   Query,
-  HttpException,
-  HttpStatus,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
+import { COMMON_CODES } from '../i18n/namespaces/common.namespace';
+import { PRODUCT_CODES } from '../i18n/namespaces/product.namespace';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/types';
 import { AuthGuard } from '@nestjs/passport';
@@ -38,18 +40,9 @@ import { SecurityGuardAuthGuard } from 'src/auth/guards/security-guard-auth.guar
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  private catchResponse(action: string, error: any) {
-    const status =
-      error?.status || error?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
-    console.error(`❌ Error in ${action}:`, error);
-    throw new HttpException(
-      {
-        success: false,
-        message: `Failed to ${action}`,
-        error: error.message,
-      },
-      status,
-    );
+  private catchResponse(_action: string, error: any) {
+    // Re-throw typed exceptions unchanged — the global LocalizedExceptionFilter handles them
+    throw error;
   }
 
   @Get('featured') // Public endpoint for getting featured products by category
@@ -167,7 +160,7 @@ export class ProductsController {
       const isAdmin = req.user.role.includes(Role.ADMIN);
       const isPartner = req.user.role.includes(Role.PARTNER);
       if (!isAdmin && !isPartner) {
-        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+        throw new ForbiddenException(COMMON_CODES.FORBIDDEN);
       }
       const ownerId = isPartner && !isAdmin ? req.user._id : undefined;
 
@@ -207,7 +200,7 @@ export class ProductsController {
       const isAdmin = req.user.role.includes(Role.ADMIN);
       const isPartner = req.user.role.includes(Role.PARTNER);
       if (!isAdmin && !isPartner) {
-        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+        throw new ForbiddenException(COMMON_CODES.FORBIDDEN);
       }
       const ownerId = isPartner ? req.user._id : undefined;
       const userLang = req.user?.lang || 'en';
@@ -242,7 +235,7 @@ export class ProductsController {
       const isAdmin = req.user.role.includes(Role.ADMIN);
       const isPartner = req.user.role.includes(Role.PARTNER);
       if (!isAdmin && !isPartner) {
-        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+        throw new ForbiddenException(COMMON_CODES.FORBIDDEN);
       }
       const ownerId = isPartner ? req.user._id : undefined;
       const userLang = req.user?.lang || 'en';
@@ -731,46 +724,30 @@ export class ProductsController {
 
   @Post('unavailability')
   async createUnavailability(@Body() dto: CreateUnavailabilityDto) {
-    try {
-      const created = await this.productsService.createUnavailability(dto);
-      return created;
-    } catch (error) {
-      return { error: error.message };
-    }
+    const created = await this.productsService.createUnavailability(dto);
+    return created;
   }
 
   @Post('booking')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.USER)
   async createBooking(@Body() dto: CreateBookingDto, @Req() req) {
-    try {
-      // Pass consumerId as a separate argument
-      const booking = await this.productsService.createBooking(
-        dto,
-        req.user._id,
-      );
-      return { success: true, data: booking };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
+    const booking = await this.productsService.createBooking(
+      dto,
+      req.user._id,
+    );
+    return { success: true, data: booking };
   }
 
   @Post('booking/:id/approve')
   @UseGuards(AuthGuard(), RolesGuard)
   @Roles(Role.PARTNER)
   async approveBooking(@Param('id') id: string, @Req() req) {
-    try {
-      const booking = await this.productsService.approveBooking(
-        id,
-        req.user._id,
-      );
-      return { success: true, data: booking };
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Booking not found or unauthorized',
-        error.status || HttpStatus.BAD_REQUEST,
-      );
-    }
+    const booking = await this.productsService.approveBooking(
+      id,
+      req.user._id,
+    );
+    return { success: true, data: booking };
   }
 
   @Post('booking/:id/reject')
@@ -781,19 +758,12 @@ export class ProductsController {
     @Req() req,
     @Body('cancellationReason') cancellationReason?: string,
   ) {
-    try {
-      const booking = await this.productsService.rejectBooking(
-        id,
-        req.user._id,
-        cancellationReason,
-      );
-      return { success: true, data: booking };
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Booking not found or unauthorized',
-        error.status || HttpStatus.BAD_REQUEST,
-      );
-    }
+    const booking = await this.productsService.rejectBooking(
+      id,
+      req.user._id,
+      cancellationReason,
+    );
+    return { success: true, data: booking };
   }
 
   @Post('booking/:id/cancel')
@@ -803,37 +773,23 @@ export class ProductsController {
     @Req() req,
     @Body('reason') reason?: string,
   ) {
-    try {
-      const booking = await this.productsService.cancelBooking(
-        id,
-        new Types.ObjectId(req.user._id),
-        reason,
-      );
-      return { success: true, data: booking };
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Booking not found or unauthorized',
-        error.status || HttpStatus.BAD_REQUEST,
-      );
-    }
+    const booking = await this.productsService.cancelBooking(
+      id,
+      new Types.ObjectId(req.user._id),
+      reason,
+    );
+    return { success: true, data: booking };
   }
 
   @Post('booking/:id/complete')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
   async completeBooking(@Param('id') id: string, @Req() req) {
-    try {
-      const booking = await this.productsService.completeBooking(
-        id,
-        req.user._id,
-      );
-      return { success: true, data: booking };
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Booking not found or unauthorized',
-        error.status || HttpStatus.BAD_REQUEST,
-      );
-    }
+    const booking = await this.productsService.completeBooking(
+      id,
+      req.user._id,
+    );
+    return { success: true, data: booking };
   }
 
   @Get('consumer/:consumerId/bookings')
@@ -843,65 +799,43 @@ export class ProductsController {
     @Param('consumerId') consumerId: string,
     @Req() req,
   ) {
-    try {
-      const displayLang = req.user?.lang || 'en';
-      const bookings = await this.productsService.getBookingsForConsumer(
-        consumerId,
-        displayLang,
-      );
-      return { success: true, data: bookings };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
+    const displayLang = req.user?.lang || 'en';
+    const bookings = await this.productsService.getBookingsForConsumer(
+      consumerId,
+      displayLang,
+    );
+    return { success: true, data: bookings };
   }
 
   @Get('partner/:partnerId/bookings')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER)
   async getBookingsForPartner(@Param('partnerId') partnerId: string) {
-    try {
-      const bookings =
-        await this.productsService.getBookingsForPartner(partnerId);
-      return { success: true, data: bookings };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
+    const bookings =
+      await this.productsService.getBookingsForPartner(partnerId);
+    return { success: true, data: bookings };
   }
 
   @Get('security-guard/bookings')
   @UseGuards(SecurityGuardAuthGuard)
   async getBookingsForSecurityGuard(@Req() req) {
-    try {
-      // Get partnerId from the authenticated security guard's data
-      const partnerId = req.user.partnerId;
-
-      if (!partnerId) {
-        throw new HttpException(
-          'Partner ID not found for security guard',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      const bookings =
-        await this.productsService.getBookingsForPartner(partnerId);
-      return { success: true, data: bookings };
-    } catch (error) {
-      return { success: false, error: error.message };
+    const partnerId = req.user.partnerId;
+    if (!partnerId) {
+      throw new BadRequestException(COMMON_CODES.BAD_REQUEST);
     }
+    const bookings =
+      await this.productsService.getBookingsForPartner(partnerId);
+    return { success: true, data: bookings };
   }
 
   @Get('booking/:id')
   @UseGuards(AuthGuard('jwt'))
   async getBookingById(@Param('id') id: string, @Req() req) {
-    try {
-      const booking = await this.productsService.getBookingByIdForUserOrPartner(
-        id,
-        req.user._id,
-      );
-      return { success: true, data: booking };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
+    const booking = await this.productsService.getBookingByIdForUserOrPartner(
+      id,
+      req.user._id,
+    );
+    return { success: true, data: booking };
   }
 
   /**
@@ -1011,27 +945,13 @@ export class ProductsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.PARTNER, Role.ADMIN)
   async getPartnerProducts(@Param('partnerId') partnerId: string, @Req() req) {
-    try {
-      // Partners can only view their own products
-      if (
-        req.user.role.includes(Role.PARTNER) &&
-        req.user._id.toString() !== partnerId
-      ) {
-        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-      }
-
-      const result = await this.productsService.getPartnerProducts(partnerId);
-      return {
-        success: true,
-        data: result,
-        message: 'Partner products retrieved successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to get partner products',
-        error: error.message,
-      };
+    if (
+      req.user.role.includes(Role.PARTNER) &&
+      req.user._id.toString() !== partnerId
+    ) {
+      throw new ForbiddenException(COMMON_CODES.FORBIDDEN);
     }
+    const result = await this.productsService.getPartnerProducts(partnerId);
+    return { success: true, data: result };
   }
 }

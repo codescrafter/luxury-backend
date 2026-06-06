@@ -1,4 +1,11 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as QRCode from 'qrcode';
@@ -19,6 +26,7 @@ import { Kayak, KayakDocument } from './entities/kayak.entity';
 import { Yacht, YachtDocument } from './entities/yacht.entity';
 import { Speedboat, SpeedboatDocument } from './entities/speedboat.entity';
 import { Resort, ResortDocument } from './entities/resort.entity';
+import { PRODUCT_CODES } from '../i18n/namespaces/product.namespace';
 
 @Injectable()
 export class BookingQrService {
@@ -84,10 +92,7 @@ export class BookingQrService {
       return uploadResult.secure_url;
     } catch (error) {
       console.error('Error generating QR code:', error);
-      throw new HttpException(
-        'Failed to generate QR code',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new InternalServerErrorException(PRODUCT_CODES.QR_GENERATE_FAILED);
     }
   }
 
@@ -107,7 +112,7 @@ export class BookingQrService {
       case 'resort':
         return this.resortModel;
       default:
-        throw new HttpException('Invalid product type', HttpStatus.BAD_REQUEST);
+        throw new BadRequestException(PRODUCT_CODES.INVALID_TYPE);
     }
   }
 
@@ -119,15 +124,12 @@ export class BookingQrService {
       // Find the booking
       const booking = await this.bookingModel.findById(bookingId);
       if (!booking) {
-        throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
+        throw new NotFoundException(PRODUCT_CODES.BOOKING_NOT_FOUND);
       }
 
       // Check if booking is confirmed
       if (booking.bookingStatus !== BookingStatus.CONFIRMED) {
-        throw new HttpException(
-          'QR code can only be generated for confirmed bookings',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new BadRequestException(PRODUCT_CODES.QR_NOT_FOR_CONFIRMED);
       }
 
       // Check if QR already exists for this booking
@@ -137,10 +139,7 @@ export class BookingQrService {
       });
 
       if (existingQr) {
-        throw new HttpException(
-          'QR code already exists for this booking',
-          HttpStatus.CONFLICT,
-        );
+        throw new ConflictException(PRODUCT_CODES.QR_ALREADY_EXISTS);
       }
 
       // Generate unique token
@@ -169,10 +168,7 @@ export class BookingQrService {
         throw error;
       }
       console.error('Error generating QR for booking:', error);
-      throw new HttpException(
-        'Failed to generate QR code',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new InternalServerErrorException(PRODUCT_CODES.QR_GENERATE_FAILED);
     }
   }
 
@@ -184,21 +180,15 @@ export class BookingQrService {
       // Find QR record by token
       const qrRecord = await this.bookingQrModel.findOne({ token });
       if (!qrRecord) {
-        throw new HttpException('Invalid QR code', HttpStatus.NOT_FOUND);
+        throw new NotFoundException(PRODUCT_CODES.QR_INVALID);
       }
 
       // Check if QR is active
       if (qrRecord.status !== QrStatus.ACTIVE) {
         if (qrRecord.status === QrStatus.REDEEMED) {
-          throw new HttpException(
-            'QR code has already been redeemed',
-            HttpStatus.BAD_REQUEST,
-          );
+          throw new BadRequestException(PRODUCT_CODES.QR_ALREADY_USED);
         } else if (qrRecord.status === QrStatus.EXPIRED) {
-          throw new HttpException(
-            'QR code has expired',
-            HttpStatus.BAD_REQUEST,
-          );
+          throw new BadRequestException(PRODUCT_CODES.QR_EXPIRED);
         }
       }
 
@@ -209,13 +199,13 @@ export class BookingQrService {
         await this.bookingQrModel.findByIdAndUpdate(qrRecord._id, {
           status: QrStatus.EXPIRED,
         });
-        throw new HttpException('QR code has expired', HttpStatus.BAD_REQUEST);
+        throw new BadRequestException(PRODUCT_CODES.QR_EXPIRED);
       }
 
       // Get booking details
       const booking = await this.bookingModel.findById(qrRecord.bookingId);
       if (!booking) {
-        throw new HttpException('Booking not found', HttpStatus.NOT_FOUND);
+        throw new NotFoundException(PRODUCT_CODES.BOOKING_NOT_FOUND);
       }
 
       // Get user details
@@ -251,10 +241,7 @@ export class BookingQrService {
         throw error;
       }
       console.error('Error verifying QR token:', error);
-      throw new HttpException(
-        'Failed to verify QR code',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new InternalServerErrorException(PRODUCT_CODES.QR_VERIFY_FAILED);
     }
   }
 
@@ -281,7 +268,7 @@ export class BookingQrService {
       }
     }
 
-    throw new HttpException('QR code not found', HttpStatus.NOT_FOUND);
+    throw new NotFoundException(PRODUCT_CODES.QR_NOT_FOUND);
   }
 
   /**
@@ -403,10 +390,7 @@ export class BookingQrService {
       };
     } catch (error) {
       console.error('Error getting QR codes for partner:', error);
-      throw new HttpException(
-        'Failed to get QR codes for partner',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new InternalServerErrorException(PRODUCT_CODES.QR_FETCH_FAILED);
     }
   }
 
@@ -454,10 +438,7 @@ export class BookingQrService {
       };
     } catch (error) {
       console.error('Error marking expired QR codes for partner:', error);
-      throw new HttpException(
-        'Failed to mark expired QR codes',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new InternalServerErrorException(PRODUCT_CODES.QR_FETCH_FAILED);
     }
   }
 
