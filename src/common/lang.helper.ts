@@ -2,9 +2,9 @@
  * Language resolution utility.
  *
  * Determines the active language for a request using a priority chain:
- *   1. req.user.lang    — from JWT (most authoritative, authenticated routes)
- *   2. ?lang=           — query param (explicit per-request override)
- *   3. Accept-Language  — HTTP header (browser/client preference)
+ *   1. ?lang=           — query param (explicit per-request override)
+ *   2. Accept-Language  — HTTP header (browser/mobile client preference)
+ *   3. req.user.lang    — from JWT (fallback to user profile preference)
  *   4. 'en'             — hard default
  *
  * This is intentionally a plain function (not a NestJS service) so it can be
@@ -31,22 +31,22 @@ function normalizeLang(raw: string | undefined): SupportedLang {
  * Works inside exception filters and interceptors where req is available.
  */
 export function resolveLang(req: Record<string, any>): SupportedLang {
-  // 1. JWT-derived user language (most authoritative)
-  if (req?.user?.lang) {
-    return normalizeLang(req.user.lang);
-  }
-
-  // 2. Explicit query param override (?lang=ar)
+  // 1. Explicit query param override (?lang=ar)
   if (req?.query?.lang) {
     return normalizeLang(req.query.lang as string);
   }
 
-  // 3. Accept-Language header (browser/mobile client preference)
+  // 2. Accept-Language header (browser/mobile client current UI language)
   const acceptLanguage = req?.headers?.['accept-language'];
   if (acceptLanguage) {
     // Accept-Language can be: "ar,en;q=0.9" or "ar-SA,ar;q=0.9"
     const primary = acceptLanguage.split(',')[0];
     return normalizeLang(primary);
+  }
+
+  // 3. JWT-derived user language (fallback to user's stored preference)
+  if (req?.user?.lang) {
+    return normalizeLang(req.user.lang);
   }
 
   // 4. Default
